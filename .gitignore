@@ -1,0 +1,6 @@
+data/
+tmp/
+rendered_kb_rule_workflow/
+~$*
+.env
+node_modules/

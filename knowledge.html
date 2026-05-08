@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>合同知识库与规则库</title>
+  <link rel="stylesheet" href="./knowledge.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="./home.html" style="text-decoration:none;color:inherit;">
+      <span>AI</span>
+      <div>
+        <strong>ContractAI</strong>
+        <small>智能合同管理平台</small>
+      </div>
+    </a>
+    <nav>
+      <a href="./contract-generate.html">✍️ 合同起草</a>
+      <a href="./contract-review.html">🔍 合同审查</a>
+      <a href="./knowledge.html" class="active">📚 知识库</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <h1>知识库与规则库构建模块</h1>
+        <p>上传制度、合同、模板、法规和交易习惯，AI 自动提取可用于合同生成与审查的规则。</p>
+      </div>
+      <div class="server-state" id="server-state">检查服务中...</div>
+    </header>
+
+    <section class="stats">
+      <article><span id="doc-count">0</span><small>已归档文档</small></article>
+      <article><span id="rule-count">0</span><small>规则总数</small></article>
+      <article><span id="pending-count">0</span><small>待核对规则</small></article>
+      <article><span id="dimension-count">4</span><small>分类维度</small></article>
+    </section>
+
+    <section class="panel" id="upload">
+      <div class="panel-head">
+        <div>
+          <h2>资料上传与归档</h2>
+          <p>支持批量上传。Word 文档可直接解析，PDF 会优先调用本机 pdftotext，TXT/JSON/CSV/HTML 可直接读取。</p>
+        </div>
+        <button class="primary" id="upload-btn">上传并归档</button>
+      </div>
+      <form id="upload-form" class="upload-grid">
+        <label class="file-zone">
+          <input id="file-input" name="files" type="file" multiple />
+          <strong>选择或拖入文档</strong>
+          <span id="file-hint">可一次选择多个文件</span>
+          <div class="file-list" id="file-list"></div>
+        </label>
+        <div class="form-grid">
+          <label>资料类型
+            <select name="docType">
+              <option value="">自动识别</option>
+              <option>法律法规</option>
+              <option>规章制度</option>
+              <option>合同模板</option>
+              <option>历史合同</option>
+              <option>交易习惯</option>
+              <option>其他资料</option>
+            </select>
+          </label>
+          <label>业务领域
+            <input name="domain" placeholder="采购、销售、人事、软件外包" />
+          </label>
+          <label>适用合同类型
+            <input name="contractType" placeholder="采购合同、服务合同、NDA" />
+          </label>
+          <label>保密级别
+            <select name="confidentiality">
+              <option>内部</option>
+              <option>公开</option>
+              <option>敏感</option>
+              <option>仅法务可见</option>
+            </select>
+          </label>
+        </div>
+      </form>
+      <div class="notice" id="upload-message">上传后会保存原始文件、抽取文本摘要，并进入文档归档列表。</div>
+    </section>
+
+    <section class="panel" id="documents">
+      <div class="panel-head">
+        <div>
+          <h2>文档归档</h2>
+          <p>选择已归档文档后，可批量调用 AI 提取规则；也可一键从全部已解析文档提取。</p>
+        </div>
+        <div class="actions">
+          <button class="secondary" id="extract-selected-btn">提取选中文档</button>
+          <button class="primary" id="extract-all-btn">一键提取规则</button>
+        </div>
+      </div>
+      <div class="doc-toolbar">
+        <input id="doc-search" type="search" placeholder="检索文件名、摘要、类型、领域" />
+        <select id="doc-parse-filter">
+          <option value="">全部解析状态</option>
+          <option value="unparsed">待解析/解析异常</option>
+          <option value="parsed">已解析</option>
+          <option value="partial">待解析</option>
+          <option value="failed">解析失败</option>
+        </select>
+        <select id="doc-type-filter">
+          <option value="">全部资料类型</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="select-all-docs" /></th>
+              <th>文件名</th>
+              <th>类型</th>
+              <th>业务领域</th>
+              <th>合同类型</th>
+              <th>解析状态</th>
+              <th>摘要</th>
+            </tr>
+          </thead>
+          <tbody id="document-body"></tbody>
+        </table>
+      </div>
+      <div class="extract-status" id="extract-status" hidden>
+        <span class="status-spinner"></span>
+        <strong id="extract-status-title">AI 提取中</strong>
+        <span id="extract-status-text">正在准备文档...</span>
+      </div>
+    </section>
+
+    <section class="panel" id="rules">
+      <div class="panel-head">
+        <div>
+          <h2>规则库</h2>
+          <p>待人工核对的规则以卡片展示；启用或驳回后进入规则行列表。可导出为可复用 JSON，也可导入规则文件。</p>
+        </div>
+        <div class="actions">
+          <select id="rule-category-filter">
+            <option value="">全部规则分类</option>
+            <option value="通用规则">通用规则</option>
+            <option value="行业预设">行业预设</option>
+            <option value="企业自定">企业自定</option>
+          </select>
+          <select id="dimension-filter"><option value="">全部维度</option></select>
+          <select id="status-filter">
+            <option value="">全部状态</option>
+            <option value="pending_review">待核对</option>
+            <option value="active">已启用</option>
+            <option value="inactive">已关闭</option>
+            <option value="rejected">已驳回</option>
+          </select>
+          <button class="secondary" id="import-rules-btn">导入规则</button>
+          <button class="secondary" id="export-rules-btn">导出规则</button>
+          <button class="primary" id="accept-all-btn">一键接受所有规则</button>
+          <input id="import-rules-input" type="file" accept=".json,application/json" hidden />
+        </div>
+      </div>
+      <form class="custom-rule-form" id="custom-rule-form">
+        <h3>添加公司自定义条款</h3>
+        <textarea name="ruleText" placeholder="输入一句规则，例如：采购合同超过50万元必须提交总经理办公会审批。" required></textarea>
+        <input name="scope" placeholder="适用范围，可选；不填视为通用自定义规则" />
+        <select name="scenario">
+          <option value="">AI/关键词辅助分类</option>
+          <option>通用规则</option>
+          <option>审批规则</option>
+          <option>交付规则</option>
+          <option>付款规则</option>
+          <option>验收规则</option>
+          <option>违约责任规则</option>
+          <option>保密规则</option>
+          <option>知识产权规则</option>
+          <option>期限终止规则</option>
+        </select>
+        <select name="riskLevel">
+          <option>中</option>
+          <option>高</option>
+          <option>低</option>
+        </select>
+        <label class="checkline"><input name="classifyMode" type="checkbox" value="ai" checked /> AI 辅助分类</label>
+        <button class="primary" type="submit">添加并启用</button>
+      </form>
+      <div id="rule-list" class="rule-list"></div>
+    </section>
+
+    <section class="panel" id="dimensions">
+      <div class="panel-head">
+        <div>
+          <h2>四大维度参考库</h2>
+          <p>规则抽取会优先按这些维度归类，后续也可以扩展为行业规则模板。</p>
+        </div>
+      </div>
+      <div id="dimension-list" class="dimension-list"></div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="rule-detail-modal" hidden>
+    <form class="rule-detail-form" id="rule-detail-form">
+      <div class="modal-head">
+        <div>
+          <h3>规则详情</h3>
+        </div>
+        <button class="mini" type="button" id="rule-detail-close">关闭</button>
+      </div>
+      <input name="ruleId" type="hidden" />
+      <label>规则名称
+        <input name="ruleName" required />
+      </label>
+      <div class="detail-grid">
+        <label>分类维度
+          <select name="dimension"></select>
+        </label>
+        <label>规则类型
+          <select name="ruleType"></select>
+        </label>
+        <label>场景分类
+          <select name="scenario"></select>
+        </label>
+        <label>风险等级
+          <select name="riskLevel">
+            <option>高</option>
+            <option>中</option>
+            <option>低</option>
+          </select>
+        </label>
+        <label>规则归属
+          <select name="ruleBasis">
+            <option>通用法规</option>
+            <option>行业惯例</option>
+            <option>企业自定</option>
+          </select>
+        </label>
+        <label>合同类型
+          <input name="contractType" />
+        </label>
+        <label>业务领域
+          <input name="businessDomain" />
+        </label>
+        <label>优先级
+          <input name="priority" type="number" min="1" max="100" />
+        </label>
+        <label>状态
+          <select name="reviewStatus">
+            <option value="pending_review">待核对</option>
+            <option value="active">已启用</option>
+            <option value="inactive">已关闭</option>
+            <option value="rejected">已驳回</option>
+          </select>
+        </label>
+      </div>
+      <label>触发条件
+        <textarea name="triggerCondition"></textarea>
+      </label>
+      <label>执行动作
+        <textarea name="action"></textarea>
+      </label>
+      <label>来源依据
+        <textarea name="sourceQuote"></textarea>
+      </label>
+      <div class="modal-actions">
+        <button class="primary" type="submit">保存修改</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="./knowledge.js"></script>
+</body>
+</html>

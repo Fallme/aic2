@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>合同生成</title>
+  <link rel="stylesheet" href="./knowledge.css" />
+  <link rel="stylesheet" href="./office-editor.css" />
+</head>
+<body class="workbench-page">
+  <aside class="sidebar">
+    <a class="brand" href="./home.html" style="text-decoration:none;color:inherit;">
+      <span>AI</span>
+      <div>
+        <strong>ContractAI</strong>
+        <small>智能合同管理平台</small>
+      </div>
+    </a>
+    <nav>
+      <a href="./contract-generate.html" class="active">✍️ 合同起草</a>
+      <a href="./contract-review.html">🔍 合同审查</a>
+      <a href="./knowledge.html">📚 知识库</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <h1>智能合同生成</h1>
+        <p>按业务意图识别模板，逐项补齐要素，生成后在右侧在线编辑。</p>
+      </div>
+      <div class="server-state" id="server-state">检查服务中...</div>
+    </header>
+
+    <section class="ai-command-strip generation-telemetry" hidden>
+      <article>
+        <span>意图识别</span>
+        <strong id="intent-status">待输入</strong>
+      </article>
+      <article>
+        <span>模板匹配</span>
+        <strong id="template-status">自动识别</strong>
+      </article>
+      <article>
+        <span>要素补齐</span>
+        <strong id="field-status">0 项</strong>
+      </article>
+      <article>
+        <span>规则预检</span>
+        <strong id="rule-status">待生成</strong>
+      </article>
+    </section>
+
+    <section class="generate-workbench office-workbench">
+      <section class="contract-editor-panel office-panel panel">
+        <div class="panel-head compact-head">
+          <div>
+            <h2 id="contract-editor-title">合同内容</h2>
+            <p id="contract-editor-meta">富文本在线编辑，切换页面后自动保留。</p>
+          </div>
+          <div class="actions">
+            <div class="generation-completion compact" id="generation-completion">
+              <div>
+                <strong id="completion-percent">完成度 0%</strong>
+                <span id="completion-detail">填写合同信息后会实时计算完整度</span>
+              </div>
+              <div class="completion-track" aria-label="合同信息完成度">
+                <span id="completion-bar" style="width:0%"></span>
+              </div>
+            </div>
+            <button class="secondary" type="button" id="regenerate-contract-btn">生成新合同</button>
+            <button class="secondary" type="button" id="copy-contract-btn">复制</button>
+            <button class="primary" type="button" id="download-contract-btn">下载</button>
+          </div>
+        </div>
+        <div class="draft-insight-grid" id="draft-insights"></div>
+        <div id="contract-editor-container"></div>
+      </section>
+
+      <section class="generate-left doubao-side">
+        <section class="chat-panel">
+          <div class="chat-panel-head">
+            <div>
+              <span>当前模板</span>
+              <strong id="template-picker-label">自动识别</strong>
+            </div>
+            <button class="secondary" type="button" id="open-template-btn">选择模板</button>
+          </div>
+          <div class="generation-progress" id="generation-progress"></div>
+          <div class="template-field-panel" id="template-field-panel" hidden></div>
+          <div class="chat-thread" id="generate-chat">
+            <div class="chat-message assistant">
+              <div class="chat-bubble">
+              描述你要起草的合同，例如交易背景、双方、标的、金额、交付和付款安排。我会像对话助手一样逐项追问，左侧文档会实时生成并保留。
+              </div>
+            </div>
+          </div>
+          <div class="composer-suggestions" id="composer-suggestions" hidden></div>
+          <div class="chat-composer">
+            <textarea id="generate-intent" placeholder="继续输入合同信息或回答追问，例如：采购方是A公司，供应商是B公司，合同总价20万元。"></textarea>
+            <div class="actions">
+              <button class="primary" id="generate-btn">发送</button>
+              <button class="secondary" type="button" id="pause-generate-btn" hidden>暂停</button>
+              <button class="secondary" type="button" id="cancel-generate-btn" hidden>取消</button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </section>
+
+    <div class="modal-backdrop" id="template-modal" hidden>
+      <section class="rule-detail-form template-dialog">
+        <div class="modal-head">
+          <div>
+            <h3>选择合同模板</h3>
+            <p>模板仅作起草参考，系统仍会以你的描述自动识别并切换合同类型。</p>
+          </div>
+          <button class="secondary" type="button" id="close-template-btn">关闭</button>
+        </div>
+        <div class="template-list modal-template-list" id="template-list"></div>
+        <div class="custom-template-builder import-template-builder">
+          <div class="builder-head">
+            <div>
+              <strong>导入合同生成模板</strong>
+              <small>上传 Word/TXT/PDF 或粘贴合同全文，AI 会抽取字段、章节和占位符并保存到模板预设。</small>
+            </div>
+          </div>
+          <input id="template-import-file" type="file" accept=".doc,.docx,.txt,.md,.pdf,.html,.htm" />
+          <textarea id="template-import-text" placeholder="也可以直接粘贴一份合同正文，系统会抽取成可复用模板。"></textarea>
+          <div class="template-import-status" id="template-import-status">导入后会出现在上方模板列表，并可直接用于追问生成。</div>
+          <div class="actions">
+            <button class="primary" type="button" id="import-template-btn">导入并生成模板</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="./office-editor.js"></script>
+  <script src="./contract-generate.js"></script>
+</body>
+</html>

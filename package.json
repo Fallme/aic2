@@ -1,0 +1,19 @@
+{
+  "name": "aic2",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI Contract - 智能合同管理平台",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check knowledge.js && node --check contract-generate.js && node --check contract-review.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.0",
+    "pg": "^8.20.0"
+  }
+}

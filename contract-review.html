@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>合同审查</title>
+  <link rel="stylesheet" href="./knowledge.css" />
+  <link rel="stylesheet" href="./office-editor.css" />
+</head>
+<body class="workbench-page">
+  <aside class="sidebar">
+    <a class="brand" href="./home.html" style="text-decoration:none;color:inherit;">
+      <span>AI</span>
+      <div>
+        <strong>ContractAI</strong>
+        <small>智能合同管理平台</small>
+      </div>
+    </a>
+    <nav>
+      <a href="./contract-generate.html">✍️ 合同起草</a>
+      <a href="./contract-review.html" class="active">🔍 合同审查</a>
+      <a href="./knowledge.html">📚 知识库</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <h1>智能合同审查</h1>
+        <p>上传合同后自动定位风险原文，按审查清单输出风险等级、依据和修改意见。</p>
+      </div>
+      <div class="server-state" id="server-state">检查服务中...</div>
+    </header>
+
+    <section class="review-score-area">
+      <section class="review-scoreboard" id="review-scoreboard">
+      <article>
+        <span>合同评分</span>
+        <strong>--</strong>
+      </article>
+      <article>
+        <span>综合风险</span>
+        <strong>待审查</strong>
+      </article>
+      <article>
+        <span>风险问题</span>
+        <strong>0</strong>
+        <small>高 0 / 中 0</small>
+      </article>
+      <article>
+        <span>审查点</span>
+        <strong>0</strong>
+      </article>
+      <article>
+        <span>AI审查</span>
+        <strong>待调用</strong>
+      </article>
+      </section>
+    </section>
+
+    <section class="panel compact-review-input review-command-panel">
+      <div class="panel-head compact-head">
+        <div>
+          <h2>待审合同</h2>
+          <p>导入后原文会显示在左侧，审查完成后再生成批注。</p>
+        </div>
+        <div class="actions">
+          <button class="secondary upload-contract-btn" type="button" id="open-import-btn">上传/粘贴合同</button>
+          <button class="primary" type="button" id="review-btn">开始审查</button>
+        </div>
+      </div>
+      <div class="review-summary-card review-summary-inline" id="review-summary">
+        <div>
+          <strong>审查结果</strong>
+          <p>审查完成后显示整体意见、综合风险和合同评分。</p>
+        </div>
+        <span class="tag neutral">待审查</span>
+      </div>
+    </section>
+
+    <section class="review-board">
+      <article class="review-source-panel panel">
+        <div class="panel-head compact-head">
+          <div>
+            <h2>合同原文与标记</h2>
+            <p id="source-meta">命中的风险片段会高亮显示。</p>
+          </div>
+          <div class="actions">
+            <button class="secondary" type="button" id="copy-corrected-btn">复制当前原文</button>
+            <button class="primary" type="button" id="download-corrected-btn">下载修改后合同</button>
+          </div>
+        </div>
+        <div id="review-editor-container" class="contract-source"></div>
+      </article>
+
+      <article class="review-issue-panel panel">
+        <div class="panel-head compact-head">
+          <div>
+            <h2>风险点和意见</h2>
+            <p>审查完成后按问题逐项定位原文。</p>
+          </div>
+          <div class="actions">
+            <button class="secondary mini" type="button" id="accept-all-btn" disabled>接受全部</button>
+          </div>
+        </div>
+        <div class="review-workflow" id="review-workflow"></div>
+        <div class="review-filter-bar" id="review-filter-bar">
+          <button class="active" type="button" data-review-filter="summary">审查结果</button>
+          <button type="button" data-review-filter="risk">风险问题</button>
+          <button type="button" data-review-filter="common">常见问题</button>
+          <button type="button" data-review-filter="rule">规则库</button>
+        </div>
+        <div class="issue-nav" id="issue-nav">
+          <button class="secondary" type="button" id="prev-issue-btn">上一个</button>
+          <span id="issue-counter">0 / 0</span>
+          <button class="secondary" type="button" id="next-issue-btn">下一个</button>
+        </div>
+        <div class="review-output" id="review-issues">
+          <div class="notice">审查结果会按风险等级列出问题、依据和修改建议。</div>
+        </div>
+      </article>
+    </section>
+
+    <div class="modal-backdrop" id="review-import-modal" hidden>
+      <form class="rule-detail-form review-import-dialog" id="review-form">
+        <div class="modal-head">
+          <div>
+            <h3>导入待审合同</h3>
+            <p>上传 Word/PDF/TXT，或直接粘贴合同文本。</p>
+          </div>
+          <button class="secondary" type="button" id="close-import-btn">关闭</button>
+        </div>
+        <label class="review-file-zone modal-file-zone">
+          <input id="review-file" name="contractFile" type="file" accept=".doc,.docx,.pdf,.txt,.md,.html,.json" />
+          <strong>选择合同文件</strong>
+          <span id="review-file-hint">支持 Word、PDF、TXT</span>
+        </label>
+        <label>合同文本
+          <textarea id="review-import-text" name="contractText" placeholder="也可以直接粘贴合同全文。"></textarea>
+        </label>
+        <textarea id="review-text" hidden></textarea>
+        <div class="modal-actions">
+          <button class="secondary" type="button" id="clear-import-btn">清空</button>
+          <button class="primary" type="button" id="confirm-import-btn">导入原文</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="./office-editor.js"></script>
+  <script src="./contract-review.js"></script>
+</body>
+</html>
