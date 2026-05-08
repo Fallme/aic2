@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: contract-knowledge-rules
+    name: aic2
     runtime: node
     plan: free
     buildCommand: npm install
