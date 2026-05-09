@@ -3997,13 +3997,13 @@ async function parseReviewContractInput(req, body) {
         try {
           const parser = new DocxFormatParser(files[0].buffer);
           formattedResult = await parser.parse();
-        } catch (e) { formattedResult = null; }
+        } catch (e) { console.error("[DocxFormatParser] docx parse error:", e.message); formattedResult = null; }
       } else if (ext === ".doc") {
         try {
           const docxBuffer = await convertDocToDocx(files[0].buffer);
           const parser = new DocxFormatParser(docxBuffer);
           formattedResult = await parser.parse();
-        } catch (e) { formattedResult = null; }
+        } catch (e) { console.error("[DocxFormatParser] doc parse error:", e.message); formattedResult = null; }
       }
       if (formattedResult) {
         contractText = `${contractText}\n${formattedResult.text}`.trim();
