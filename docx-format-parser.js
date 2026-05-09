@@ -106,7 +106,7 @@ class DocxFormatParser {
     let html = parts.join("\n");
     if (defaultFont || defaultSize) {
       const s = [];
-      if (defaultFont) s.push(`font-family:"${defaultFont}",serif`);
+      if (defaultFont) s.push(`font-family:'${defaultFont}',serif`);
       if (defaultSize) s.push(`font-size:${defaultSize}pt`);
       html = `<div style="${s.join(";")}">${html}</div>`;
     }
@@ -279,7 +279,7 @@ class DocxFormatParser {
       if (szM) style.push(`font-size:${this._halfToPt(szM[1])}pt`);
 
       const fontM = rPr.match(/<w:rFonts[^>]*(?:w:ascii|w:eastAsia|w:hAnsi)="([^"]+)"/);
-      if (fontM) style.push(`font-family:"${fontM[1]}",serif`);
+      if (fontM) style.push(`font-family:'${fontM[1]}',serif`);
 
       const vertM = rPr.match(/<w:vertAlign[^>]*w:val="(\w+)"/);
       if (vertM) {
