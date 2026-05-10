@@ -21,6 +21,7 @@ const els = {
   nextIssueBtn: document.getElementById("next-issue-btn"),
   issueCounter: document.getElementById("issue-counter"),
   acceptAllBtn: document.getElementById("accept-all-btn"),
+  exportReportBtn: document.getElementById("export-report-btn"),
   openImportBtn: document.getElementById("open-import-btn"),
   importModal: document.getElementById("review-import-modal"),
   closeImportBtn: document.getElementById("close-import-btn"),
@@ -124,6 +125,7 @@ function restoreState() {
     updateFilterButtons();
     renderIssueList();
     els.reviewBtn.textContent = state.reviewComplete ? "重新审查" : "开始审查";
+    if (els.exportReportBtn) els.exportReportBtn.disabled = !state.reviewComplete;
     els.openImportBtn.classList.toggle("file-loaded", Boolean(state.workingText));
     els.openImportBtn.textContent = state.fileName ? `文件：${state.fileName}` : state.workingText ? "已导入文本合同" : "上传/粘贴合同";
     setSourceMeta(state.workingText);
@@ -1233,6 +1235,7 @@ function renderReviewResult(data) {
   renderEditableSource({ annotated: true });
   renderIssueList();
   els.reviewBtn.textContent = "重新审查";
+  if (els.exportReportBtn) els.exportReportBtn.disabled = false;
   saveState();
 }
 
@@ -1678,6 +1681,108 @@ function clearImport() {
   els.reviewFileHint.textContent = "支持 Word、PDF、TXT";
 }
 
+
+/* ── 导出审查报告 ── */
+function exportReviewReport() {
+  if (!state.reviewData || !state.issues.length) return;
+  const data = state.reviewData;
+  const issues = state.issues;
+  const counts = countsByRisk(issues);
+  const dims = data.reviewReport?.counts || dimensionCounts(issues);
+  const risk = data.overallRisk || data.overall_risk || "中";
+  const score = reviewScore(issues);
+  const riskColor = risk === "高" ? "#ff4d4f" : risk === "中" ? "#faad14" : "#52c41a";
+  const now = new Date();
+  const dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+  const modelLabel = currentModelLabel(data);
+
+  const issueRows = issues.map(function(issue, i) {
+    const level = issueLevel(issue);
+    const lc = level === "高" ? "#ff4d4f" : level === "中" ? "#faad14" : "#52c41a";
+    const basis = issueBasisItems(issue);
+    const replacement = replacementText(issue);
+    return '<tr><td style="text-align:center;font-weight:700;">' + (i+1) + '</td>'
+      + '<td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;color:#fff;background:' + lc + ';">' + level + '风险</span></td>'
+      + '<td style="font-weight:600;">' + escapeHtml(issue.title || "风险问题") + '</td>'
+      + '<td>' + escapeHtml(issue.problem || "") + '</td>'
+      + '<td>' + escapeHtml(issue.suggestion || "—") + '</td>'
+      + '<td style="font-size:11px;color:#666;">' + (basis.length ? basis.map(function(b){return escapeHtml(b);}).join("<br>") : "—") + '</td>'
+      + '<td style="font-size:11px;">' + (replacement ? '<span style="color:#52c41a;">' + escapeHtml(replacement.slice(0,120)) + '</span>' : "—") + '</td></tr>';
+  }).join("");
+
+  const dimData = [
+    { label: "实质内容", count: dims.content || 0 },
+    { label: "签约主体", count: dims.subject || 0 },
+    { label: "格式用语", count: dims.format || 0 },
+    { label: "规则匹配", count: dims.rule || 0 },
+  ];
+  const dimRows = dimData.map(function(d) {
+    var pct = Math.min(100, d.count * (100 / Math.max(1, counts.total)));
+    return '<tr><td style="font-weight:600;">' + d.label + '</td><td style="text-align:center;">' + d.count + '</td>'
+      + '<td><div style="height:12px;border-radius:6px;background:#f0f0f0;"><div style="height:12px;border-radius:6px;background:#1677ff;width:' + pct + '%"></div></div></td></tr>';
+  }).join("");
+
+  var replacementIssues = issues.filter(function(i){return replacementText(i);});
+  var replRows = replacementIssues.map(function(issue, i) {
+    var lc = issueLevel(issue)==="高"?"#ff4d4f":issueLevel(issue)==="中"?"#faad14":"#52c41a";
+    return '<tr><td style="text-align:center;">' + (i+1) + '</td>'
+      + '<td><span style="color:' + lc + ';font-weight:600;">' + issueLevel(issue) + '</span></td>'
+      + '<td>' + escapeHtml(issue.title || "") + '</td>'
+      + '<td style="font-size:10pt;">' + escapeHtml(replacementText(issue)) + '</td>'
+      + '<td style="text-align:center;">' + (issue.applied ? "已应用" : "待处理") + '</td></tr>';
+  }).join("");
+
+  var reportHtml = '<!DOCTYPE html>\n<html><head><meta charset="utf-8">\n<title>合同审查报告</title>\n'
+    + '<style>@page{margin:2cm 2.5cm;size:A4;}body{margin:0;font-family:"Microsoft YaHei","微软雅黑","SimSun",sans-serif;font-size:11pt;color:#333;line-height:1.7;}\n'
+    + '.cover{text-align:center;padding:120px 40px 60px;page-break-after:always;}\n'
+    + '.cover h1{font-size:28pt;color:#1a1a2e;margin:0 0 12px;}\n'
+    + '.cover .subtitle{font-size:14pt;color:#666;margin:0 0 40px;}\n'
+    + '.cover .meta-table{margin:0 auto;border-collapse:collapse;font-size:11pt;}\n'
+    + '.cover .meta-table td{padding:8px 24px;text-align:left;}\n'
+    + '.cover .meta-table td:first-child{color:#999;text-align:right;}\n'
+    + '.cover .logo{font-size:18pt;font-weight:800;color:#1677ff;margin-bottom:40px;}\n'
+    + 'h2{font-size:16pt;color:#1a1a2e;border-bottom:2px solid #1677ff;padding-bottom:6px;margin:32px 0 16px;}\n'
+    + '.summary-card{background:#f6f8fa;border:1px solid #e8e8e8;border-radius:8px;padding:20px 24px;margin:16px 0;}\n'
+    + '.score-grid{display:flex;gap:24px;margin:16px 0;}\n'
+    + '.score-item{flex:1;text-align:center;padding:16px;border-radius:8px;border:1px solid #e8e8e8;}\n'
+    + '.score-item .num{font-size:28pt;font-weight:800;}\n'
+    + '.score-item .label{font-size:10pt;color:#999;}\n'
+    + 'table{width:100%;border-collapse:collapse;margin:12px 0;font-size:10pt;}\n'
+    + 'th{background:#f5f5f5;font-weight:600;}th,td{border:1px solid #e8e8e8;padding:8px 10px;text-align:left;vertical-align:top;}\n'
+    + '.footer{text-align:center;color:#999;font-size:9pt;margin-top:40px;padding-top:16px;border-top:1px solid #e8e8e8;}\n</style>\n</head><body>\n\n'
+    + '<div class="cover">\n<div class="logo">ContractAI</div>\n<h1>合同审查报告</h1>\n'
+    + '<p class="subtitle">' + escapeHtml(state.fileName || "智能合同审查") + '</p>\n'
+    + '<table class="meta-table">\n'
+    + '<tr><td>审查日期</td><td>' + dateStr + '</td></tr>\n'
+    + '<tr><td>综合风险</td><td style="color:' + riskColor + ';font-weight:700;">' + escapeHtml(risk) + '</td></tr>\n'
+    + '<tr><td>合同评分</td><td style="font-weight:700;">' + score + ' / 100</td></tr>\n'
+    + '<tr><td>风险问题</td><td>' + counts.total + ' 项（高 ' + counts.high + ' / 中 ' + counts.mid + ' / 低 ' + counts.low + '）</td></tr>\n'
+    + '<tr><td>审查引擎</td><td>' + escapeHtml(modelLabel) + '</td></tr>\n'
+    + '</table>\n</div>\n\n'
+    + '<h2>一、审查摘要</h2>\n'
+    + '<div class="summary-card"><p>' + escapeHtml(data.summary || "审查完成。") + '</p>\n'
+    + '<div class="score-grid">\n'
+    + '<div class="score-item"><div class="num" style="color:' + riskColor + ';">' + score + '</div><div class="label">合同评分</div></div>\n'
+    + '<div class="score-item"><div class="num" style="color:' + riskColor + ';">' + escapeHtml(risk) + '</div><div class="label">综合风险</div></div>\n'
+    + '<div class="score-item"><div class="num" style="color:' + (counts.high ? "#ff4d4f" : "#52c41a") + ';">' + (counts.high + counts.mid) + '</div><div class="label">风险问题</div></div>\n'
+    + '<div class="score-item"><div class="num">' + counts.total + '</div><div class="label">审查要点</div></div>\n'
+    + '</div></div>\n\n'
+    + '<h2>二、维度分析</h2>\n'
+    + '<table><thead><tr><th>审查维度</th><th style="width:80px;text-align:center;">问题数</th><th>分布</th></tr></thead>\n<tbody>' + dimRows + '</tbody></table>\n\n'
+    + '<h2>三、风险问题逐条分析</h2>\n'
+    + '<table><thead><tr><th style="width:40px;text-align:center;">#</th><th style="width:70px;">风险等级</th><th style="width:140px;">问题标题</th><th>问题描述</th><th>修改建议</th><th style="width:140px;">依据</th><th style="width:140px;">替换文本</th></tr></thead>\n<tbody>' + issueRows + '</tbody></table>\n\n'
+    + '<h2>四、修改建议汇总</h2>\n'
+    + (replacementIssues.length
+      ? '<table><thead><tr><th style="width:40px;text-align:center;">#</th><th style="width:70px;">风险等级</th><th style="width:160px;">问题</th><th>建议替换文本</th><th style="width:60px;">状态</th></tr></thead>\n<tbody>' + replRows + '</tbody></table>\n'
+      : '<p>暂无可直接替换的修改建议。</p>\n')
+    + '<div class="footer"><p>本报告由 ContractAI 智能合同管理平台自动生成 · ' + dateStr + '</p>\n'
+    + '<p>报告仅供参考，具体法律意见请咨询专业律师</p></div>\n\n</body></html>';
+
+  var blob = new Blob([reportHtml], { type: "application/msword;charset=utf-8" });
+  var base = (state.fileName || "合同").replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]/g, "_");
+  downloadBlob(blob, base + "_审查报告_" + dateStr + ".doc");
+}
+
 async function loadInitial() {
   officeEditor = new OfficeEditor("review-editor-container", {
     mode: "word",
@@ -1803,6 +1908,7 @@ els.nextIssueBtn.addEventListener("click", () => {
 });
 
 els.downloadCorrectedBtn.addEventListener("click", downloadCorrectedText);
+els.exportReportBtn.addEventListener("click", exportReviewReport);
 els.copyCorrectedBtn.addEventListener("click", copyCorrectedText);
 
 loadInitial().catch((error) => {
