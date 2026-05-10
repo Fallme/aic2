@@ -1170,7 +1170,7 @@ function runPdfToText(filePath) {
 function extractPdfFallback(buffer) {
   const text = buffer.toString("latin1");
   const matches = text.match(/[A-Za-z0-9\u00a0-\uffff][A-Za-z0-9\s.,;:()_\-\/\u00a0-\uffff]{8,}/g) || [];
-  return matches.join("\n").replace(/\s{3,}/g, " ").slice(0, 20000);
+  return matches.join("\n").replace(/\s{3,}/g, " ").slice(0, 120000);
 }
 
 async function extractText(filePath, originalName, buffer) {
@@ -1178,7 +1178,7 @@ async function extractText(filePath, originalName, buffer) {
   if ([".txt", ".md", ".csv", ".json", ".html", ".htm", ".xml"].includes(ext)) return buffer.toString("utf8");
   if (ext === ".docx") return extractDocxText(buffer);
   if (ext === ".pdf") return (await runPdfToText(filePath)) || extractPdfFallback(buffer);
-  return buffer.toString("utf8").replace(/\0/g, "").slice(0, 20000);
+  return buffer.toString("utf8").replace(/\0/g, "").slice(0, 120000);
 }
 
 function simpleDocType(filename, text) {
@@ -1230,7 +1230,7 @@ function buildJsonRepairPrompt(content, label = "模型结果") {
   return `请把下面${label}修复为严格可解析的 JSON，只输出 JSON，不要输出解释、Markdown 或代码块。
 
 原始内容：
-${String(content || "").slice(0, 18000)}
+${String(content || "").slice(0, 120000)}
 
 要求：
 1. 保留原有字段含义，不新增无依据内容。
@@ -1764,7 +1764,7 @@ function inferTemplateFieldsFromText(text = "") {
 }
 
 function fallbackTemplateTextFromContract(text = "", fileName = "") {
-  let template = String(text || "").replace(/\r/g, "").trim().slice(0, 18000);
+  let template = String(text || "").replace(/\r/g, "").trim().slice(0, 120000);
   if (!template) return "";
   template = template
     .replace(/(甲方(?:（[^）]{0,12}）)?[：:])\s*[^\n]{2,80}/g, "$1【甲方名称】")
@@ -1797,7 +1797,7 @@ function buildTemplateImportPrompt(text = "", fileName = "") {
 文件名：${fileName || "未命名"}
 
 合同原文：
-${String(text || "").slice(0, 26000)}
+${String(text || "").slice(0, 120000)}
 
 请输出严格 JSON：
 {
@@ -2398,8 +2398,8 @@ ${description}
 
 匹配模板：${template.name}
 模板大纲：${template.outline.join("、")}
-${template.templateText ? `\n模板正文（应优先保留章节结构和字段语义）：\n${template.templateText.slice(0, 12000)}\n` : ""}
-${options.existingDraft ? `\n用户当前草稿/已编辑版本（重新生成时参考）：\n${String(options.existingDraft).slice(0, 12000)}\n` : ""}
+${template.templateText ? `\n模板正文（应优先保留章节结构和字段语义）：\n${template.templateText.slice(0, 120000)}\n` : ""}
+${options.existingDraft ? `\n用户当前草稿/已编辑版本（重新生成时参考）：\n${String(options.existingDraft).slice(0, 120000)}\n` : ""}
 
 已补充信息：
 ${JSON.stringify(answers, null, 2)}
@@ -2464,7 +2464,7 @@ function buildAnswerExtractionPrompt(template, description, answers, rules, snip
 ${fieldLines}
 
 用户对话/描述：
-${String(description || "").slice(0, 12000)}
+${String(description || "").slice(0, 120000)}
 
 已知答案：
 ${JSON.stringify(answers, null, 2)}
@@ -2584,7 +2584,7 @@ function buildAnswerValidationPrompt(template, field, answer, answers, descripti
 字段追问：${field.question || ""}
 
 用户整体描述：
-${String(description || "").slice(0, 8000)}
+${String(description || "").slice(0, 120000)}
 
 已知答案：
 ${JSON.stringify(answers, null, 2)}
@@ -3739,7 +3739,7 @@ ${summarizeReviewPrecheckForPrompt(precheckIssues)}
 ${COMMON_REVIEW_ISSUES.map((item, index) => `${index + 1}. ${item}`).join("\n")}
 
 合同文本：
-${contractText.slice(0, 26000)}
+${contractText.slice(0, 120000)}
 
 输出严格 JSON：
 {
@@ -4506,7 +4506,7 @@ async function handleContractChat(req, res) {
   if (!providers.length) return sendJson(res, 500, { error: "未配置 AI API Key" });
 
   const contractContext = contractText
-    ? `\n\n以下是用户导入的合同原文：\n${contractText.slice(0, 8000)}`
+    ? `\n\n以下是用户导入的合同原文：\n${contractText.slice(0, 120000)}`
     : "\n\n用户尚未导入合同。";
 
   const hasSelectedText = message.includes("【选中文本】");
@@ -4545,7 +4545,7 @@ ${searchContext ? "回答时请引用搜索结果中的相关信息，并注明�
 
   const messages = [
     { role: "system", content: systemPrompt },
-    ...(Array.isArray(history) ? history.slice(-10) : []),
+    ...(Array.isArray(history) ? history : []),
     { role: "user", content: message },
   ];
 
@@ -4560,7 +4560,7 @@ ${searchContext ? "回答时请引用搜索结果中的相关信息，并注明�
       const response = await fetch(`${normalizeModelBaseUrl(provider.baseUrl)}/chat/completions`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ model: provider.model, temperature: 0.3, max_tokens: 4096, messages }),
+        body: JSON.stringify({ model: provider.model, temperature: 0.3, max_tokens: 16384, messages }),
       });
       const responseText = await response.text();
       let data = {};
@@ -4575,35 +4575,55 @@ ${searchContext ? "回答时请引用搜索结果中的相关信息，并注明�
   return sendJson(res, 500, { error: errors.join(" | ") });
 }
 
-async function handleServeDocx(req, res) {
-  const id = req.url.split("/api/documents/file/")[1]?.split("?")[0];
-  if (!id) return sendJson(res, 400, { error: "Missing file id" });
-  const filePath = findUploadedDocxPath(id);
-  if (!filePath || !fs.existsSync(filePath)) return sendJson(res, 404, { error: "File not found" });
-  res.writeHead(200, {
-    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "cache-control": "public, max-age=3600",
-    "access-control-allow-origin": "*",
-  });
-  fs.createReadStream(filePath).pipe(res);
+/* ── 模板文件查找（修复版）── */
+function findTemplateDocxPath(docxId = "") {
+  const id = String(docxId || "").replace(/[^\w-]/g, "");
+  if (!id) return "";
+  // 直接查找 {id}.docx
+  const direct = path.join(UPLOAD_DIR, `${id}.docx`);
+  if (fs.existsSync(direct)) return direct;
+  // 兜底：REVIEW_ 前缀格式
+  if (id.startsWith("REVIEW_")) {
+    const match = fs.readdirSync(UPLOAD_DIR).find((name) => name.startsWith(`${id}_`) && name.toLowerCase().endsWith(".docx"));
+    return match ? path.join(UPLOAD_DIR, match) : "";
+  }
+  return "";
 }
 
-/* ── 模板解析与填充 API ── */
-const { parseTemplate } = require("./template-parser");
-const { fillTemplate } = require("./template-filler");
+async function handleUploadTemplateFixed(req, res) {
+  const body = await readBody(req);
+  const contentType = req.headers["content-type"] || "";
+  const parts = parseMultipart(body, contentType);
+  if (!parts || !parts.files.length) return sendJson(res, 400, { error: "请上传文件" });
 
-async function handleParseTemplate(req, res) {
+  const file = parts.files[0];
+  if (!/\.docx?$/i.test(file.filename)) return sendJson(res, 400, { error: "仅支持 .docx 文件" });
+
+  const docxId = crypto.randomUUID();
+  const savePath = path.join(UPLOAD_DIR, `${docxId}.docx`);
+  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  fs.writeFileSync(savePath, file.buffer);
+
+  try {
+    const result = await parseTemplate(file.buffer);
+    result.docxId = docxId;
+    result.fileName = file.filename;
+    return sendJson(res, 200, result);
+  } catch (err) {
+    return sendJson(res, 500, { error: `模板解析失败: ${err.message}` });
+  }
+}
+
+async function handleParseTemplateFixed(req, res) {
   const body = JSON.parse((await readBody(req)).toString() || "{}");
-
   let buffer;
   if (body.docxId) {
-    const filePath = findUploadedDocxPath(body.docxId);
+    const filePath = findTemplateDocxPath(body.docxId);
     if (!filePath) return sendJson(res, 404, { error: "未找到文件" });
     buffer = fs.readFileSync(filePath);
   } else {
     return sendJson(res, 400, { error: "请上传 .docx 模板文件或提供 docxId" });
   }
-
   try {
     const result = await parseTemplate(buffer);
     return sendJson(res, 200, result);
@@ -4612,33 +4632,13 @@ async function handleParseTemplate(req, res) {
   }
 }
 
-async function handleUploadTemplate(req, res) {
-  const body = await readBody(req);
-  const parts = parseMultipart(req, body);
-  if (!parts || !parts.files.length) return sendJson(res, 400, { error: "请上传文件" });
-
-  const file = parts.files[0];
-  if (!/\.docx?$/i.test(file.filename)) return sendJson(res, 400, { error: "仅支持 .docx 文件" });
-
-  const docxId = crypto.randomUUID();
-  const savePath = path.join(UPLOAD_DIR, `${docxId}.docx`);
-  fs.writeFileSync(savePath, file.buffer);
-
-  try {
-    const result = await parseTemplate(file.buffer);
-    return sendJson(res, 200, { docxId, ...result });
-  } catch (err) {
-    return sendJson(res, 500, { error: `模板解析失败: ${err.message}` });
-  }
-}
-
-async function handleFillTemplate(req, res) {
+async function handleFillTemplateFixed(req, res) {
   const body = JSON.parse((await readBody(req)).toString() || "{}");
   const { docxId, values } = body;
   if (!docxId) return sendJson(res, 400, { error: "缺少 docxId" });
   if (!values || typeof values !== "object") return sendJson(res, 400, { error: "缺少填充数据 values" });
 
-  const filePath = findUploadedDocxPath(docxId);
+  const filePath = findTemplateDocxPath(docxId);
   if (!filePath) return sendJson(res, 404, { error: "未找到模板文件" });
 
   try {
@@ -4656,6 +4656,18 @@ async function handleFillTemplate(req, res) {
   }
 }
 
+async function handleServeDocxFixed(req, res) {
+  const id = req.url.split("/api/documents/file/")[1]?.split("?")[0];
+  if (!id) return sendJson(res, 400, { error: "Missing file id" });
+  const filePath = findTemplateDocxPath(id);
+  if (!filePath || !fs.existsSync(filePath)) return sendJson(res, 404, { error: "File not found" });
+  res.writeHead(200, {
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "cache-control": "public, max-age=3600",
+    "access-control-allow-origin": "*",
+  });
+  fs.createReadStream(filePath).pipe(res);
+}
 async function handleAIAnalyzeTemplate(req, res) {
   const body = JSON.parse((await readBody(req)).toString() || "{}");
   const { fields, context, attachments } = body;
@@ -4709,14 +4721,11 @@ ${attachDesc}
       try { data = responseText ? JSON.parse(responseText) : {}; } catch { data = {}; }
       if (!response.ok) throw new Error(data?.error?.message || `${provider.name} failed: ${response.status}`);
       const reply = data.choices?.[0]?.message?.content || "";
-
-      // 尝试从回复中提取 JSON
       let analysis = {};
       try {
         const jsonMatch = reply.match(/\{[\s\S]*\}/);
         if (jsonMatch) analysis = JSON.parse(jsonMatch[0]);
       } catch (_) {}
-
       return sendJson(res, 200, { analysis, rawReply: reply, provider: provider.name, model: provider.model });
     } catch (error) {
       errors.push(`${provider.name}: ${error.message}`);
