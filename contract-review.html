@@ -17,66 +17,69 @@
       </div>
     </a>
     <nav>
-      <a href="./contract-generate.html">✍️ 合同起草</a>
+      <a href="./contract-draft.html">📝 智能起草</a>
+      <a href="./contract-generate.html">✍️ 合同生成</a>
       <a href="./contract-review.html" class="active">🔍 合同审查</a>
+      <a href="./contract-chat.html">💬 合同对话</a>
       <a href="./knowledge.html">📚 知识库</a>
     </nav>
   </aside>
 
   <main>
-    <header class="topbar">
-      <div>
-        <h1>智能合同审查</h1>
-        <p>上传合同后自动定位风险原文，按审查清单输出风险等级、依据和修改意见。</p>
-      </div>
-      <div class="server-state" id="server-state">检查服务中...</div>
-    </header>
+    <div class="review-top-strip">
+      <header class="topbar review-strip-topbar">
+        <div>
+          <h1>智能合同审查</h1>
+        </div>
+        <div class="server-state" id="server-state">检查服务中...</div>
+      </header>
 
-    <section class="review-score-area">
-      <section class="review-scoreboard" id="review-scoreboard">
-      <article>
-        <span>合同评分</span>
-        <strong>--</strong>
-      </article>
-      <article>
-        <span>综合风险</span>
-        <strong>待审查</strong>
-      </article>
-      <article>
-        <span>风险问题</span>
-        <strong>0</strong>
-        <small>高 0 / 中 0</small>
-      </article>
-      <article>
-        <span>审查点</span>
-        <strong>0</strong>
-      </article>
-      <article>
-        <span>AI审查</span>
-        <strong>待调用</strong>
-      </article>
+      <section class="review-score-area review-strip-score">
+        <section class="review-scoreboard" id="review-scoreboard">
+        <article>
+          <span>合同评分</span>
+          <strong>--</strong>
+        </article>
+        <article>
+          <span>综合风险</span>
+          <strong>待审查</strong>
+        </article>
+        <article>
+          <span>风险问题</span>
+          <strong>0</strong>
+          <small>高 0 / 中 0</small>
+        </article>
+        <article>
+          <span>审查点</span>
+          <strong>0</strong>
+        </article>
+        <article>
+          <span>AI审查</span>
+          <strong>待调用</strong>
+        </article>
+        </section>
       </section>
-    </section>
 
-    <section class="panel compact-review-input review-command-panel">
-      <div class="panel-head compact-head">
-        <div>
-          <h2>待审合同</h2>
-          <p>导入后原文会显示在左侧，审查完成后再生成批注。</p>
+      <section class="panel compact-review-input review-command-panel review-strip-commands">
+        <div class="panel-head compact-head">
+          <div>
+            <h2>待审合同</h2>
+          </div>
+          <div class="actions">
+            <button class="secondary upload-contract-btn" type="button" id="open-import-btn">上传/粘贴合同</button>
+            <button class="secondary" type="button" id="export-report-btn" disabled>导出审查报告</button>
+            <button class="primary" type="button" id="review-btn">开始审查</button>
+          </div>
         </div>
-        <div class="actions">
-          <button class="secondary upload-contract-btn" type="button" id="open-import-btn">上传/粘贴合同</button>
-          <button class="primary" type="button" id="review-btn">开始审查</button>
+        <div class="review-summary-card review-summary-inline" id="review-summary">
+          <div>
+            <strong>审查结果</strong>
+            <p>审查完成后显示整体意见、综合风险和合同评分。</p>
+          </div>
+          <span class="tag neutral">待审查</span>
         </div>
-      </div>
-      <div class="review-summary-card review-summary-inline" id="review-summary">
-        <div>
-          <strong>审查结果</strong>
-          <p>审查完成后显示整体意见、综合风险和合同评分。</p>
-        </div>
-        <span class="tag neutral">待审查</span>
-      </div>
-    </section>
+      </section>
+    </div>
 
     <section class="review-board">
       <article class="review-source-panel panel">
@@ -141,13 +144,4 @@
         <textarea id="review-text" hidden></textarea>
         <div class="modal-actions">
           <button class="secondary" type="button" id="clear-import-btn">清空</button>
-          <button class="primary" type="button" id="confirm-import-btn">导入原文</button>
-        </div>
-      </form>
-    </div>
-  </main>
-
-  <script src="./office-editor.js"></script>
-  <script src="./contract-review.js"></script>
-</body>
-</html>
+          <button class="primary" type="button" id="confirm-import-btn">导入原�

@@ -4574,6 +4574,156 @@ ${searchContext ? "回答时请引用搜索结果中的相关信息，并注明�
   }
   return sendJson(res, 500, { error: errors.join(" | ") });
 }
+
+async function handleServeDocx(req, res) {
+  const id = req.url.split("/api/documents/file/")[1]?.split("?")[0];
+  if (!id) return sendJson(res, 400, { error: "Missing file id" });
+  const filePath = findUploadedDocxPath(id);
+  if (!filePath || !fs.existsSync(filePath)) return sendJson(res, 404, { error: "File not found" });
+  res.writeHead(200, {
+    "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "cache-control": "public, max-age=3600",
+    "access-control-allow-origin": "*",
+  });
+  fs.createReadStream(filePath).pipe(res);
+}
+
+/* ── 模板解析与填充 API ── */
+const { parseTemplate } = require("./template-parser");
+const { fillTemplate } = require("./template-filler");
+
+async function handleParseTemplate(req, res) {
+  const body = JSON.parse((await readBody(req)).toString() || "{}");
+
+  let buffer;
+  if (body.docxId) {
+    const filePath = findUploadedDocxPath(body.docxId);
+    if (!filePath) return sendJson(res, 404, { error: "未找到文件" });
+    buffer = fs.readFileSync(filePath);
+  } else {
+    return sendJson(res, 400, { error: "请上传 .docx 模板文件或提供 docxId" });
+  }
+
+  try {
+    const result = await parseTemplate(buffer);
+    return sendJson(res, 200, result);
+  } catch (err) {
+    return sendJson(res, 500, { error: `模板解析失败: ${err.message}` });
+  }
+}
+
+async function handleUploadTemplate(req, res) {
+  const body = await readBody(req);
+  const parts = parseMultipart(req, body);
+  if (!parts || !parts.files.length) return sendJson(res, 400, { error: "请上传文件" });
+
+  const file = parts.files[0];
+  if (!/\.docx?$/i.test(file.filename)) return sendJson(res, 400, { error: "仅支持 .docx 文件" });
+
+  const docxId = crypto.randomUUID();
+  const savePath = path.join(UPLOAD_DIR, `${docxId}.docx`);
+  fs.writeFileSync(savePath, file.buffer);
+
+  try {
+    const result = await parseTemplate(file.buffer);
+    return sendJson(res, 200, { docxId, ...result });
+  } catch (err) {
+    return sendJson(res, 500, { error: `模板解析失败: ${err.message}` });
+  }
+}
+
+async function handleFillTemplate(req, res) {
+  const body = JSON.parse((await readBody(req)).toString() || "{}");
+  const { docxId, values } = body;
+  if (!docxId) return sendJson(res, 400, { error: "缺少 docxId" });
+  if (!values || typeof values !== "object") return sendJson(res, 400, { error: "缺少填充数据 values" });
+
+  const filePath = findUploadedDocxPath(docxId);
+  if (!filePath) return sendJson(res, 404, { error: "未找到模板文件" });
+
+  try {
+    const buffer = fs.readFileSync(filePath);
+    const filled = await fillTemplate(buffer, values);
+    const downloadName = `filled_${Date.now()}.docx`;
+    res.writeHead(200, {
+      "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(downloadName)}`,
+      "cache-control": "no-store",
+    });
+    res.end(filled);
+  } catch (err) {
+    return sendJson(res, 500, { error: `填充失败: ${err.message}` });
+  }
+}
+
+async function handleAIAnalyzeTemplate(req, res) {
+  const body = JSON.parse((await readBody(req)).toString() || "{}");
+  const { fields, context, attachments } = body;
+  if (!fields || !fields.length) return sendJson(res, 400, { error: "缺少字段列表" });
+
+  const providers = getModelProviders();
+  if (!providers.length) return sendJson(res, 500, { error: "未配置 AI API Key" });
+
+  const fieldsDesc = fields.map((f, i) => `${i + 1}. ${f.placeholder} (标签: ${f.label}, 类型: ${f.fieldType}, 位置: ${f.location})`).join("\n");
+  const attachDesc = attachments ? `\n\n附件内容：\n${JSON.stringify(attachments).slice(0, 4000)}` : "";
+
+  const prompt = `你是一位专业的合同助手。用户正在填写一份合同模板，模板中包含以下占位符字段：
+
+${fieldsDesc}
+${context ? `\n合同背景：${context}` : ""}
+${attachDesc}
+
+请完成以下任务：
+1. 从附件内容中提取能匹配到模板字段的信息，生成一个 JSON 对象 { "【字段名】": "值" }
+2. 列出无法从附件获取的字段，以及你需要追问用户的问题
+3. 对关键字段（如金额、日期、违约条款）提供行业标准参考建议
+
+返回格式（JSON）：
+{
+  "filledValues": { "【甲方名称】": "xxx", ... },
+  "filledCount": 3,
+  "missingQuestions": [
+    { "field": "【合同金额】", "question": "合同总价是多少？", "importance": "required" }
+  ],
+  "aiSuggestions": [
+    { "field": "【违约金比例】", "suggestion": "建议设为合同总额的5%-10%", "reason": "行业惯例" }
+  ]
+}`;
+
+  const messages = [{ role: "user", content: prompt }];
+  const errors = [];
+  for (const provider of providers) {
+    try {
+      const headers = {
+        "content-type": "application/json",
+        ...(provider.useBearer === false ? {} : { authorization: `Bearer ${provider.apiKey}` }),
+        ...(provider.extraHeaders || {}),
+      };
+      const response = await fetch(`${normalizeModelBaseUrl(provider.baseUrl)}/chat/completions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ model: provider.model, temperature: 0.3, max_tokens: 4096, messages }),
+      });
+      const responseText = await response.text();
+      let data = {};
+      try { data = responseText ? JSON.parse(responseText) : {}; } catch { data = {}; }
+      if (!response.ok) throw new Error(data?.error?.message || `${provider.name} failed: ${response.status}`);
+      const reply = data.choices?.[0]?.message?.content || "";
+
+      // 尝试从回复中提取 JSON
+      let analysis = {};
+      try {
+        const jsonMatch = reply.match(/\{[\s\S]*\}/);
+        if (jsonMatch) analysis = JSON.parse(jsonMatch[0]);
+      } catch (_) {}
+
+      return sendJson(res, 200, { analysis, rawReply: reply, provider: provider.name, model: provider.model });
+    } catch (error) {
+      errors.push(`${provider.name}: ${error.message}`);
+    }
+  }
+  return sendJson(res, 500, { error: errors.join(" | ") });
+}
 async function handleApi(req, res, pathname) {
   try {
     if (req.method === "GET" && pathname === "/api/health") {
@@ -4631,6 +4781,11 @@ async function handleApi(req, res, pathname) {
     if (req.method === "POST" && pathname === "/api/documents/parse-formatted") return handleParseFormatted(req, res);
     if (req.method === "POST" && pathname === "/api/contracts/chat") return handleContractChat(req, res);
     if (req.method === "POST" && pathname === "/api/web-search") return handleWebSearch(req, res);
+    if (req.method === "GET" && pathname.startsWith("/api/documents/file/")) return handleServeDocx(req, res);
+    if (req.method === "POST" && pathname === "/api/templates/parse") return handleParseTemplate(req, res);
+    if (req.method === "POST" && pathname === "/api/templates/upload") return handleUploadTemplate(req, res);
+    if (req.method === "POST" && pathname === "/api/templates/fill") return handleFillTemplate(req, res);
+    if (req.method === "POST" && pathname === "/api/templates/ai-analyze") return handleAIAnalyzeTemplate(req, res);
     sendJson(res, 404, { error: "Not found" });
   } catch (error) {
     sendJson(res, 500, { error: error.message });

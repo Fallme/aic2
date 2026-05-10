@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能合同起草</title>
+  <link rel="stylesheet" href="./knowledge.css" />
+  <style>
+    /* ── Draft Layout ── */
+    .draft-layout {
+      display: flex;
+      height: calc(100vh - 120px);
+      gap: 0;
+      overflow: hidden;
+    }
+    .draft-doc-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #e0e0e0;
+      background: #f5f5f5;
+      min-width: 0;
+    }
+    .draft-doc-header {
+      padding: 10px 16px;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .draft-doc-header h2 { margin: 0; font-size: 15px; }
+    .draft-doc-body {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+    }
+    .draft-side-panel {
+      width: 420px;
+      min-width: 340px;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+    }
+
+    /* Upload zone */
+    .draft-upload-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #999;
+      gap: 16px;
+      padding: 40px;
+    }
+    .draft-upload-zone svg { width: 64px; height: 64px; color: #ccc; }
+    .draft-upload-zone p { font-size: 14px; margin: 0; text-align: center; }
+    .draft-upload-zone label {
+      padding: 10px 24px;
+      background: #1677ff;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .draft-upload-zone label:hover { background: #0958d9; }
+    .draft-upload-zone input[type="file"] { display: none; }
+
+    /* Side panel tabs */
+    .side-tabs {
+      display: flex;
+      border-bottom: 1px solid #e0e0e0;
+      background: #fafafa;
+    }
+    .side-tab {
+      flex: 1;
+      padding: 10px 8px;
+      text-align: center;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: #666;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .side-tab.active {
+      color: #1677ff;
+      border-bottom-color: #1677ff;
+      background: #fff;
+      font-weight: 600;
+    }
+
+    /* Side panels */
+    .side-content { flex: 1; overflow-y: auto; padding: 16px; }
+    .side-content[hidden] { display: none; }
+
+    /* Field list */
+    .field-card {
+      padding: 10px 12px;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      transition: border-color 0.2s;
+    }
+    .field-card.filled { border-color: #b7eb8f; background: #f6ffed; }
+    .field-card.missing { border-color: #ffccc7; background: #fff2f0; }
+    .field-card.ai-suggested { border-color: #91caff; background: #e6f4ff; }
+    .field-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .field-card-head strong { font-size: 13px; color: #333; }
+    .field-card-head .tag {
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #f0f0f0;
+      color: #666;
+    }
+    .field-card-head .tag.filled-tag { background: #f6ffed; color: #52c41a; }
+    .field-card-head .tag.missing-tag { background: #fff2f0; color: #ff4d4f; }
+    .field-card p { font-size: 12px; color: #999; margin: 2px 0 6px; }
+    .field-card input, .field-card textarea {
+      width: 100%;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 13px;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .field-card input:focus, .field-card textarea:focus {
+      border-color: #1677ff;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(22,119,255,0.1);
+    }
+
+    /* Chat thread */
+    .draft-chat-thread {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .draft-msg { max-width: 95%; }
+    .draft-msg.assistant { align-self: flex-start; }
+    .draft-msg.user { align-self: flex-end; }
+    .draft-msg .bubble {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .draft-msg.assistant .bubble { background: #f5f5f5; color: #333; border-top-left-radius: 4px; }
+    .draft-msg.user .bubble { background: #1677ff; color: #fff; border-top-right-radius: 4px; }
+    .draft-msg .bubble .q-item {
+      padding: 4px 0;
+      border-bottom: 1px solid #e8e8e8;
+      font-size: 12px;
+    }
+    .draft-msg .bubble .q-item:last-child { border-bottom: none; }
+    .draft-msg .bubble .q-item strong { color: #1677ff; }
+
+    /* Composer */
+    .draft-composer {
+      padding: 12px 16px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      gap: 8px;
+    }
+    .draft-composer textarea {
+      flex: 1;
+      border: 1px solid #d9d9d9;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      resize: none;
+      min-height: 40px;
+      max-height: 100px;
+      font-family: inherit;
+      line-height: 1.5;
+    }
+    .draft-composer textarea:focus {
+      border-color: #1677ff;
+      outline: none;
+    }
+    .draft-composer button {
+      padding: 0 14px;
+      background: #1677ff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    /* Progress bar */
+    .fill-progress {
+      padding: 10px 16px;
+      background: #f6f8fa;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .fill-progress-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+    .fill-track {
+      height: 6px;
+      background: #e8e8e8;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .fill-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #1677ff, #4096ff);
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    /* Attachment upload */
+    .attach-zone {
+      padding: 12px;
+      border: 2px dashed #d9d9d9;
+      border-radius: 8px;
+      text-align: center;
+      color: #999;
+      font-size: 13px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+    .attach-zone:hover { border-color: #1677ff; }
+    .attach-zone input[type="file"] { display: none; }
+    .attach-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      background: #f6f8fa;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+    .attach-item .remove { cursor: pointer; color: #ff4d4f; }
+
+    /* Draft actions */
+    .draft-actions {
+      padding: 12px 16px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      gap: 8px;
+    }
+    .draft-actions button { flex: 1; }
+
+    /* Suggestion badge */
+    .suggestion-badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #e6f4ff;
+      color: #1677ff;
+      margin-left: 6px;
+    }
+  </style>
+</head>
+<body class="workbench-page">
+  <aside class="sidebar">
+    <a class="brand" href="./home.html" style="text-decoration:none;color:inherit;">
+      <span>AI</span>
+      <div><strong>ContractAI</strong><small>智能合同管理平台</small></div>
+    </a>
+    <nav>
+      <a href="./contract-draft.html" class="active">📝 智能起草</a>
+      <a href="./contract-generate.html">✍️ 合同生成</a>
+      <a href="./contract-review.html">🔍 合同审查</a>
+      <a href="./contract-chat.html">💬 合同对话</a>
+      <a href="./knowledge.html">📚 知识库</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <h1>智能合同起草</h1>
+        <p>上传模板和附件，AI 自动解析字段、匹配信息、追问缺失、一键填充生成合同。</p>
+      </div>
+      <div class="server-state" id="server-state">检查服务中...</div>
+    </header>
+
+    <div class="draft-layout">
+      <!-- Left: Document Preview -->
+      <div class="draft-doc-panel">
+        <div class="draft-doc-header">
+          <h2 id="doc-title">📄 合同模板预览</h2>
+          <div style="display:flex;gap:8px;">
+            <button class="secondary" type="button" id="upload-template-btn">上传模板</button>
+            <button class="primary" type="button" id="download-filled-btn" disabled>下载生成合同</button>
+          </div>
+        </div>
+        <div class="draft-doc-body">
+          <div id="upload-area" class="draft-upload-zone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="14 2 14 8 20 8" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="18" x2="12" y2="12" stroke-linecap="round"/>
+              <polyline points="9 15 12 12 15 15" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>上传 .docx 合同模板，系统将自动解析占位符字段</p>
+            <label>选择模板文件<input type="file" id="template-file-input" accept=".docx,.doc" /></label>
+          </div>
+          <div id="docx-viewer-container" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Right: Side Panel -->
+      <div class="draft-side-panel">
+        <div class="fill-progress" id="fill-progress" hidden>
+          <div class="fill-progress-head">
+            <span>填充进度</span>
+            <span id="fill-percent">0%</span>
+          </div>
+          <div class="fill-track"><span class="fill-bar" id="fill-bar" style="width:0%"></span></div>
+        </div>
+
+        <div class="side-tabs">
+          <button class="side-tab active" data-tab="fields">字段填写</button>
+          <button class="side-tab" data-tab="chat">AI 助手</button>
+          <button class="side-tab" data-tab="attach">附件解析</button>
+        </div>
+
+        <!-- Fields Tab -->
+        <div class="side-content" id="tab-fields">
+          <div id="field-list">
+            <div style="text-align:center;color:#999;padding:40px 0;">
+              上传模板后，系统会自动识别占位符字段并在此列出。
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Tab -->
+        <div class="side-content" id="tab-chat" hidden>
+          <div class="draft-chat-thread" id="chat-thread">
+            <div class="draft-msg assistant">
+              <div class="bubble">
+                你好！我是智能合同起草助手。<br/>
+                上传模板后，我会自动识别字段并帮你填充。<br/>
+                你也可以直接告诉我合同信息，我会帮你补充。
+              </div>
+            </div>
+          </div>
+          <div class="draft-composer">
+            <textarea id="chat-input" placeholder="输入合同信息或回答追问..." rows="1"></textarea>
+            <button id="chat-send-btn" type="button">发送</button>
+          </div>
+        </div>
+
+        <!-- Attachments Tab -->
+        <div class="side-content" id="tab-attach" hidden>
+          <div class="attach-zone" id="attach-zone">
+            <input type="file" id="attach-file-input" multiple accept=".docx,.doc,.pdf,.txt,.xlsx,.xls,.csv,.json" />
+            <p>📄 上传附件（采购清单、供应商信息等）</p>
+            <small>支持 Word、Excel、PDF、TXT</small>
+          </div>
+          <div id="attach-list"></div>
+          <button class="primary" type="button" id="analyze-attach-btn" style="width:100%;margin-top:12px;" disabled>
+            AI 智能解析并填充
+          </button>
+          <div id="attach-analysis" style="margin-top:12px;"></div>
+        </div>
+
+        <!-- Actions -->
+        <div class="draft-actions">
+          <button class="secondary" type="button" id="reset-btn">重置</button>
+          <button class="primary" type="button" id="generate-btn" disabled>生成合同</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <input type="file" id="hidden-template-input" accept=".docx,.doc" hidden />
+
+  <script src="./docx-viewer.js"></script>
+  <script>
+    const API_BASE = window.location.protocol === "file:" ? "http://localhost:5173" : "";
+
+    /* ── State ── */
+    const draftState = {
+      docxId: "",
+      fileName: "",
+      fields: [],
+      filledValues: {},
+      attachments: [],
+      aiAnalysis: null,
+      chatHistory: [],
+      isLoading: false,
+    };
+
+    let docxViewer = null;
+
+    /* ── DOM Refs ── */
+    const els = {
+      serverState: document.getElementById("server-state"),
+      uploadArea: document.getElementById("upload-area"),
+      viewerContainer: document.getElementById("docx-viewer-container"),
+      templateInput: document.getElementById("template-file-input"),
+      hiddenInput: document.getElementById("hidden-template-input"),
+      uploadBtn: document.getElementById("upload-template-btn"),
+      downloadBtn: document.getElementById("download-filled-btn"),
+      docTitle: document.getElementById("doc-title"),
+      fillProgress: document.getElementById("fill-progress"),
+      fillPercent: document.getElementById("fill-percent"),
+      fillBar: document.getElementById("fill-bar"),
+      fieldList: document.getElementById("field-list"),
+      chatThread: document.getElementById("chat-thread"),
+      chatInput: document.getElementById("chat-input"),
+      chatSendBtn: document.getElementById("chat-send-btn"),
+      attachZone: document.getElementById("attach-zone"),
+      attachInput: document.getElementById("attach-file-input"),
+      attachList: document.getElementById("attach-list"),
+      analyzeBtn: document.getElementById("analyze-attach-btn"),
+      attachAnalysis: document.getElementById("attach-analysis"),
+      resetBtn: document.getElementById("reset-btn"),
+      generateBtn: document.getElementById("generate-btn"),
+    };
+
+    /* ── Health Check ── */
+    async function checkHealth() {
+      try {
+        const res = await fetch(`${API_BASE}/api/health`);
+        const data = await res.json();
+        els.serverState.textContent = `✓ ${data.modelProvider} (${data.model})`;
+        els.serverState.classList.remove("error");
+      } catch {
+        els.serverState.textContent = "服务未连接";
+        els.serverState.classList.add("error");
+      }
+    }
+
+    /* ── Tab Switching ── */
+    document.querySelectorAll(".side-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".side-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        document.querySelectorAll(".side-content").forEach(p => p.hidden = true);
+        document.getElementById(`tab-${tab.dataset.tab}`).hidden = false;
+      });
+    });
+
+    /* ── Template Upload ── */
+    els.uploadBtn.addEventListener("click", () => els.hiddenInput.click());
+    els.uploadArea.querySelector("label").addEventListener("click", (e) => {
+      e.preventDefault();
+      els.templateInput.click();
+    });
+    els.templateInput.addEventListener("change", handleTemplateFile);
+    els.hiddenInput.addEventListener("change", handleTemplateFile);
+
+    async function handleTemplateFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        els.uploadArea.innerHTML = '<div style="text-align:center;padding:40px;color:#1677ff;">解析模板中...</div>';
+
+        // Upload and parse template
+        const res = await fetch(`${API_BASE}/api/templates/upload`, { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        draftState.docxId = data.docxId;
+        draftState.fileName = file.name;
+        draftState.fields = data.fields || [];
+
+        // Show docx-preview
+        els.uploadArea.style.display = "none";
+        els.viewerContainer.style.display = "block";
+        els.docTitle.textContent = `📄 ${file.name}`;
+
+        docxViewer = new DocxViewer(els.viewerContainer, {
+          readOnly: true,
+          onLoad: () => console.log("Template rendered"),
+          onError: (err) => console.error("Render error:", err),
+        });
+        await docxViewer.loadFromArrayBuffer(await file.arrayBuffer(), file.name);
+
+        // Render fields
+        renderFieldList(data);
+        updateProgress();
+        els.generateBtn.disabled = false;
+
+      } catch (err) {
+        els.uploadArea.innerHTML = `<div style="text-align:center;padding:40px;color:#ff4d4f;">解析失败: ${err.message}</div>`;
+      }
+    }
+
+    /* ── Field List ── */
+    function renderFieldList(data) {
+      const fields = data.fields || [];
+      if (!fields.length) {
+        els.fieldList.innerHTML = '<div style="text-align:center;color:#999;padding:40px 0;">未发现占位符字段。<br/>模板中需要包含【xxx】格式的占位符。</div>';
+        return;
+      }
+
+      els.fieldList.innerHTML = fields.map((f, i) => {
+        const filled = draftState.filledValues[f.placeholder];
+        const statusClass = filled ? "filled" : "missing";
+        const tagClass = filled ? "filled-tag" : "missing-tag";
+        const tagText = filled ? "已填" : f.importance === "optional" ? "选填" : "待填";
+
+        return `
+          <div class="field-card ${statusClass}" data-field-index="${i}">
+            <div class="field-card-head">
+              <strong>${escHtml(f.label)}</strong>
+              <span class="tag ${tagClass}">${tagText}</span>
+            </div>
+            <p>${escHtml(f.placeholder)} · ${escHtml(f.fieldType)} · ${escHtml(f.location)}</p>
+            <input type="text"
+              data-placeholder="${escAttr(f.placeholder)}"
+              value="${escAttr(filled || "")}"
+              placeholder="请输入${escHtml(f.label)}"
+              oninput="onFieldInput(this, ${i})" />
+          </div>`;
+      }).join("");
+    }
+
+    function onFieldInput(input, index) {
+      const field = draftState.fields[index];
+      if (!field) return;
+      const value = input.value.trim();
+      if (value) {
+        draftState.filledValues[field.placeholder] = value;
+        input.closest(".field-card").className = "field-card filled";
+        input.closest(".field-card").querySelector(".tag").className = "tag filled-tag";
+        input.closest(".field-card").querySelector(".tag").textContent = "已填";
+      } else {
+        delete draftState.filledValues[field.placeholder];
+        input.closest(".field-card").className = "field-card missing";
+        input.closest(".field-card").querySelector(".tag").className = "tag missing-tag";
+        input.closest(".field-card").querySelector(".tag").textContent = "待填";
+      }
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const total = draftState.fields.filter(f => f.importance !== "optional").length;
+      const filled = Object.keys(draftState.filledValues).length;
+      const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
+      els.fillPercent.textContent = `${pct}%`;
+      els.fillBar.style.width = `${pct}%`;
+      els.fillProgress.hidden = total === 0;
+    }
+
+    /* ── Attachment Upload ── */
+    els.attachZone.addEventListener("click", () => els.attachInput.click());
+    els.attachInput.addEventListener("change", async (e) => {
+      for (const file of e.target.files) {
+        draftState.attachments.push(file);
+        renderAttachList();
+      }
+      els.analyzeBtn.disabled = draftState.attachments.length === 0;
+    });
+
+    function renderAttachList() {
+      els.attachList.innerHTML = draftState.attachments.map((f, i) => `
+        <div class="attach-item">
+          <span>📄 ${escHtml(f.name)} (${(f.size/1024).toFixed(1)}KB)</span>
+          <span class="remove" onclick="removeAttach(${i})">✕</span>
+        </div>
+      `).join("");
+    }
+
+    function removeAttach(index) {
+      draftState.attachments.splice(index, 1);
+      renderAttachList();
+      els.analyzeBtn.disabled = draftState.attachments.length === 0;
+    }
+
+    /* ── AI Analyze Attachments ── */
+    els.analyzeBtn.addEventListener("click", async () => {
+      if (!draftState.attachments.length || !draftState.fields.length) return;
+
+      els.analyzeBtn.disabled = true;
+      els.analyzeBtn.textContent = "AI 分析中...";
+      els.attachAnalysis.innerHTML = '<div style="color:#1677ff;">正在解析附件并匹配字段...</div>';
+
+      try {
+        // Read attachment texts
+        const attachTexts = [];
+        for (const file of draftState.attachments) {
+          const text = await readFileAsText(file);
+          attachTexts.push({ name: file.name, content: text.slice(0, 4000) });
+        }
+
+        const res = await fetch(`${API_BASE}/api/templates/ai-analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fields: draftState.fields,
+            context: `合同模板: ${draftState.fileName}`,
+            attachments: attachTexts,
+          }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        draftState.aiAnalysis = data.analysis;
+
+        // Apply filled values
+        if (data.analysis.filledValues) {
+          Object.assign(draftState.filledValues, data.analysis.filledValues);
+          renderFieldList({ fields: draftState.fields });
+          updateProgress();
+        }
+
+        // Show analysis result
+        const filled = data.analysis.filledCount || Object.keys(data.analysis.filledValues || {}).length;
+        const missing = data.analysis.missingQuestions || [];
+        els.attachAnalysis.innerHTML = `
+          <div style="padding:12px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:8px;font-size:13px;">
+            <strong>✅ 已自动填充 ${filled} 个字段</strong>
+            ${missing.length ? `<p style="margin:8px 0 0;color:#666;">还有 ${missing.length} 个字段需要你确认：</p>` : ""}
+          </div>
+          ${missing.map(q => `
+            <div class="field-card missing" style="margin-top:8px;">
+              <div class="field-card-head">
+                <strong>${escHtml(q.field)}</strong>
+                <span class="tag missing-tag">需确认</span>
+              </div>
+              <p>${escHtml(q.question)}</p>
+              <input type="text" data-missing-field="${escAttr(q.field)}" placeholder="请输入..."
+                oninput="onMissingFieldInput(this)" />
+            </div>
+          `).join("")}
+        `;
+
+        // Show AI suggestions
+        const suggestions = data.analysis.aiSuggestions || [];
+        if (suggestions.length) {
+          els.attachAnalysis.innerHTML += `
+            <div style="margin-top:12px;">
+              <strong style="font-size:13px;">💡 AI 参考建议</strong>
+              ${suggestions.map(s => `
+                <div class="field-card ai-suggested" style="margin-top:6px;">
+                  <div class="field-card-head">
+                    <strong>${escHtml(s.field)}</strong>
+                    <span class="suggestion-badge">AI建议</span>
+                  </div>
+                  <p>${escHtml(s.suggestion)}</p>
+                  ${s.reason ? `<small style="color:#999;">依据: ${escHtml(s.reason)}</small>` : ""}
+                  <button class="secondary" type="button" style="margin-top:6px;font-size:12px;padding:3px 10px;"
+                    onclick="applySuggestion('${escAttr(s.field)}', '${escAttr(s.suggestion)}')">采纳建议</button>
+                </div>
+              `).join("")}
+            </div>
+          `;
+        }
+
+        // Add chat message
+        addChatMessage("assistant", `已完成附件分析！自动填充了 ${filled} 个字段。${missing.length ? `还有 ${missing.length} 个需要你确认。` : "所有必填字段已填充完毕。"}`);
+
+      } catch (err) {
+        els.attachAnalysis.innerHTML = `<div style="color:#ff4d4f;">分析失败: ${err.message}</div>`;
+      } finally {
+        els.analyzeBtn.disabled = false;
+        els.analyzeBtn.textContent = "AI 智能解析并填充";
+      }
+    });
+
+    function onMissingFieldInput(input) {
+      const field = input.dataset.missingField;
+      const value = input.value.trim();
+      if (value) {
+        draftState.filledValues[field] = value;
+        input.closest(".field-card").className = "field-card filled";
+        updateProgress();
+      }
+    }
+
+    function applySuggestion(field, value) {
+      draftState.filledValues[field] = value;
+      renderFieldList({ fields: draftState.fields });
+      updateProgress();
+    }
+
+    async function readFileAsText(file) {
+      if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls") || file.name.endsWith(".pdf")) {
+        return `[附件: ${file.name}，大小: ${file.size}字节]`;
+      }
+      return await file.text();
+    }
+
+    /* ── Chat ── */
+    els.chatSendBtn.addEventListener("click", () => sendChatMessage());
+    els.chatInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+    });
+
+    async function sendChatMessage() {
+      const text = els.chatInput.value.trim();
+      if (!text || draftState.isLoading) return;
+      els.chatInput.value = "";
+
+      addChatMessage("user", text);
+      draftState.isLoading = true;
+      els.chatSendBtn.disabled = true;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/templates/ai-analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fields: draftState.fields.filter(f => !draftState.filledValues[f.placeholder]),
+            context: text,
+            attachments: [],
+          }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        if (data.analysis.filledValues) {
+          Object.assign(draftState.filledValues, data.analysis.filledValues);
+          renderFieldList({ fields: draftState.fields });
+          updateProgress();
+        }
+
+        const filled = Object.keys(data.analysis.filledValues || {}).length;
+        addChatMessage("assistant", data.rawReply || (filled ? `已根据你的信息填充了 ${filled} 个字段。` : "收到，请继续提供更多信息。"));
+
+      } catch (err) {
+        addChatMessage("assistant", `出错了: ${err.message}`);
+      } finally {
+        draftState.isLoading = false;
+        els.chatSendBtn.disabled = false;
+      }
+    }
+
+    function addChatMessage(role, content) {
+      const div = document.createElement("div");
+      div.className = `draft-msg ${role}`;
+      div.innerHTML = `<div class="bubble">${escHtml(content).replace(/\n/g, "<br/>")}</div>`;
+      els.chatThread.appendChild(div);
+      els.chatThread.scrollTop = els.chatThread.scrollHeight;
+    }
+
+    /* ── Generate Contract ── */
+    els.generateBtn.addEventListener("click", async () => {
+      if (!draftState.docxId) return;
+      const unfilled = draftState.fields.filter(f =>
+        f.importance !== "optional" && !draftState.filledValues[f.placeholder]
+      );
+      if (unfilled.length) {
+        if (!confirm(`还有 ${unfilled.length} 个必填字段未填写，确定要生成吗？`)) return;
+      }
+
+      els.generateBtn.disabled = true;
+      els.generateBtn.textContent = "生成中...";
+
+      try {
+        const res = await fetch(`${API_BASE}/api/templates/fill`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            docxId: draftState.docxId,
+            values: draftState.filledValues,
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "生成失败");
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = draftState.fileName.replace(/\.docx?$/i, "") + "_生成.docx";
+        a.click();
+        URL.revokeObjectURL(url);
+
+        addChatMessage("assistant", "✅ 合同已生成并下载！格式完全保真。");
+
+      } catch (err) {
+        addChatMessage("assistant", `生成失败: ${err.message}`);
+      } finally {
+        els.generateBtn.disabled = false;
+        els.generateBtn.textContent = "生成合同";
+      }
+    });
+
+    /* ── Download Filled ── */
+    els.downloadBtn.addEventListener("click", () => els.generateBtn.click());
+
+    /* ── Reset ── */
+    els.resetBtn.addEventListener("click", () => {
+      if (!confirm("确定重置所有填写内容？")) return;
+      draftState.filledValues = {};
+      draftState.attachments = [];
+      draftState.aiAnalysis = null;
+      renderFieldList({ fields: draftState.fields });
+      renderAttachList();
+      updateProgress();
+      els.attachAnalysis.innerHTML = "";
+      els.analyzeBtn.disabled = true;
+    });
+
+    /* ── Helpers ── */
+    function escHtml(s) { return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+    function escAttr(s) { return String(s || "").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+
+    /* ── Init ── */
+    checkHealth();
+  </script>
+</body>
+</html>

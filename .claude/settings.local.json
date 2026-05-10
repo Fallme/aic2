@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node server.js)",
+      "Skill(update-config)",
+      "Bash(npx --version)"
+    ]
+  }
+}
