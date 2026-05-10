@@ -4447,6 +4447,133 @@ function publicDocument(doc) {
   return rest;
 }
 
+
+/* ── 联网搜索 ── */
+async function webSearch(query, maxResults = 5) {
+  const results = [];
+  try {
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=cn-zh`;
+    const res = await fetch(url, {
+      headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const html = await res.text();
+    const resultRegex = /<a[^>]+class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
+    let m;
+    while ((m = resultRegex.exec(html)) && results.length < maxResults) {
+      let link = m[1];
+      const uMatch = link.match(/[?&]uddg=([^&]+)/);
+      if (uMatch) link = decodeURIComponent(uMatch[1]);
+      const title = m[2].replace(/<[^>]+>/g, "").trim();
+      const snippet = m[3].replace(/<[^>]+>/g, "").trim();
+      if (title && link) results.push({ title, url: link, snippet });
+    }
+  } catch (_) { /* fall through */ }
+
+  if (!results.length) {
+    try {
+      const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+      const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(8000) });
+      const data = await res.json();
+      if (data.AbstractText) results.push({ title: data.Heading || query, url: data.AbstractURL || "", snippet: data.AbstractText });
+      (data.RelatedTopics || []).slice(0, maxResults).forEach((t) => {
+        if (t.Text && t.FirstURL) results.push({ title: t.Text.split(" ").slice(0, 8).join(" "), url: t.FirstURL, snippet: t.Text });
+      });
+    } catch (_) { /* ignore */ }
+  }
+  return results.slice(0, maxResults);
+}
+
+async function handleWebSearch(req, res) {
+  const body = JSON.parse((await readBody(req)).toString() || "{}");
+  const { query } = body;
+  if (!query) return sendJson(res, 400, { error: "缺少搜索关键词" });
+  try {
+    const results = await webSearch(query, 8);
+    return sendJson(res, 200, { query, results });
+  } catch (err) {
+    return sendJson(res, 500, { error: `搜索失败: ${err.message}` });
+  }
+}
+
+/* ── 合同对话 ── */
+async function handleContractChat(req, res) {
+  const body = JSON.parse((await readBody(req)).toString() || "{}");
+  const { message, contractText, contractHtml, history, enableWebSearch } = body;
+  if (!message) return sendJson(res, 400, { error: "缺少消息内容" });
+
+  const providers = getModelProviders();
+  if (!providers.length) return sendJson(res, 500, { error: "未配置 AI API Key" });
+
+  const contractContext = contractText
+    ? `\n\n以下是用户导入的合同原文：\n${contractText.slice(0, 8000)}`
+    : "\n\n用户尚未导入合同。";
+
+  const hasSelectedText = message.includes("【选中文本】");
+
+  let searchResults = [];
+  let searchContext = "";
+  if (enableWebSearch) {
+    try {
+      const cleanQuery = message.replace(/【选中文本】[\s\S]*/g, "").replace(/[，。！？、；：""''（）【】]/g, " ").trim().slice(0, 200);
+      const searchQuery = cleanQuery + " 合同 法律";
+      searchResults = await webSearch(searchQuery, 5);
+      if (searchResults.length) {
+        searchContext = `\n\n以下是联网搜索到的相关资料，请参考这些信息回答用户问题：\n${searchResults.map((r, i) => `[${i + 1}] ${r.title}\n    来源: ${r.url}\n    摘要: ${r.snippet}`).join("\n\n")}`;
+      }
+    } catch (_) { /* search failure is non-fatal */ }
+  }
+
+  const systemPrompt = `你是一位专业的合同审查助手。你的职责是帮助用户分析、理解和审查合同内容。
+${contractContext}
+${searchContext}
+
+你的能力包括：
+1. 总结合同要点和关键条款
+2. 分析合同中的风险点和潜在问题
+3. 检查条款是否完整、合理
+4. 提供修改建议
+5. 解释法律术语和条款含义
+6. 对比行业标准条款
+7. 润色和优化合同文字表达
+
+${hasSelectedText ? "用户选中了合同中的一段文字进行提问，请重点分析这段文字并给出针对性的建议。\n当需要给出修改建议时，请使用以下格式标记可替换的文字：\n【原文】需要替换的原文内容\n【修改】建议替换的新内容\n这样用户可以一键应用你的修改建议。" : ""}
+当需要给出修改建议时，如果涉及具体的条款替换，也请使用【原文】和【修改】的格式。
+${searchContext ? "回答时请引用搜索结果中的相关信息，并注明来源编号如[1][2]等。" : ""}
+
+请用中文回复，语言专业但易懂。如果用户询问的内容在合同中找不到，请明确说明。`;
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...(Array.isArray(history) ? history.slice(-10) : []),
+    { role: "user", content: message },
+  ];
+
+  const errors = [];
+  for (const provider of providers) {
+    try {
+      const headers = {
+        "content-type": "application/json",
+        ...(provider.useBearer === false ? {} : { authorization: `Bearer ${provider.apiKey}` }),
+        ...(provider.extraHeaders || {}),
+      };
+      const response = await fetch(`${normalizeModelBaseUrl(provider.baseUrl)}/chat/completions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ model: provider.model, temperature: 0.3, max_tokens: 4096, messages }),
+      });
+      const responseText = await response.text();
+      let data = {};
+      try { data = responseText ? JSON.parse(responseText) : {}; } catch { data = {}; }
+      if (!response.ok) throw new Error(data?.error?.message || `${provider.name} request failed: ${response.status}`);
+      const reply = data.choices?.[0]?.message?.content || "";
+      return sendJson(res, 200, { reply, provider: provider.name, model: provider.model, searchResults: searchResults.length ? searchResults : undefined });
+    } catch (error) {
+      errors.push(`${provider.name}: ${error.message}`);
+    }
+  }
+  return sendJson(res, 500, { error: errors.join(" | ") });
+}
 async function handleApi(req, res, pathname) {
   try {
     if (req.method === "GET" && pathname === "/api/health") {
@@ -4502,6 +4629,8 @@ async function handleApi(req, res, pathname) {
     if (req.method === "POST" && pathname === "/api/contracts/export-docx") return handleExportPatchedDocx(req, res);
     if (req.method === "POST" && pathname === "/api/contracts/review") return handleReviewContract(req, res);
     if (req.method === "POST" && pathname === "/api/documents/parse-formatted") return handleParseFormatted(req, res);
+    if (req.method === "POST" && pathname === "/api/contracts/chat") return handleContractChat(req, res);
+    if (req.method === "POST" && pathname === "/api/web-search") return handleWebSearch(req, res);
     sendJson(res, 404, { error: "Not found" });
   } catch (error) {
     sendJson(res, 500, { error: error.message });

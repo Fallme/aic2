@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>合同对话审查</title>
+  <link rel="stylesheet" href="./knowledge.css" />
+  <link rel="stylesheet" href="./office-editor.css" />
+  <style>
+    /* Split layout */
+    .chat-workbench {
+      display: flex;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+
+    /* Left: Word preview */
+    .word-preview-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #e0e0e0;
+      background: #f5f5f5;
+    }
+
+    .word-preview-header {
+      padding: 12px 16px;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .word-preview-header h2 {
+      margin: 0;
+      font-size: 15px;
+      color: #333;
+    }
+
+    .word-preview-header .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .word-preview-content {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    #word-editor-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      border-radius: 4px;
+      min-height: 600px;
+    }
+
+    /* Upload overlay */
+    .upload-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #999;
+      gap: 16px;
+    }
+
+    .upload-overlay svg {
+      width: 64px;
+      height: 64px;
+      color: #ccc;
+    }
+
+    .upload-overlay p {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .upload-overlay label {
+      padding: 10px 24px;
+      background: #1677ff;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .upload-overlay label:hover {
+      background: #0958d9;
+    }
+
+    .upload-overlay input[type="file"] {
+      display: none;
+    }
+
+    /* Right: Chat panel */
+    .chat-panel {
+      width: 420px;
+      min-width: 320px;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+    }
+
+    .chat-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-header h2 {
+      margin: 0;
+      font-size: 15px;
+      color: #333;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-message {
+      display: flex;
+      gap: 8px;
+      max-width: 95%;
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .chat-message .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .chat-message.assistant .avatar {
+      background: #e6f4ff;
+      color: #1677ff;
+    }
+
+    .chat-message.user .avatar {
+      background: #f0f0f0;
+      color: #666;
+    }
+
+    .chat-message .bubble {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .chat-message.assistant .bubble {
+      background: #f5f5f5;
+      color: #333;
+      border-top-left-radius: 4px;
+    }
+
+    .chat-message.user .bubble {
+      background: #1677ff;
+      color: #fff;
+      border-top-right-radius: 4px;
+    }
+
+    .chat-message .bubble p {
+      margin: 0 0 8px 0;
+    }
+
+    .chat-message .bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    .chat-message .bubble code {
+      background: rgba(0,0,0,0.06);
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+
+    .chat-message .bubble pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+      margin: 8px 0;
+    }
+
+    .chat-input-area {
+      padding: 12px 16px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input-area textarea {
+      flex: 1;
+      border: 1px solid #d9d9d9;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      line-height: 1.5;
+      min-height: 44px;
+      max-height: 120px;
+    }
+
+    .chat-input-area textarea:focus {
+      border-color: #1677ff;
+      box-shadow: 0 0 0 2px rgba(22,119,255,0.1);
+    }
+
+    .chat-input-area button {
+      padding: 0 16px;
+      background: #1677ff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .chat-input-area button:hover {
+      background: #0958d9;
+    }
+
+    .chat-input-area button:disabled {
+      background: #d9d9d9;
+      cursor: not-allowed;
+    }
+
+    /* Quick actions */
+    .quick-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 8px 16px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .quick-action {
+      padding: 4px 10px;
+      background: #f5f5f5;
+      border: 1px solid #e8e8e8;
+      border-radius: 14px;
+      font-size: 12px;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quick-action:hover {
+      background: #e6f4ff;
+      border-color: #91caff;
+      color: #1677ff;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 4px 0;
+    }
+
+    .typing-indicator span {
+      width: 6px;
+      height: 6px;
+      background: #999;
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* Server state */
+    .server-state {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      background: #f6ffed;
+      color: #52c41a;
+      border: 1px solid #b7eb8f;
+    }
+
+    .server-state.error {
+      background: #fff2f0;
+      color: #ff4d4f;
+      border-color: #ffccc7;
+    }
+
+    /* Apply edit button */
+    .apply-edit-btn {
+      margin: 4px 0;
+      padding: 5px 12px;
+      background: #1677ff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: inline-block;
+    }
+    .apply-edit-btn:hover {
+      background: #0958d9;
+    }
+    .apply-edit-btn:disabled {
+      background: #52c41a;
+      cursor: default;
+    }
+
+    /* Selection indicator */
+    .selection-indicator {
+      font-size: 11px;
+      color: #1677ff;
+      padding: 2px 8px;
+      background: #e6f4ff;
+      border-radius: 10px;
+      margin-left: 8px;
+    }
+
+    /* Search toggle */
+    .search-toggle-bar {
+      padding: 6px 16px 10px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .search-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #666;
+      user-select: none;
+    }
+    .search-toggle input[type="checkbox"] {
+      accent-color: #1677ff;
+      width: 15px;
+      height: 15px;
+    }
+    .search-toggle small {
+      color: #999;
+      font-size: 11px;
+      margin-left: 4px;
+    }
+    .search-toggle.active {
+      color: #1677ff;
+    }
+
+    /* Search results card */
+    .search-results-card {
+      margin: 8px 0;
+      padding: 10px 12px;
+      background: #fafafa;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    .search-results-card h4 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      color: #1677ff;
+    }
+    .search-result-item {
+      padding: 4px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+    .search-result-item a {
+      color: #1677ff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .search-result-item a:hover {
+      text-decoration: underline;
+    }
+    .search-result-item p {
+      margin: 2px 0 0;
+      color: #999;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body class="workbench-page">
+  <aside class="sidebar">
+    <a class="brand" href="./home.html" style="text-decoration:none;color:inherit;">
+      <span>AI</span>
+      <div>
+        <strong>ContractAI</strong>
+        <small>智能合同管理平台</small>
+      </div>
+    </a>
+    <nav>
+      <a href="./contract-generate.html">✍️ 合同起草</a>
+      <a href="./contract-review.html">🔍 合同审查</a>
+      <a href="./contract-chat.html" class="active">💬 合同对话</a>
+      <a href="./knowledge.html">📚 知识库</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <h1>合同对话审查</h1>
+        <p>导入合同后左侧实时预览，右侧与 AI 对话分析合同内容。</p>
+      </div>
+      <div class="server-state" id="server-state">检查服务中...</div>
+    </header>
+
+    <div class="chat-workbench">
+      <!-- Left: Word preview -->
+      <div class="word-preview-panel">
+        <div class="word-preview-header">
+          <h2>📄 合同文档</h2>
+          <div class="actions">
+            <button class="secondary" type="button" id="upload-btn">上传合同</button>
+            <button class="secondary" type="button" id="export-btn" style="display:none;">导出 Word</button>
+          </div>
+        </div>
+        <div class="word-preview-content">
+          <div id="upload-area" class="upload-overlay">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="14 2 14 8 20 8" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="18" x2="12" y2="12" stroke-linecap="round"/>
+              <polyline points="9 15 12 12 15 15" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>上传 .docx 合同文件，或拖拽到此处</p>
+            <label>
+              选择文件
+              <input type="file" id="file-input" accept=".docx,.doc,.txt,.pdf" />
+            </label>
+          </div>
+          <div id="word-editor-container" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Right: Chat panel -->
+      <div class="chat-panel">
+        <div class="chat-header">
+          <h2>💬 AI 合同助手</h2>
+          <button class="secondary" type="button" id="clear-chat-btn" style="font-size:12px;padding:4px 10px;">清空对话</button>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-message assistant">
+            <div class="avatar">AI</div>
+            <div class="bubble">
+              <p>你好！我是合同审查助手。</p>
+              <p>请先在左侧上传合同文件，然后你可以：</p>
+              <p>• 问我合同里的风险点<br/>• 让我分析某个条款<br/>• 请我给出修改建议<br/>• 让我总结合同要点</p>
+            </div>
+          </div>
+        </div>
+        <div class="quick-actions" id="quick-actions">
+          <span class="quick-action" data-prompt="帮我总结这份合同的要点">总结要点</span>
+          <span class="quick-action" data-prompt="这份合同有哪些风险点？">风险分析</span>
+          <span class="quick-action" data-prompt="帮我检查付款条款是否完整">检查付款</span>
+          <span class="quick-action" data-prompt="这份合同的违约条款是否合理？">违约分析</span>
+          <span class="quick-action" data-prompt="帮我润色选中的文字，使其更加专业规范">润色文字</span>
+          <span class="quick-action" data-prompt="请给出这段文字的修改建议，提供可以直接替换的版本">修改建议</span>
+        </div>
+        <div class="chat-input-area">
+          <textarea id="chat-input" placeholder="输入你的问题（在左侧文档中选中文字后可针对选中内容提问）..." rows="1"></textarea>
+          <button id="send-btn" type="button">发送</button>
+        </div>
+        <div class="search-toggle-bar">
+          <label class="search-toggle" id="search-toggle">
+            <input type="checkbox" id="web-search-checkbox" />
+            <span>🌐 联网搜索</span>
+            <small>搜索法律条文、行业标准等外部资料辅助回答</small>
+          </label>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="./office-editor.js"></script>
+  <script>
+    const API_BASE = window.location.protocol === "file:" ? "http://localhost:5173" : "";
+
+    // State
+    const chatState = {
+      messages: [],
+      contractText: "",
+      contractHtml: "",
+      fileName: "",
+      isLoading: false,
+    };
+
+    // DOM elements
+    const els = {
+      serverState: document.getElementById("server-state"),
+      uploadArea: document.getElementById("upload-area"),
+      editorContainer: document.getElementById("word-editor-container"),
+      uploadBtn: document.getElementById("upload-btn"),
+      exportBtn: document.getElementById("export-btn"),
+      fileInput: document.getElementById("file-input"),
+      chatMessages: document.getElementById("chat-messages"),
+      chatInput: document.getElementById("chat-input"),
+      sendBtn: document.getElementById("send-btn"),
+      clearChatBtn: document.getElementById("clear-chat-btn"),
+      quickActions: document.getElementById("quick-actions"),
+    };
+
+    let officeEditor = null;
+
+    // Check server health
+    async function checkHealth() {
+      try {
+        const res = await fetch(`${API_BASE}/api/health`);
+        const data = await res.json();
+        els.serverState.textContent = `✓ ${data.modelProvider} (${data.model})`;
+        els.serverState.classList.remove("error");
+      } catch {
+        els.serverState.textContent = "服务未连接";
+        els.serverState.classList.add("error");
+      }
+    }
+
+    // File upload
+    function handleFile(file) {
+      if (!file) return;
+      const formData = new FormData();
+      formData.append("file", file);
+
+      fetch(`${API_BASE}/api/documents/parse-formatted`, {
+        method: "POST",
+        body: formData,
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          chatState.contractText = data.text || "";
+          chatState.contractHtml = data.html || "";
+          chatState.fileName = file.name;
+          showEditor(data.html || data.text);
+          addSystemMessage(`已导入合同：${file.name}`);
+        })
+        .catch(err => {
+          addSystemMessage(`导入失败：${err.message}`);
+        });
+    }
+
+    function showEditor(html) {
+      els.uploadArea.style.display = "none";
+      els.editorContainer.style.display = "block";
+      els.exportBtn.style.display = "";
+
+      if (!officeEditor) {
+        officeEditor = new OfficeEditor(els.editorContainer, {
+          mode: "word",
+          readOnly: false,
+          contractMode: true,
+        });
+      }
+      officeEditor.setHtml(html);
+    }
+
+    // Drag and drop
+    const uploadArea = els.uploadArea;
+    uploadArea.addEventListener("dragover", e => {
+      e.preventDefault();
+      uploadArea.style.borderColor = "#1677ff";
+      uploadArea.style.background = "#f0f7ff";
+    });
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.style.borderColor = "";
+      uploadArea.style.background = "";
+    });
+    uploadArea.addEventListener("drop", e => {
+      e.preventDefault();
+      uploadArea.style.borderColor = "";
+      uploadArea.style.background = "";
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+
+    els.fileInput.addEventListener("change", e => {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
+
+    els.uploadBtn.addEventListener("click", () => {
+      els.fileInput.click();
+    });
+
+    // Get selected text from editor for context-aware chat
+    function getEditorSelection() {
+      if (!officeEditor) return "";
+      const sel = window.getSelection();
+      if (sel && sel.toString().trim()) return sel.toString().trim();
+      return "";
+    }
+
+    // Apply AI suggested edit to editor
+    function applyEditorEdit(originalText, newText) {
+      if (!officeEditor) return false;
+      const editor = els.editorContainer.querySelector('[contenteditable]');
+      if (!editor) return false;
+      const html = editor.innerHTML;
+      if (html.includes(originalText)) {
+        editor.innerHTML = html.replace(originalText, newText);
+        return true;
+      }
+      return false;
+    }
+
+    // Chat functions
+    function addMessage(role, content, searchResults) {
+      const msg = { role, content, searchResults };
+      chatState.messages.push(msg);
+      renderMessage(msg);
+      scrollToBottom();
+    }
+
+    function addSystemMessage(content) {
+      addMessage("system", content);
+    }
+
+    function renderMessage(msg) {
+      const div = document.createElement("div");
+      div.className = `chat-message ${msg.role === "user" ? "user" : "assistant"}`;
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = msg.role === "user" ? "你" : "AI";
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+
+      // Detect edit suggestions with 【原文】/【修改】 pattern
+      if (msg.role === "assistant" && msg.content.includes("【原文】") && msg.content.includes("【修改】")) {
+        const parts = parseEditSuggestions(msg.content);
+        bubble.innerHTML = parts.html;
+        // Add apply buttons for each edit suggestion
+        parts.suggestions.forEach((s, i) => {
+          const btn = document.createElement("button");
+          btn.className = "apply-edit-btn";
+          btn.textContent = `应用修改 ${i + 1}`;
+          btn.style.cssText = "margin:4px 0;padding:4px 10px;background:#1677ff;color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;";
+          btn.addEventListener("click", () => {
+            if (applyEditorEdit(s.original, s.replacement)) {
+              btn.textContent = "已应用";
+              btn.style.background = "#52c41a";
+              btn.disabled = true;
+            } else {
+              btn.textContent = "未找到原文";
+              btn.style.background = "#ff4d4f";
+      
