@@ -4790,10 +4790,10 @@ async function handleApi(req, res, pathname) {
     if (req.method === "POST" && pathname === "/api/documents/parse-formatted") return handleParseFormatted(req, res);
     if (req.method === "POST" && pathname === "/api/contracts/chat") return handleContractChat(req, res);
     if (req.method === "POST" && pathname === "/api/web-search") return handleWebSearch(req, res);
-    if (req.method === "GET" && pathname.startsWith("/api/documents/file/")) return handleServeDocx(req, res);
-    if (req.method === "POST" && pathname === "/api/templates/parse") return handleParseTemplate(req, res);
-    if (req.method === "POST" && pathname === "/api/templates/upload") return handleUploadTemplate(req, res);
-    if (req.method === "POST" && pathname === "/api/templates/fill") return handleFillTemplate(req, res);
+    if (req.method === "GET" && pathname.startsWith("/api/documents/file/")) return handleServeDocxFixed(req, res);
+    if (req.method === "POST" && pathname === "/api/templates/parse") return handleParseTemplateFixed(req, res);
+    if (req.method === "POST" && pathname === "/api/templates/upload") return handleUploadTemplateFixed(req, res);
+    if (req.method === "POST" && pathname === "/api/templates/fill") return handleFillTemplateFixed(req, res);
     if (req.method === "POST" && pathname === "/api/templates/ai-analyze") return handleAIAnalyzeTemplate(req, res);
     sendJson(res, 404, { error: "Not found" });
   } catch (error) {

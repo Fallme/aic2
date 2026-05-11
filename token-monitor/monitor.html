@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiMo Token 用量监控</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f5f6fa;--card:#fff;--accent:#4361ee;--accent2:#f72585;--text:#1a1a2e;--sub:#6c757d;--border:#e9ecef;--success:#06d6a0;--warn:#ffd166;--danger:#ef476f}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;padding:20px 32px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:22px;font-weight:600}
+.header .status{display:flex;align-items:center;gap:8px;font-size:13px;opacity:.8}
+.header .dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.container{max-width:1200px;margin:0 auto;padding:24px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card .label{font-size:13px;color:var(--sub);margin-bottom:6px}
+.card .value{font-size:28px;font-weight:700}
+.card .sub{font-size:12px;color:var(--sub);margin-top:4px}
+.card.plan .value{color:var(--accent)}
+.card.used .value{color:var(--accent2)}
+.card.remain .value{color:var(--success)}
+.card.expire .value{font-size:20px;color:var(--warn)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.chart-box{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.chart-box h3{font-size:15px;margin-bottom:16px;color:var(--text)}
+.progress-wrap{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:24px}
+.progress-wrap h3{font-size:15px;margin-bottom:12px}
+.progress-bar{height:28px;background:#e9ecef;border-radius:14px;overflow:hidden;position:relative}
+.progress-fill{height:100%;border-radius:14px;transition:width .6s ease;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.progress-text{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;font-weight:600;color:var(--text)}
+.cookie-section{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:24px}
+.cookie-section h3{font-size:15px;margin-bottom:8px}
+.cookie-section p{font-size:13px;color:var(--sub);margin-bottom:12px}
+.cookie-section textarea{width:100%;height:60px;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;font-family:monospace;resize:vertical}
+.cookie-section button{margin-top:8px;padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;cursor:pointer}
+.cookie-section button:hover{opacity:.9}
+.footer{text-align:center;padding:16px;color:var(--sub);font-size:12px}
+.error-banner{background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#856404;display:none}
+@media(max-width:768px){.cards{grid-template-columns:1fr 1fr}.charts{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>MiMo Token 用量监控</h1>
+  <div class="status">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">连接中...</span>
+  </div>
+</div>
+<div class="container">
+  <div class="error-banner" id="errorBanner"></div>
+
+  <div class="cards">
+    <div class="card plan">
+      <div class="label">套餐</div>
+      <div class="value" id="planName">--</div>
+      <div class="sub" id="planExpiry">加载中...</div>
+    </div>
+    <div class="card used">
+      <div class="label">已使用</div>
+      <div class="value" id="usedCredits">--</div>
+      <div class="sub" id="usedPercent">--</div>
+    </div>
+    <div class="card remain">
+      <div class="label">剩余</div>
+      <div class="value" id="remainCredits">--</div>
+      <div class="sub" id="remainDays">--</div>
+    </div>
+    <div class="card expire">
+      <div class="label">到期时间</div>
+      <div class="value" id="expireDate">--</div>
+      <div class="sub" id="expireCountdown">--</div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <h3>当前套餐用量</h3>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      <div class="progress-text" id="progressText">0%</div>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-box">
+      <h3>用量趋势（最近数据点）</h3>
+      <canvas id="trendChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>每日消耗量</h3>
+      <canvas id="dailyChart"></canvas>
+    </div>
+  </div>
+
+  <div class="cookie-section">
+    <h3>Cookie 设置</h3>
+    <p>如果显示 "Cookie 过期" 错误，请从浏览器 F12 → Application → Cookies 中复制以下 Cookie 值粘贴到下方：</p>
+    <textarea id="cookieInput" placeholder="格式: api-platform_serviceToken=xxx;api-platform_slh=xxx;api-platform_ph=xxx"></textarea>
+    <button onclick="saveCookies()">保存 Cookie</button>
+  </div>
+</div>
+<div class="footer">MiMo Token Monitor v1.0 | 每 10 分钟自动刷新</div>
+
+<script>
+let trendChart, dailyChart;
+
+function fmt(n) {
+  if (n == null) return '--';
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return String(n);
+}
+
+function fmtFull(n) {
+  return n == null ? '--' : Number(n).toLocaleString();
+}
+
+async function fetchUsage() {
+  try {
+    const res = await fetch('/api/usage');
+    const data = await res.json();
+    if (data.error === 'cookie_expired') {
+      showError('Cookie 已过期，请在下方重新设置 Cookie');
+      setStatus(false);
+      return;
+    }
+    if (!data.detail) return;
+    renderDetail(data);
+    setStatus(true);
+    hideError();
+  } catch (e) {
+    setStatus(false);
+  }
+}
+
+async function fetchHistory() {
+  try {
+    const res = await fetch('/api/history?days=30');
+    const history = await res.json();
+    renderCharts(history);
+  } catch {}
+}
+
+function renderDetail(d) {
+  const info = d.detail?.data || {};
+  const usageInfo = d.usage?.data?.usage?.items?.[0] || {};
+
+  // Plan name
+  document.getElementById('planName').textContent = info.planName || '--';
+
+  // Expiry
+  const expiry = info.currentPeriodEnd;
+  if (expiry) {
+    const expDate = new Date(expiry.replace(' ', 'T'));
+    document.getElementById('planExpiry').textContent = '有效期至 ' + expiry;
+    document.getElementById('expireDate').textContent = expDate.toLocaleDateString('zh-CN');
+    const daysLeft = Math.max(0, Math.ceil((expDate - Date.now()) / 86400000));
+    document.getElementById('expireCountdown').textContent = '剩余 ' + daysLeft + ' 天';
+  }
+
+  // Credits from usage API
+  const used = usageInfo.used || 0;
+  const total = usageInfo.limit || 1600000000;
+  const remain = total - used;
+  const pct = total > 0 ? (used / total * 100) : 0;
+
+  document.getElementById('usedCredits').textContent = fmtFull(used);
+  document.getElementById('usedPercent').textContent = pct.toFixed(1) + '% 已使用';
+  document.getElementById('remainCredits').textContent = fmtFull(remain);
+
+  // Progress bar
+  document.getElementById('progressFill').style.width = Math.min(pct, 100) + '%';
+  document.getElementById('progressText').textContent = pct.toFixed(1) + '% (' + fmtFull(used) + ' / ' + fmtFull(total) + ')';
+
+  // Estimate remaining days
+  if (used > 0 && total > used) {
+    // Calculate daily usage rate from data
+    const remaining = total - used;
+    // We'll update this with chart data later
+    document.getElementById('remainDays').textContent = '使用 ' + pct.toFixed(1) + '%';
+  }
+}
+
+function renderCharts(history) {
+  if (!history || history.length === 0) return;
+
+  // Extract used credits from history records
+  const getUsed = (h) => h.usage?.data?.usage?.items?.[0]?.used || 0;
+
+  // Trend chart - cumulative usage over time
+  const trendLabels = history.map(h => {
+    const d = new Date(h.ts);
+    return d.getMonth()+1 + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+  });
+  const trendData = history.map(h => getUsed(h));
+
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: trendLabels,
+      datasets: [{
+        label: '累计使用 Credits',
+        data: trendData,
+        borderColor: '#4361ee',
+        backgroundColor: 'rgba(67,97,238,.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 8, font: { size: 11 } } },
+        y: { ticks: { callback: v => fmt(v), font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Daily consumption chart
+  const dailyMap = {};
+  for (let i = 1; i < history.length; i++) {
+    const prevUsed = getUsed(history[i-1]);
+    const currUsed = getUsed(history[i]);
+    const diff = Math.max(0, currUsed - prevUsed);
+    const day = new Date(history[i].ts).toLocaleDateString('zh-CN');
+    dailyMap[day] = (dailyMap[day] || 0) + diff;
+  }
+
+  const dailyLabels = Object.keys(dailyMap);
+  const dailyData = Object.values(dailyMap);
+
+  if (dailyChart) dailyChart.destroy();
+  dailyChart = new Chart(document.getElementById('dailyChart'), {
+    type: 'bar',
+    data: {
+      labels: dailyLabels,
+      datasets: [{
+        label: '每日消耗',
+        data: dailyData,
+        backgroundColor: 'rgba(247,37,133,.7)',
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 11 } } },
+        y: { ticks: { callback: v => fmt(v), font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Estimate remaining days from daily rate
+  if (dailyData.length > 0) {
+    const avgDaily = dailyData.reduce((a, b) => a + b, 0) / dailyData.length;
+    if (avgDaily > 0) {
+      const lastUsed = getUsed(history[history.length-1]);
+      const lastLimit = history[history.length-1].usage?.data?.usage?.items?.[0]?.limit || 1600000000;
+      const remain = lastLimit - lastUsed;
+      const daysLeft = Math.ceil(remain / avgDaily);
+      document.getElementById('remainDays').textContent = '预计 ' + daysLeft + ' 天后耗尽 (日均 ' + fmt(avgDaily) + ')';
+    }
+  }
+}
+
+function setStatus(ok) {
+  document.getElementById('statusDot').style.background = ok ? '#06d6a0' : '#ef476f';
+  document.getElementById('statusText').textContent = ok ? '已连接' : '未连接';
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBanner');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function hideError() {
+  document.getElementById('errorBanner').style.display = 'none';
+}
+
+async function saveCookies() {
+  const cookies = document.getElementById('cookieInput').value.trim();
+  if (!cookies) return;
+  await fetch('/api/cookies', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cookies })
+  });
+  setTimeout(fetchUsage, 1000);
+}
+
+// Initial load + auto refresh
+fetchUsage();
+fetchHistory();
+setInterval(() => { fetchUsage(); fetchHistory(); }, 60000);
+</script>
+</body>
+</html>

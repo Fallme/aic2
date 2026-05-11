@@ -4,3 +4,4 @@ rendered_kb_rule_workflow/
 ~$*
 .env
 node_modules/
+token-monitor/store.json

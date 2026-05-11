@@ -1,5 +1,23 @@
 # 公网部署与 Git 托管
 
+## 当前部署（Render）
+
+| 项目 | 值 |
+|---|---|
+| 平台 | Render |
+| 服务 ID | `srv-d7uptlv7f7vs73csve40` |
+| 公网地址 | https://aic2.onrender.com |
+| GitHub 仓库 | https://github.com/Fallme/aic2 |
+| 触发方式 | push 到 `main` 自动部署，或手动 POST Deploy Hook |
+
+手动触发重新部署（Key 存放在 `.env` 的 `RENDER_DEPLOY_HOOK` 中）：
+
+```bash
+source .env && curl -X POST "$RENDER_DEPLOY_HOOK"
+```
+
+> ⚠️ Deploy Hook Key 仅限内部使用，不要提交到公开仓库。
+
 ## 推荐方案
 
 给领导试用，建议使用以下组合：

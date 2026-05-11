@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>获取 MiMo Cookie</title>
+<style>
+body{font-family:sans-serif;max-width:600px;margin:40px auto;padding:20px;background:#f5f6fa}
+.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+h2{margin-bottom:16px}
+.step{background:#e8f4fd;border-radius:8px;padding:12px 16px;margin:8px 0;font-size:14px;line-height:1.6}
+.code{background:#1a1a2e;color:#06d6a0;padding:10px 14px;border-radius:6px;font-family:monospace;font-size:13px;word-break:break-all;margin:8px 0;cursor:pointer;position:relative}
+.code:hover{opacity:.9}
+.btn{display:inline-block;margin-top:16px;padding:12px 24px;border:none;border-radius:8px;background:#4361ee;color:#fff;font-size:15px;cursor:pointer}
+.btn:hover{opacity:.9}
+.btn:disabled{background:#ccc;cursor:not-allowed}
+.result{margin-top:16px;padding:12px;border-radius:8px;font-size:14px;display:none}
+.result.ok{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
+.result.err{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
+.note{margin-top:20px;font-size:13px;color:#6c757d;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>MiMo Cookie 获取工具</h2>
+
+  <div class="step">
+    <strong>第 1 步：</strong>确保你已在 Chrome 中登录
+    <a href="https://platform.xiaomimimo.com" target="_blank">platform.xiaomimimo.com</a>
+  </div>
+
+  <div class="step">
+    <strong>第 2 步：</strong>点击下方按钮，自动获取 Cookie
+  </div>
+
+  <button class="btn" id="fetchBtn" onclick="fetchCookie()">一键获取 Cookie</button>
+
+  <div class="result" id="result"></div>
+
+  <div class="note">
+    <p><strong>原理：</strong>此页面需要在 MiMo 平台域名下运行。请按以下步骤操作：</p>
+    <ol>
+      <li>打开 Chrome，访问 <code>https://platform.xiaomimimo.com</code></li>
+      <li>确保已登录</li>
+      <li>按 F12 打开开发者工具</li>
+      <li>切换到 Console 标签</li>
+      <li>粘贴下方代码并回车执行</li>
+    </ol>
+  </div>
+
+  <div class="code" onclick="copyCode()" title="点击复制">
+    fetch('http://localhost:3001/api/cookies',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookies:document.cookie})}).then(r=>r.json()).then(d=>alert('Cookie 已保存！刷新监控页面即可。')).catch(e=>alert('请确保监控服务已启动 (node server.js)'))
+  </div>
+  <p style="font-size:12px;color:#999;margin-top:4px">👆 点击复制上面的代码</p>
+</div>
+
+<script>
+function copyCode() {
+  const code = document.querySelector('.code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const el = document.querySelector('.code');
+    el.style.background = '#06d6a0';
+    setTimeout(() => el.style.background = '#1a1a2e', 500);
+  });
+}
+
+function fetchCookie() {
+  const btn = document.getElementById('fetchBtn');
+  const result = document.getElementById('result');
+  btn.disabled = true;
+  btn.textContent = '获取中...';
+
+  fetch('http://localhost:3001/api/cookies', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cookies: document.cookie })
+  })
+  .then(r => r.json())
+  .then(d => {
+    result.className = 'result ok';
+    result.textContent = 'Cookie 已保存！请刷新监控页面查看数据。';
+    result.style.display = 'block';
+    btn.textContent = '已获取 ✓';
+  })
+  .catch(e => {
+    result.className = 'result err';
+    result.textContent = '连接失败：' + e.message + '。请确保 node server.js 已启动。';
+    result.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '重试';
+  });
+}
+</script>
+</body>
+</html>
