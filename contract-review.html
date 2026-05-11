@@ -3,12 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>合同审查</title>
+  <title>合同审查 - ContractAI</title>
+  <link rel="stylesheet" href="./app.css" />
   <link rel="stylesheet" href="./knowledge.css" />
   <link rel="stylesheet" href="./office-editor.css" />
 </head>
 <body class="workbench-page">
-  <aside class="sidebar">
+  <!-- AI Status Bar -->
+  <div class="ai-status-bar">
+    <div class="status-left">
+      <span class="status-dot" id="aiDot"></span>
+      <span>AI 模型</span>
+      <span class="model-info" id="aiModel">检测中...</span>
+    </div>
+    <div class="status-right" id="aiProvider"></div>
+  </div>
+
+  <aside class="sidebar" style="margin-top:32px">
     <a class="brand" href="./home.html" style="text-decoration:none;color:inherit;">
       <span>AI</span>
       <div>
@@ -17,11 +28,10 @@
       </div>
     </a>
     <nav>
-      <a href="./contract-draft.html">📝 智能起草</a>
-      <a href="./contract-generate.html">✍️ 合同生成</a>
-      <a href="./contract-review.html" class="active">🔍 合同审查</a>
-      <a href="./contract-chat.html">💬 合同对话</a>
-      <a href="./knowledge.html">📚 知识库</a>
+      <a href="./template-fill.html"><span class="app-icon" style="width:16px;height:16px;vertical-align:middle;margin-right:6px" id="navTF"></span>模板填写</a>
+      <a href="./smart-draft.html"><span class="app-icon" style="width:16px;height:16px;vertical-align:middle;margin-right:6px" id="navSD"></span>智能起草</a>
+      <a href="./contract-review.html" class="active"><span class="app-icon" style="width:16px;height:16px;vertical-align:middle;margin-right:6px" id="navCR"></span>合同审查</a>
+      <a href="./knowledge.html"><span class="app-icon" style="width:16px;height:16px;vertical-align:middle;margin-right:6px" id="navKB"></span>知识库</a>
     </nav>
   </aside>
 
@@ -144,4 +154,8 @@
         <textarea id="review-text" hidden></textarea>
         <div class="modal-actions">
           <button class="secondary" type="button" id="clear-import-btn">清空</button>
-          <button class="primary" type="button" id="confirm-import-btn">导入原�
+          <button class="primary" type="button" id="confirm-import-btn">导入原�
+<script src="icons.js"></script>
+<script src="contract-review.js"></script>
+</body>
+</html>

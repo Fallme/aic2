@@ -6,21 +6,26 @@ let filledValues = {};
 let docxId = "";
 let attachFiles = [];
 
-// ── Init icons ──
+// ── Init icons + AI status ──
 window.addEventListener("DOMContentLoaded", () => {
-  // Set nav icons
-  document.getElementById("navTemplateFill").innerHTML = AppIcons.templateFill;
-  document.getElementById("navSmartDraft").innerHTML = AppIcons.smartDraft;
-  document.getElementById("navReview").innerHTML = AppIcons.contractReview;
-  document.getElementById("navKnowledge").innerHTML = AppIcons.knowledge;
-  document.getElementById("iconDownload").innerHTML = AppIcons.download;
-  document.getElementById("iconUploadBig").innerHTML = AppIcons.upload;
-  document.getElementById("iconUploadBtn").innerHTML = AppIcons.upload;
-  document.getElementById("iconSparkle").innerHTML = AppIcons.sparkles;
-  document.getElementById("iconPaperclip").innerHTML = AppIcons.paperclip;
-  document.getElementById("iconSend").innerHTML = AppIcons.send;
-
-  // Init editor
+  const icons = {
+    navTF: "templateFill", navSD: "smartDraft", navCR: "contractReview", navKB: "knowledge",
+    icoDL: "download", icoUploadBig: "upload", icoUpload: "upload",
+    icoSparkle: "sparkles", icoClip: "paperclip", icoSend: "send",
+  };
+  for (const [id, name] of Object.entries(icons)) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = AppIcons[name] || "";
+  }
+  // AI status
+  fetch("/api/health").then((r) => r.json()).then((d) => {
+    document.getElementById("aiModel").textContent = d.model || "unknown";
+    document.getElementById("aiProvider").textContent = d.provider || "";
+    document.getElementById("aiDot").style.background = d.apiKeyConfigured ? "var(--green)" : "var(--red)";
+  }).catch(() => {
+    document.getElementById("aiModel").textContent = "离线";
+    document.getElementById("aiDot").style.background = "var(--red)";
+  });
   editor = new OfficeEditor(document.getElementById("editorContainer"));
 });
 
@@ -110,8 +115,14 @@ function updateProgress() {
   const fields = templateData?.fields || [];
   const total = fields.length;
   const filled = fields.filter((f) => filledValues[f.placeholder]).length;
+  const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
   document.getElementById("fillCount").textContent = `${filled}/${total}`;
-  document.getElementById("fillBar").style.width = total > 0 ? (filled / total * 100) + "%" : "0%";
+  document.getElementById("fillBar").style.width = pct + "%";
+  // Completion bar
+  document.getElementById("completionBar").style.display = "flex";
+  document.getElementById("completionPct").textContent = pct + "%";
+  document.getElementById("completionFill").style.width = pct + "%";
+  document.getElementById("completionLabel").textContent = filled === total ? "全部完成" : `已填${filled}/${total}个字段`;
 }
 
 // ── AI Auto Fill ──
@@ -210,7 +221,7 @@ function sendChat() {
   if (matched > 0) {
     addChat("assistant", `已根据你的输入自动填写了 ${matched} 个字段。还有 ${fields.length - Object.keys(filledValues).length} 个字段待填写。`);
   } else {
-    addChat("assistant", "我已记录你的信息。请继续提供合同相关细节，或点击"AI 智能填充"自动生成。");
+    addChat("assistant", "我已记录你的信息。请继续提供合同相关细节，或点击「AI 智能填充」自动生成。");
   }
 }
 

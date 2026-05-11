@@ -3,11 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>合同知识库与规则库</title>
+  <title>知识库 - ContractAI</title>
+  <link rel="stylesheet" href="./app.css" />
   <link rel="stylesheet" href="./knowledge.css" />
 </head>
 <body>
-  <aside class="sidebar">
+  <!-- AI Status Bar -->
+  <div class="ai-status-bar">
+    <div class="status-left">
+      <span class="status-dot" id="aiDot"></span>
+      <span>AI 模型</span>
+      <span class="model-info" id="aiModel">检测中...</span>
+    </div>
+    <div class="status-right" id="aiProvider"></div>
+  </div>
+
+  <aside class="sidebar" style="margin-top:32px">
     <a class="brand" href="./home.html" style="text-decoration:none;color:inherit;">
       <span>AI</span>
       <div>
@@ -16,11 +27,10 @@
       </div>
     </a>
     <nav>
-      <a href="./contract-draft.html">📝 智能起草</a>
-      <a href="./contract-generate.html">✍️ 合同生成</a>
-      <a href="./contract-review.html">🔍 合同审查</a>
-      <a href="./contract-chat.html">💬 合同对话</a>
-      <a href="./knowledge.html" class="active">📚 知识库</a>
+      <a href="./template-fill.html">模板填写</a>
+      <a href="./smart-draft.html">智能起草</a>
+      <a href="./contract-review.html">合同审查</a>
+      <a href="./knowledge.html" class="active">知识库</a>
     </nav>
   </aside>
 
@@ -266,3 +276,19 @@
       </div>
     </form>
   </div>
+<script src="icons.js"></script>
+<script src="knowledge.js"></script>
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  fetch("/api/health").then(r => r.json()).then(d => {
+    document.getElementById("aiModel").textContent = d.model || "unknown";
+    document.getElementById("aiProvider").textContent = d.provider || "";
+    document.getElementById("aiDot").style.background = d.apiKeyConfigured ? "var(--green)" : "var(--red)";
+  }).catch(() => {
+    document.getElementById("aiModel").textContent = "离线";
+    document.getElementById("aiDot").style.background = "var(--red)";
+  });
+});
+</script>
+</body>
+</html>

@@ -6,41 +6,18 @@
   <title>智能起草 - ContractAI</title>
   <link rel="stylesheet" href="app.css">
   <link rel="stylesheet" href="office-editor.css">
-  <style>
-    .draft-progress {
-      display: flex; gap: 4px; padding: 0 4px 8px;
-    }
-    .draft-progress .step {
-      flex: 1; height: 3px; border-radius: 2px; background: rgba(0,0,0,0.06);
-      transition: background 0.3s;
-    }
-    .draft-progress .step.done { background: var(--blue); }
-    .draft-progress .step.active { background: linear-gradient(90deg, var(--blue), #6c5ce7); }
-    .kb-section { padding: 0 16px 8px; }
-    .kb-section .kb-label { font-size: 11px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
-    .kb-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-    .kb-chip {
-      padding: 4px 10px; border-radius: var(--r-pill); font-size: 11px;
-      border: 1px solid var(--line-strong); background: #fff;
-      cursor: pointer; transition: all 0.15s; user-select: none;
-    }
-    .kb-chip.active { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); }
-    .kb-chip:hover { border-color: var(--blue); }
-    .start-view {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      height: 100%; padding: 40px;
-    }
-    .start-view h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
-    .start-view p { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
-    .start-view textarea {
-      width: 100%; max-width: 560px; height: 100px; border: 1px solid var(--line-strong);
-      border-radius: var(--r-md); padding: 14px; font-size: 14px; font-family: var(--font);
-      resize: vertical; background: var(--glass-solid); backdrop-filter: blur(12px);
-    }
-    .start-view textarea:focus { outline: none; border-color: var(--blue); }
-  </style>
 </head>
 <body>
+<!-- AI Status Bar -->
+<div class="ai-status-bar">
+  <div class="status-left">
+    <span class="status-dot" id="aiDot"></span>
+    <span>AI 模型</span>
+    <span class="model-info" id="aiModel">检测中...</span>
+  </div>
+  <div class="status-right" id="aiProvider"></div>
+</div>
+
 <div class="app-layout">
   <!-- Sidebar -->
   <aside class="app-sidebar">
@@ -51,34 +28,46 @@
     <nav>
       <div class="nav-group">
         <div class="nav-group-label">合同起草</div>
-        <a class="nav-item" href="template-fill.html"><span class="app-icon" id="navTemplateFill"></span><span>模板填写</span></a>
-        <a class="nav-item active" href="smart-draft.html"><span class="app-icon" id="navSmartDraft"></span><span>智能起草</span></a>
+        <a class="nav-item" href="template-fill.html"><span class="app-icon" id="navTF"></span><span>模板填写</span></a>
+        <a class="nav-item active" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a>
       </div>
       <div class="nav-divider"></div>
       <div class="nav-group">
-        <a class="nav-item" href="contract-review.html"><span class="app-icon" id="navReview"></span><span>合同审查</span></a>
-        <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKnowledge"></span><span>知识库</span></a>
+        <a class="nav-item" href="contract-review.html"><span class="app-icon" id="navCR"></span><span>合同审查</span></a>
+        <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKB"></span><span>知识库</span></a>
       </div>
     </nav>
   </aside>
 
-  <!-- Main -->
   <div class="app-main">
-    <!-- Center: Editor -->
+    <!-- Center -->
     <div class="contract-panel">
       <div class="panel-header">
         <div class="panel-title">智能起草</div>
         <div class="panel-actions" id="editorActions" style="display:none">
-          <button class="btn btn-outline btn-sm" onclick="downloadDraft()"><span class="app-icon" style="width:14px;height:14px" id="iconDownload"></span> 下载</button>
-          <button class="btn btn-outline btn-sm" onclick="copyDraft()"><span class="app-icon" style="width:14px;height:14px" id="iconCopy"></span> 复制</button>
+          <button class="btn btn-outline btn-sm" onclick="downloadDraft()"><span class="app-icon" style="width:14px;height:14px" id="icoDL"></span> 下载</button>
+          <button class="btn btn-outline btn-sm" onclick="copyDraft()"><span class="app-icon" style="width:14px;height:14px" id="icoCP"></span> 复制</button>
         </div>
       </div>
-      <div class="draft-progress" id="draftProgress" style="display:none">
-        <div class="step" id="sp-intent"></div>
-        <div class="step" id="sp-extract"></div>
-        <div class="step" id="sp-knowledge"></div>
-        <div class="step" id="sp-generate"></div>
-        <div class="step" id="sp-iterate"></div>
+
+      <!-- Completion Bar -->
+      <div class="completion-bar" id="completionBar" style="display:none">
+        <span>完成度</span>
+        <span class="pct" id="completionPct">0%</span>
+        <div class="bar"><div class="fill" id="completionFill" style="width:0%"></div></div>
+        <span id="completionLabel">等待开始</span>
+      </div>
+
+      <!-- AI Progress -->
+      <div id="aiProgressWrap" style="display:none">
+        <div class="ai-progress" id="aiProgress">
+          <div class="step" id="sp-intent"></div>
+          <div class="step" id="sp-extract"></div>
+          <div class="step" id="sp-knowledge"></div>
+          <div class="step" id="sp-generate"></div>
+          <div class="step" id="sp-iterate"></div>
+        </div>
+        <div class="ai-progress-label" id="aiProgressLabel">准备中...</div>
       </div>
 
       <!-- Start View -->
@@ -88,7 +77,7 @@
           <p>描述合同需求，AI 多智能体协作帮你起草专业合同</p>
           <textarea id="descriptionInput" placeholder="例如：帮我起草一份设备采购合同，甲方是ABC科技有限公司，采购一批服务器设备，预算约50万元..."></textarea>
           <button class="btn btn-primary" style="margin-top:12px;padding:10px 28px" onclick="startDraft()">
-            <span class="app-icon" style="width:16px;height:16px" id="iconStartSparkle"></span> 开始起草
+            <span class="app-icon" style="width:16px;height:16px" id="icoStart"></span> 开始起草
           </button>
         </div>
       </div>
@@ -103,16 +92,14 @@
     <div class="chat-panel">
       <div class="chat-header">
         <h3>AI 对话</h3>
-        <span class="tag tag-blue" id="sessionTag" style="display:none">进行中</span>
+        <span class="tag tag-accent" id="sessionTag" style="display:none">进行中</span>
       </div>
       <div class="chat-thread" id="chatThread">
         <div class="chat-msg assistant">
           <div class="avatar">AI</div>
-          <div class="bubble">描述你的合同需求，我会引导你完成起草。你也可以上传参考文件（采购清单、历史合同等）。</div>
+          <div class="bubble">描述你的合同需求，我会引导你完成起草。支持上传参考文件（采购清单、历史合同等）。</div>
         </div>
       </div>
-
-      <!-- Knowledge Section -->
       <div class="kb-section">
         <div class="kb-label">审查维度</div>
         <div class="kb-chips">
@@ -121,17 +108,16 @@
           <span class="kb-chip" data-kb="企业自定" onclick="toggleKB(this)">企业自定</span>
         </div>
       </div>
-
       <div class="chat-compose">
         <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap" id="fileChips"></div>
         <div class="compose-bar">
           <button class="attach-btn" onclick="document.getElementById('attachInput').click()">
-            <span class="app-icon" style="width:18px;height:18px" id="iconPaperclip"></span>
+            <span class="app-icon" style="width:18px;height:18px" id="icoClip"></span>
           </button>
           <input type="file" id="attachInput" multiple accept=".docx,.doc,.pdf,.xlsx,.txt" style="display:none" onchange="handleFiles(this.files)">
-          <input id="chatInput" placeholder="输入回答..." onkeydown="if(event.key==='Enter')sendAnswer()">
+          <input type="text" id="chatInput" placeholder="输入回答..." onkeydown="if(event.key==='Enter')sendAnswer()">
           <button class="send-btn" onclick="sendAnswer()">
-            <span class="app-icon" style="width:16px;height:16px" id="iconSend"></span>
+            <span class="app-icon" style="width:16px;height:16px" id="icoSend"></span>
           </button>
         </div>
       </div>

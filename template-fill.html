@@ -6,31 +6,19 @@
   <title>模板填写 - ContractAI</title>
   <link rel="stylesheet" href="app.css">
   <link rel="stylesheet" href="office-editor.css">
-  <style>
-    .fields-panel { padding: 16px; overflow-y: auto; flex: 1; }
-    .field-group { margin-bottom: 12px; }
-    .field-label {
-      font-size: 12px; font-weight: 500; color: var(--muted);
-      margin-bottom: 4px; display: flex; align-items: center; gap: 4px;
-    }
-    .field-label .required { color: var(--red); }
-    .field-input {
-      width: 100%; padding: 8px 10px; border: 1px solid var(--line-strong);
-      border-radius: var(--r-sm); font-size: 13px; font-family: var(--font);
-      transition: border-color 0.15s;
-    }
-    .field-input:focus { outline: none; border-color: var(--blue); }
-    .field-input.filled { border-color: var(--green); background: var(--green-soft); }
-    .field-progress {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 0; margin-bottom: 8px; font-size: 12px; color: var(--muted);
-    }
-    .field-progress .count { font-weight: 600; color: var(--blue); }
-  </style>
 </head>
 <body>
+<!-- AI Status Bar -->
+<div class="ai-status-bar">
+  <div class="status-left">
+    <span class="status-dot" id="aiDot"></span>
+    <span>AI 模型</span>
+    <span class="model-info" id="aiModel">检测中...</span>
+  </div>
+  <div class="status-right" id="aiProvider"></div>
+</div>
+
 <div class="app-layout">
-  <!-- Sidebar -->
   <aside class="app-sidebar">
     <a class="brand" href="home.html">
       <div class="logo">AI</div>
@@ -39,45 +27,50 @@
     <nav>
       <div class="nav-group">
         <div class="nav-group-label">合同起草</div>
-        <a class="nav-item active" href="template-fill.html"><span class="app-icon" id="navTemplateFill"></span><span>模板填写</span></a>
-        <a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSmartDraft"></span><span>智能起草</span></a>
+        <a class="nav-item active" href="template-fill.html"><span class="app-icon" id="navTF"></span><span>模板填写</span></a>
+        <a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a>
       </div>
       <div class="nav-divider"></div>
       <div class="nav-group">
-        <a class="nav-item" href="contract-review.html"><span class="app-icon" id="navReview"></span><span>合同审查</span></a>
-        <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKnowledge"></span><span>知识库</span></a>
+        <a class="nav-item" href="contract-review.html"><span class="app-icon" id="navCR"></span><span>合同审查</span></a>
+        <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKB"></span><span>知识库</span></a>
       </div>
     </nav>
   </aside>
 
-  <!-- Main -->
   <div class="app-main">
-    <!-- Center: Contract Area -->
     <div class="contract-panel">
       <div class="panel-header">
         <div class="panel-title" id="pageTitle">模板填写</div>
-        <div class="panel-actions">
-          <button class="btn btn-outline btn-sm" onclick="downloadFilled()"><span class="app-icon" style="width:14px;height:14px" id="iconDownload"></span> 下载</button>
+        <div class="panel-actions" id="editorActions" style="display:none">
+          <button class="btn btn-outline btn-sm" onclick="downloadFilled()"><span class="app-icon" style="width:14px;height:14px" id="icoDL"></span> 下载</button>
         </div>
       </div>
 
-      <!-- Upload State -->
-      <div id="uploadState" class="editor-wrap" style="display:flex;align-items:center;justify-content:center;">
+      <!-- Completion -->
+      <div class="completion-bar" id="completionBar" style="display:none">
+        <span>完成度</span>
+        <span class="pct" id="completionPct">0%</span>
+        <div class="bar"><div class="fill" id="completionFill" style="width:0%"></div></div>
+        <span id="completionLabel">等待填写</span>
+      </div>
+
+      <!-- Upload -->
+      <div id="uploadState" class="editor-wrap" style="display:flex;align-items:center;justify-content:center">
         <div class="empty-state">
-          <div class="empty-icon" id="iconUploadBig"></div>
+          <div class="empty-icon" id="icoUploadBig"></div>
           <h3>上传合同模板</h3>
-          <p>支持 .docx、.doc 格式，AI 将自动提取关键字段</p>
+          <p>支持 .docx、.doc 格式，AI 自动提取关键字段</p>
           <button class="btn btn-primary" style="margin-top:16px" onclick="document.getElementById('fileInput').click()">
-            <span class="app-icon" style="width:14px;height:14px" id="iconUploadBtn"></span> 选择文件
+            <span class="app-icon" style="width:14px;height:14px" id="icoUpload"></span> 选择文件
           </button>
           <input type="file" id="fileInput" accept=".docx,.doc" style="display:none" onchange="handleUpload(this.files[0])">
         </div>
       </div>
 
-      <!-- Field Fill State -->
-      <div id="fillState" class="editor-wrap" style="display:none;flex-direction:row;">
-        <!-- Left: Fields -->
-        <div class="fields-panel" style="width:320px;border-right:1px solid var(--line);flex-shrink:0;">
+      <!-- Fill State -->
+      <div id="fillState" class="editor-wrap" style="display:none;flex-direction:row">
+        <div class="fields-panel" style="width:320px;border-right:1px solid var(--line);flex-shrink:0">
           <div class="field-progress">
             <span>已填写</span>
             <span class="count" id="fillCount">0/0</span>
@@ -86,36 +79,33 @@
           <div id="fieldsList"></div>
           <div style="padding:8px 0">
             <button class="btn btn-primary" style="width:100%" onclick="aiAutoFill()">
-              <span class="app-icon" style="width:14px;height:14px" id="iconSparkle"></span> AI 智能填充
+              <span class="app-icon" style="width:14px;height:14px" id="icoSparkle"></span> AI 智能填充
             </button>
           </div>
         </div>
-        <!-- Right: Editor -->
-        <div style="flex:1;overflow:hidden;" id="editorContainer"></div>
+        <div style="flex:1;overflow:hidden" id="editorContainer"></div>
       </div>
     </div>
 
-    <!-- Right: Chat Panel -->
+    <!-- Chat Panel -->
     <div class="chat-panel">
-      <div class="chat-header">
-        <h3>AI 助手</h3>
-      </div>
+      <div class="chat-header"><h3>AI 助手</h3></div>
       <div class="chat-thread" id="chatThread">
         <div class="chat-msg assistant">
           <div class="avatar">AI</div>
-          <div class="bubble">上传合同模板后，我可以帮你自动提取关键字段并填充。也可以直接告诉我合同信息，我来帮你填写。</div>
+          <div class="bubble">上传合同模板后，我可以帮你自动提取关键字段并填充。也可以直接告诉我合同信息。</div>
         </div>
       </div>
       <div class="chat-compose">
         <div style="display:flex;gap:6px;margin-bottom:8px" id="fileChipArea"></div>
         <div class="compose-bar">
-          <button class="attach-btn" onclick="document.getElementById('attachInput').click()" title="上传附件">
-            <span class="app-icon" style="width:18px;height:18px" id="iconPaperclip"></span>
+          <button class="attach-btn" onclick="document.getElementById('attachInput').click()">
+            <span class="app-icon" style="width:18px;height:18px" id="icoClip"></span>
           </button>
           <input type="file" id="attachInput" multiple accept=".docx,.doc,.pdf,.xlsx,.txt" style="display:none" onchange="handleAttach(this.files)">
-          <input id="chatInput" placeholder="输入合同信息..." onkeydown="if(event.key==='Enter')sendChat()">
-          <button class="send-btn" onclick="sendChat()" id="sendBtn">
-            <span class="app-icon" style="width:16px;height:16px" id="iconSend"></span>
+          <input type="text" id="chatInput" placeholder="输入合同信息..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="send-btn" onclick="sendChat()">
+            <span class="app-icon" style="width:16px;height:16px" id="icoSend"></span>
           </button>
         </div>
       </div>

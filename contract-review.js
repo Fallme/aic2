@@ -1,5 +1,29 @@
 const API_BASE = window.location.protocol === "file:" ? "http://localhost:5173" : "";
 
+// ── AI Status + Icons ──
+window.addEventListener("DOMContentLoaded", () => {
+  // Set sidebar icons
+  const iconMap = { navTF: "templateFill", navSD: "smartDraft", navCR: "contractReview", navKB: "knowledge" };
+  for (const [id, name] of Object.entries(iconMap)) {
+    const el = document.getElementById(id);
+    if (el && window.AppIcons) el.innerHTML = AppIcons[name] || "";
+  }
+  // AI status
+  fetch(`${API_BASE}/api/health`).then((r) => r.json()).then((d) => {
+    const m = document.getElementById("aiModel");
+    const p = document.getElementById("aiProvider");
+    const dot = document.getElementById("aiDot");
+    if (m) m.textContent = d.model || "unknown";
+    if (p) p.textContent = d.provider || "";
+    if (dot) dot.style.background = d.apiKeyConfigured ? "var(--green)" : "var(--red)";
+  }).catch(() => {
+    const m = document.getElementById("aiModel");
+    const dot = document.getElementById("aiDot");
+    if (m) m.textContent = "离线";
+    if (dot) dot.style.background = "var(--red)";
+  });
+});
+
 const els = {
   serverState: document.getElementById("server-state"),
   reviewFile: document.getElementById("review-file"),
