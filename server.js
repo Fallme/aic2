@@ -3905,6 +3905,590 @@ async function handleGenerateContract(req, res) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Smart Draft — Multi-Agent Contract Generation System
+// ═══════════════════════════════════════════════════════════════
+
+const builtinTemplatesPath = path.join(ROOT, "builtin-templates.json");
+let builtinTemplates = [];
+try { builtinTemplates = JSON.parse(fs.readFileSync(builtinTemplatesPath, "utf-8")); } catch {}
+
+// In-memory session store for smart draft sessions
+const smartDraftSessions = new Map();
+
+function createSmartDraftSession() {
+  const id = "sd_" + crypto.randomBytes(8).toString("hex");
+  const session = {
+    id,
+    createdAt: Date.now(),
+    description: "",
+    knowledgeMode: "industry", // "industry" | "enterprise"
+    guidanceMode: "ask_user",   // "ask_user" | "kb_search" | "llm_infer"
+    intent: null,      // Agent 1 output
+    extractedData: null, // Agent 2 output
+    rules: [],          // Agent 3 output
+    knowledgeSnippets: [], // Agent 3 output
+    template: null,     // matched builtin template
+    answers: {},        // accumulated field answers
+    missingFields: [],  // fields still needing info
+    currentQuestion: null,
+    draft: "",          // current draft text
+    messages: [],       // chat history
+    step: "idle",       // idle|intent|extract|knowledge|generate|iterate|done
+    files: [],          // uploaded file info
+  };
+  smartDraftSessions.set(id, session);
+  // Cleanup old sessions (>2h)
+  for (const [k, v] of smartDraftSessions) {
+    if (Date.now() - v.createdAt > 7200000) smartDraftSessions.delete(k);
+  }
+  return session;
+}
+
+// ── Agent 1: Intent Analyzer ──
+async function agentIntentAnalyze(description, fileNames) {
+  const prompt = `你是一个合同意图分析专家。根据用户描述和文件列表，分析合同类型和关键信息。
+
+用户描述: ${description || "(未提供)"}
+上传文件: ${fileNames && fileNames.length ? fileNames.join(", ") : "(未上传)"}
+
+可选合同类型: goods(采购), service(服务), software(软件开发), labor(劳动), rental(租赁), sales(销售), consulting(咨询), agency(代理), nda(保密), framework(框架)
+
+请返回JSON格式:
+{
+  "contractType": "goods/service/software/...",
+  "contractTypeCn": "采购合同/服务合同/...",
+  "industry": "IT行业/制造业/通用/...",
+  "parties": ["甲方名称(如有)", "乙方名称(如有)"],
+  "keyTerms": ["关键词1", "关键词2"],
+  "complexity": "simple/medium/complex",
+  "summary": "一句话总结合同意图"
+}`;
+
+  try {
+    const result = await callJsonModel(prompt, null, { temperature: 0.1, maxTokens: 1000 });
+    if (result) return result.data || result;
+  } catch (e) {
+    console.error("[Agent1] Intent analysis failed:", e.message);
+  }
+
+  // Fallback: keyword matching
+  const typeMap = {
+    goods: ["采购", "购买", "设备", "物料"],
+    service: ["服务", "运维", "支持"],
+    software: ["软件", "开发", "系统", "平台"],
+    labor: ["劳动", "雇佣", "员工"],
+    rental: ["租赁", "出租", "房屋"],
+    sales: ["销售", "出售", "产品"],
+    consulting: ["咨询", "顾问"],
+    agency: ["代理", "委托", "经销"],
+    nda: ["保密", "秘密", "机密"],
+    framework: ["框架", "战略", "合作"],
+  };
+  let bestType = "service", bestScore = 0;
+  for (const [type, keywords] of Object.entries(typeMap)) {
+    const score = keywords.filter((k) => (description || "").includes(k)).length;
+    if (score > bestScore) { bestScore = score; bestType = type; }
+  }
+  const tpl = builtinTemplates.find((t) => t.type === bestType);
+  return {
+    contractType: bestType,
+    contractTypeCn: tpl ? tpl.name : "服务合同",
+    industry: "通用",
+    parties: [],
+    keyTerms: (description || "").slice(0, 50).split(/[,，、\s]+/).filter(Boolean),
+    complexity: "medium",
+    summary: description || "合同起草",
+  };
+}
+
+// ── Agent 2: Data Extractor ──
+async function agentDataExtract(fileTexts, intent) {
+  if (!fileTexts || fileTexts.length === 0) return { items: [], fields: {}, summary: "无参考文件" };
+
+  const combined = fileTexts.map((f, i) => `--- 文件${i + 1}: ${f.name} ---\n${f.text.slice(0, 3000)}`).join("\n\n");
+
+  const prompt = `你是一个合同数据提取专家。从以下上传文件中提取与"${intent.contractTypeCn || '合同'}"相关的结构化数据。
+
+${combined}
+
+请返回JSON格式:
+{
+  "items": [{"name":"品名","spec":"规格","qty":数量,"unit":"单位","price":单价,"amount":金额,...}],
+  "fields": {"partyA":"甲方名称","partyB":"乙方名称","totalAmount":"总金额","...":"..."},
+  "summary": "提取结果一句话总结"
+}
+
+如果没有可提取的数据，items和fields返回空对象。`;
+
+  try {
+    const result = await callJsonModel(prompt, null, { temperature: 0.1, maxTokens: 2000 });
+    if (result) return result.data || result;
+  } catch (e) {
+    console.error("[Agent2] Data extraction failed:", e.message);
+  }
+  return { items: [], fields: {}, summary: "提取失败" };
+}
+
+// ── Agent 3: Knowledge Retriever ──
+function agentKnowledgeRetrieve(intent, knowledgeMode) {
+  const contractType = intent.contractType || "service";
+  const industry = intent.industry || "通用";
+
+  // Select rules based on mode
+  const currentStore = loadStore();
+  const allRules = currentStore.rules || [];
+  let rules = allRules.filter((r) => r.reviewStatus === "active" || allRules.every((x) => x.reviewStatus !== "active"));
+
+  if (knowledgeMode === "enterprise") {
+    rules = rules.filter((r) => r.ruleBasis === "企业自定");
+  } else {
+    // industry mode: include 行业惯例 + 通用法规
+    rules = rules.filter((r) => r.ruleBasis !== "企业自定");
+  }
+
+  // Filter by contract type match
+  const profile = { contractType, industry };
+  rules = rules.filter((r) => ruleMatchesProfile(r, profile)).slice(0, 20);
+
+  // Select knowledge snippets
+  const keyTerms = (intent.keyTerms || []).join(" ");
+  const snippets = selectKnowledgeSnippetsForGeneration(currentStore, keyTerms, 10);
+
+  return { rules, snippets };
+}
+
+// ── Agent 4: Draft Generator ──
+async function agentDraftGenerate(session) {
+  const { template, extractedData, rules, knowledgeSnippets, answers, guidanceMode, description } = session;
+  const tpl = template || builtinTemplates[0];
+
+  // Build field value summary
+  const answerLines = Object.entries(answers).map(([k, v]) => `- ${k}: ${v}`).join("\n") || "（暂无）";
+
+  // Build items summary
+  let itemsSummary = "（无附件数据）";
+  if (extractedData && extractedData.items && extractedData.items.length > 0) {
+    itemsSummary = extractedData.items.map((it, i) =>
+      `${i + 1}. ${it.name || ""} ${it.spec || ""} × ${it.qty || ""}${it.unit || ""} @${it.price || ""} = ${it.amount || ""}`
+    ).join("\n");
+  }
+
+  // Build rules summary
+  const ruleLines = rules.slice(0, 10).map((r) => `- [${r.ruleBasis || "通用"}] ${r.ruleName}: ${(r.action || "").slice(0, 100)}`).join("\n") || "（无适用规则）";
+
+  // Guidance mode instruction
+  let guidance = "";
+  if (guidanceMode === "ask_user") {
+    guidance = "请在合同中标注所有不确定的信息为【待确认：xxx】格式，并在最后列出需要用户确认的问题清单。";
+  } else if (guidanceMode === "kb_search") {
+    guidance = "对于不确定的信息，尝试从知识库内容中找到合理答案填入，并标注信息来源。仍无法确定的标注【待确认：xxx】。";
+  } else {
+    guidance = "对于不确定的信息，请根据上下文和行业惯例自行推断最合理的答案，直接填入合同，不要留空。";
+  }
+
+  const prompt = `你是一名资深中国合同律师。请根据以下信息起草一份完整的${tpl.name}。
+
+## 合同描述
+${description || "（用户未提供描述）"}
+
+## 合同类型: ${tpl.name}
+## 必备条款: ${tpl.requiredClauses.join("、")}
+
+## 已知信息
+${answerLines}
+
+## 附件提取数据
+${itemsSummary}
+
+## 适用规则（${rules.length}条）
+${ruleLines}
+
+## 知识库参考
+${knowledgeSnippets.map((s) => `- ${s}`).join("\n") || "（无）"}
+
+## 起草指引
+${guidance}
+
+## 格式要求
+1. 使用中文合同格式
+2. 条款编号连续
+3. 金额使用大写+小写
+4. 日期格式: YYYY年MM月DD日
+5. 签名栏包含: 甲方(盖章)、法定代表人/授权代表、日期
+
+请直接输出合同全文（纯文本，不加markdown格式）：`;
+
+  try {
+    const result = await callChatModel(prompt, null, { temperature: 0.3, maxTokens: 8000 });
+    if (result) return result;
+  } catch (e) {
+    console.error("[Agent4] Draft generation failed:", e.message);
+  }
+
+  // Fallback: basic structure
+  return fallbackSmartDraft(tpl, answers, extractedData);
+}
+
+// ── Agent 5: Dialogue Manager ──
+function agentDialogueManage(session) {
+  const tpl = session.template || builtinTemplates[0];
+  const required = tpl.requiredClauses || [];
+  const answers = session.answers || {};
+
+  // Find missing fields
+  const missing = [];
+  const fieldHints = {
+    "合同主体": ["甲方", "乙方"],
+    "采购标的": ["品名", "规格", "数量", "单价"],
+    "质量标准": ["质量", "验收"],
+    "交货": ["交货", "交付", "交付时间"],
+    "付款": ["付款", "支付"],
+    "违约": ["违约", "赔偿"],
+    "保密": ["保密"],
+    "期限": ["期限", "有效期", "合同期"],
+  };
+
+  for (const clause of required) {
+    const matched = Object.keys(fieldHints).find((k) => clause.includes(k));
+    if (matched) {
+      const hints = fieldHints[matched];
+      const hasValue = hints.some((h) =>
+        Object.keys(answers).some((k) => k.includes(h) && answers[k])
+      );
+      if (!hasValue) {
+        missing.push({ clause, hint: matched, question: `请提供${clause}相关信息` });
+      }
+    }
+  }
+
+  // Also check extracted data coverage
+  if (session.extractedData && session.extractedData.fields) {
+    const ed = session.extractedData.fields;
+    if (ed.partyA && !answers["甲方"]) answers["甲方"] = ed.partyA;
+    if (ed.partyB && !answers["乙方"]) answers["乙方"] = ed.partyB;
+    if (ed.totalAmount && !answers["总金额"]) answers["总金额"] = ed.totalAmount;
+  }
+
+  session.missingFields = missing;
+  session.currentQuestion = missing.length > 0 ? missing[0] : null;
+
+  return {
+    missingCount: missing.length,
+    currentQuestion: session.currentQuestion,
+    totalRequired: required.length,
+    filledCount: required.length - missing.length,
+    progress: Math.round(((required.length - missing.length) / required.length) * 100),
+  };
+}
+
+// ── Fallback draft generation ──
+function fallbackSmartDraft(tpl, answers, extractedData) {
+  const partyA = answers["甲方"] || answers["partyA"] || "【甲方名称】";
+  const partyB = answers["乙方"] || answers["partyB"] || "【乙方名称】";
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+
+  let itemsTable = "";
+  if (extractedData && extractedData.items && extractedData.items.length > 0) {
+    itemsTable = "\n序号 | 品名 | 规格型号 | 数量 | 单位 | 单价(元) | 金额(元)\n";
+    itemsTable += "--- | --- | --- | --- | --- | --- | ---\n";
+    extractedData.items.forEach((it, i) => {
+      itemsTable += `${i + 1} | ${it.name || ""} | ${it.spec || ""} | ${it.qty || ""} | ${it.unit || ""} | ${it.price || ""} | ${it.amount || ""}\n`;
+    });
+  }
+
+  let draft = `${tpl.name}\n\n`;
+  draft += `甲方（买方）：${partyA}\n`;
+  draft += `乙方（卖方）：${partyB}\n\n`;
+  draft += `根据《中华人民共和国民法典》及相关法律法规，甲乙双方在平等、自愿、公平、诚实信用的原则基础上，经友好协商，就${tpl.description}事宜达成如下协议：\n\n`;
+
+  const clauses = tpl.requiredClauses || [];
+  clauses.forEach((clause, i) => {
+    draft += `第${["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"][i] || i + 1}条 ${clause}\n`;
+    if (clause.includes("主体")) {
+      draft += `1.1 甲方：${partyA}\n1.2 乙方：${partyB}\n\n`;
+    } else if (clause.includes("标的") || clause.includes("采购")) {
+      draft += itemsTable ? `${itemsTable}\n` : `（待补充合同标的详情）\n\n`;
+    } else if (clause.includes("付款")) {
+      draft += `${answers["付款方式"] || "（待确认付款方式）"}\n\n`;
+    } else if (clause.includes("违约")) {
+      draft += `任何一方违反本合同约定的，应向守约方支付合同总金额【待确认比例】%的违约金，并赔偿由此造成的全部损失。\n\n`;
+    } else {
+      draft += `（${clause}具体条款待完善）\n\n`;
+    }
+  });
+
+  draft += `本合同一式肆份，甲乙双方各执贰份，具有同等法律效力。\n\n`;
+  draft += `甲方（盖章）：                    乙方（盖章）：\n`;
+  draft += `法定代表人：                      法定代表人：\n`;
+  draft += `日期：${dateStr}                    日期：${dateStr}\n`;
+
+  return draft;
+}
+
+// ── API Endpoints ──
+
+// POST /api/smart-draft/init — Initialize a smart draft session
+async function handleSmartDraftInit(req, res, body) {
+  let description = "";
+  let fileTexts = [];
+  let knowledgeMode = "industry";
+
+  try {
+    const data = JSON.parse(body);
+    description = data.description || "";
+    knowledgeMode = data.knowledgeMode || "industry";
+    fileTexts = data.fileTexts || []; // [{name, text}]
+  } catch { return sendJson(res, 400, { error: "Invalid JSON" }); }
+
+  const session = createSmartDraftSession();
+  session.description = description;
+  session.knowledgeMode = knowledgeMode;
+  session.step = "intent";
+
+  // Agent 1: Intent analysis
+  const fileNames = fileTexts.map((f) => f.name);
+  session.intent = await agentIntentAnalyze(description, fileNames);
+
+  // Match builtin template
+  session.template = builtinTemplates.find((t) => t.type === session.intent.contractType) || builtinTemplates[0];
+
+  // Agent 2: Data extraction
+  session.step = "extract";
+  session.extractedData = await agentDataExtract(fileTexts, session.intent);
+
+  // Merge extracted fields into answers
+  if (session.extractedData && session.extractedData.fields) {
+    Object.assign(session.answers, session.extractedData.fields);
+  }
+
+  // Agent 3: Knowledge retrieval
+  session.step = "knowledge";
+  const kb = agentKnowledgeRetrieve(session.intent, session.knowledgeMode);
+  session.rules = kb.rules;
+  session.knowledgeSnippets = kb.snippets;
+
+  // Pre-fill answers from memory and extracted data
+  const memStore = loadStore();
+  const memory = (memStore.contractMemory || []).slice(-10);
+  if (session.intent.parties) {
+    if (session.intent.parties[0]) session.answers["甲方"] = session.intent.parties[0];
+    if (session.intent.parties[1]) session.answers["乙方"] = session.intent.parties[1];
+  }
+
+  // Agent 5: Determine missing fields
+  const dialogueResult = agentDialogueManage(session);
+
+  session.step = "iterate";
+  session.messages.push({
+    role: "assistant",
+    content: `已识别为「${session.intent.contractTypeCn}」（${session.intent.industry}）\n` +
+      `模板: ${session.template.name}\n` +
+      (session.extractedData.items.length > 0 ? `已提取 ${session.extractedData.items.length} 条数据\n` : "") +
+      `匹配到 ${session.rules.length} 条适用规则\n` +
+      (dialogueResult.missingCount > 0
+        ? `需要补充 ${dialogueResult.missingCount} 项信息，第一个问题：\n${dialogueResult.currentQuestion?.question || "请描述合同详情"}`
+        : "信息齐全，可以直接生成草稿"),
+  });
+
+  return sendJson(res, 200, {
+    sessionId: session.id,
+    intent: session.intent,
+    template: { id: session.template.id, name: session.template.name },
+    extractedData: session.extractedData,
+    rulesCount: session.rules.length,
+    dialogue: dialogueResult,
+    messages: session.messages,
+    answers: session.answers,
+  });
+}
+
+// POST /api/smart-draft/generate — Generate draft
+async function handleSmartDraftGenerate(req, res, body) {
+  let sessionId = "";
+  try {
+    const data = JSON.parse(body);
+    sessionId = data.sessionId || "";
+    if (data.guidanceMode) {
+      const session = smartDraftSessions.get(sessionId);
+      if (session) session.guidanceMode = data.guidanceMode;
+    }
+  } catch { return sendJson(res, 400, { error: "Invalid JSON" }); }
+
+  const session = smartDraftSessions.get(sessionId);
+  if (!session) return sendJson(res, 404, { error: "Session not found" });
+
+  session.step = "generate";
+
+  // Agent 4: Generate draft
+  session.draft = await agentDraftGenerate(session);
+  // Normalize draft to string
+  if (session.draft && typeof session.draft === "object") {
+    session.draft = session.draft.content || session.draft.draft || JSON.stringify(session.draft);
+  }
+
+  session.step = "done";
+  session.messages.push({ role: "assistant", content: "草稿已生成，请在左侧编辑器中查看和修改。" });
+
+  // Record to memory
+  const memStore = loadStore();
+  if (!memStore.contractMemory) memStore.contractMemory = [];
+  memStore.contractMemory.push({ ts: Date.now(), type: session.intent?.contractType, answers: session.answers });
+  if (memStore.contractMemory.length > 500) memStore.contractMemory = memStore.contractMemory.slice(-500);
+  saveStore(memStore);
+
+  return sendJson(res, 200, {
+    draft: session.draft,
+    sessionId: session.id,
+    messages: session.messages,
+    appliedRules: session.rules.slice(0, 5).map((r) => r.ruleName),
+  });
+}
+
+// POST /api/smart-draft/answer — User answers a question
+async function handleSmartDraftAnswer(req, res, body) {
+  let sessionId = "", field = "", value = "";
+  try {
+    const data = JSON.parse(body);
+    sessionId = data.sessionId || "";
+    field = data.field || "";
+    value = data.value || "";
+  } catch { return sendJson(res, 400, { error: "Invalid JSON" }); }
+
+  const session = smartDraftSessions.get(sessionId);
+  if (!session) return sendJson(res, 404, { error: "Session not found" });
+
+  session.answers[field] = value;
+  session.messages.push({ role: "user", content: `${field}: ${value}` });
+
+  // Re-evaluate missing fields
+  const dialogueResult = agentDialogueManage(session);
+
+  if (dialogueResult.missingCount === 0) {
+    session.messages.push({ role: "assistant", content: "所有必要信息已收集完毕！可以生成最终草稿。" });
+  } else {
+    session.messages.push({
+      role: "assistant",
+      content: `还需要 ${dialogueResult.missingCount} 项信息。\n${dialogueResult.currentQuestion?.question || "请继续补充"}`,
+    });
+  }
+
+  return sendJson(res, 200, { dialogue: dialogueResult, messages: session.messages, answers: session.answers });
+}
+
+// POST /api/smart-draft/guide — Three guidance modes
+async function handleSmartDraftGuide(req, res, body) {
+  let sessionId = "", mode = "";
+  try {
+    const data = JSON.parse(body);
+    sessionId = data.sessionId || "";
+    mode = data.mode || "llm_infer"; // ask_user | kb_search | llm_infer
+  } catch { return sendJson(res, 400, { error: "Invalid JSON" }); }
+
+  const session = smartDraftSessions.get(sessionId);
+  if (!session) return sendJson(res, 404, { error: "Session not found" });
+
+  session.guidanceMode = mode;
+  const question = session.currentQuestion;
+
+  if (mode === "kb_search" && question) {
+    // Search knowledge base for relevant content
+    const snippets = selectKnowledgeSnippetsForGeneration(loadStore(), question.clause + " " + question.hint, 5);
+    const ruleMatches = (session.rules || []).filter((r) =>
+      (r.action || "").includes(question.hint) || (r.ruleName || "").includes(question.hint)
+    ).slice(0, 3);
+
+    session.messages.push({
+      role: "assistant",
+      content: `📚 知识库中关于"${question.hint}"的内容：\n` +
+        (snippets.length > 0 ? snippets.map((s) => `• ${s}`).join("\n") : "未找到相关内容") +
+        (ruleMatches.length > 0 ? "\n\n相关规则：\n" + ruleMatches.map((r) => `• ${r.ruleName}: ${(r.action || "").slice(0, 120)}`).join("\n") : ""),
+    });
+    return sendJson(res, 200, { snippets, rules: ruleMatches, messages: session.messages });
+  }
+
+  if (mode === "llm_infer" && question) {
+    // Use LLM to infer answer
+    const prompt = `根据以下合同信息，为"${question.clause}"推断一个合理的答案。
+合同类型: ${session.template?.name}
+已有信息: ${JSON.stringify(session.answers)}
+缺失信息: ${question.clause}
+附件数据: ${JSON.stringify(session.extractedData?.items?.slice(0, 3) || [])}
+
+请只返回推断的答案值（简短，不超过50字），不要解释：`;
+
+    try {
+      const inferred = await callChatModel(prompt, null, { temperature: 0.3, maxTokens: 200 });
+      if (inferred) {
+        const cleanAnswer = inferred.replace(/^["']|["']$/g, "").trim();
+        session.answers[question.hint] = cleanAnswer;
+        session.messages.push({ role: "user", content: `${question.hint}: ${cleanAnswer} (AI推断)` });
+
+        const dialogueResult = agentDialogueManage(session);
+        session.messages.push({
+          role: "assistant",
+          content: dialogueResult.missingCount > 0
+            ? `AI已推断"${question.hint}"为"${cleanAnswer}"。\n还需补充 ${dialogueResult.missingCount} 项。\n${dialogueResult.currentQuestion?.question || "请继续"}`
+            : `AI已推断所有缺失信息。可以生成最终草稿。`,
+        });
+        return sendJson(res, 200, { inferred: cleanAnswer, dialogue: dialogueResult, messages: session.messages, answers: session.answers });
+      }
+    } catch (e) {
+      console.error("[Agent5] LLM infer failed:", e.message);
+    }
+  }
+
+  return sendJson(res, 200, { messages: session.messages });
+}
+
+// POST /api/smart-draft/extract-file — Extract data from a single file
+async function handleSmartDraftExtractFile(req, res, body) {
+  let sessionId = "", fileName = "", fileText = "";
+  try {
+    const data = JSON.parse(body);
+    sessionId = data.sessionId || "";
+    fileName = data.fileName || "";
+    fileText = data.fileText || "";
+  } catch { return sendJson(res, 400, { error: "Invalid JSON" }); }
+
+  const session = smartDraftSessions.get(sessionId);
+  if (!session) return sendJson(res, 404, { error: "Session not found" });
+
+  const result = await agentDataExtract([{ name: fileName, text: fileText }], session.intent || { contractTypeCn: "合同" });
+
+  return sendJson(res, 200, result);
+}
+
+// GET /api/smart-draft/session — Get session state
+async function handleSmartDraftSession(req, res, sessionId) {
+  const session = smartDraftSessions.get(sessionId);
+  if (!session) return sendJson(res, 404, { error: "Session not found" });
+  return sendJson(res, 200, {
+    id: session.id,
+    step: session.step,
+    intent: session.intent,
+    template: session.template ? { id: session.template.id, name: session.template.name } : null,
+    extractedData: session.extractedData,
+    answers: session.answers,
+    draft: session.draft,
+    messages: session.messages,
+    knowledgeMode: session.knowledgeMode,
+    guidanceMode: session.guidanceMode,
+    rulesCount: (session.rules || []).length,
+  });
+}
+
+// GET /api/smart-draft/templates — List builtin templates
+async function handleSmartDraftTemplates(req, res) {
+  const templates = builtinTemplates.map((t) => ({
+    id: t.id, name: t.name, type: t.type, category: t.category,
+    description: t.description, keywords: t.keywords,
+    requiredClausesCount: t.requiredClauses.length,
+  }));
+  return sendJson(res, 200, templates);
+}
+
 async function parseTemplateImportInput(req, body) {
   const contentType = req.headers["content-type"] || "";
   let contractText = "";
@@ -4795,6 +5379,30 @@ async function handleApi(req, res, pathname) {
     if (req.method === "POST" && pathname === "/api/templates/upload") return handleUploadTemplateFixed(req, res);
     if (req.method === "POST" && pathname === "/api/templates/fill") return handleFillTemplateFixed(req, res);
     if (req.method === "POST" && pathname === "/api/templates/ai-analyze") return handleAIAnalyzeTemplate(req, res);
+
+    // Smart Draft endpoints
+    if (req.method === "POST" && pathname === "/api/smart-draft/init") {
+      let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => handleSmartDraftInit(req, res, b)); return;
+    }
+    if (req.method === "POST" && pathname === "/api/smart-draft/generate") {
+      let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => handleSmartDraftGenerate(req, res, b)); return;
+    }
+    if (req.method === "POST" && pathname === "/api/smart-draft/answer") {
+      let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => handleSmartDraftAnswer(req, res, b)); return;
+    }
+    if (req.method === "POST" && pathname === "/api/smart-draft/guide") {
+      let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => handleSmartDraftGuide(req, res, b)); return;
+    }
+    if (req.method === "POST" && pathname === "/api/smart-draft/extract-file") {
+      let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => handleSmartDraftExtractFile(req, res, b)); return;
+    }
+    if (req.method === "GET" && pathname.startsWith("/api/smart-draft/session/")) {
+      return handleSmartDraftSession(req, res, pathname.split("/").pop());
+    }
+    if (req.method === "GET" && pathname === "/api/smart-draft/templates") {
+      return handleSmartDraftTemplates(req, res);
+    }
+
     sendJson(res, 404, { error: "Not found" });
   } catch (error) {
     sendJson(res, 500, { error: error.message });

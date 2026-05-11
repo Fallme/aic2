@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能起草 - ContractAI</title>
+  <link rel="stylesheet" href="portal.css">
+  <link rel="stylesheet" href="office-editor.css">
+  <link rel="stylesheet" href="knowledge.css">
+  <style>
+    /* Smart Draft specific styles */
+    .upload-zone {
+      border: 2px dashed var(--line, #ddd);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      background: #fafbfc;
+      margin-bottom: 12px;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent, #4361ee);
+      background: #f0f3ff;
+    }
+    .upload-zone .icon { font-size: 28px; margin-bottom: 6px; }
+    .upload-zone .text { font-size: 13px; color: var(--sub, #666); }
+    .file-list { list-style: none; padding: 0; margin: 0 0 12px; }
+    .file-list li {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; border-radius: 6px; background: #f8f9fa;
+      font-size: 13px; margin-bottom: 4px;
+    }
+    .file-list li .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-list li .remove { cursor: pointer; color: #ef476f; margin-left: 8px; font-size: 16px; }
+
+    .knowledge-toggle {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .knowledge-toggle button {
+      flex: 1; padding: 10px 12px; border: 2px solid var(--line, #ddd);
+      border-radius: 8px; background: #fff; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: all .2s;
+    }
+    .knowledge-toggle button.active {
+      border-color: var(--accent, #4361ee);
+      background: #f0f3ff; color: var(--accent, #4361ee);
+    }
+    .knowledge-toggle button .sub { font-weight: 400; font-size: 11px; color: #999; display: block; margin-top: 2px; }
+
+    .agent-progress {
+      display: flex; gap: 4px; margin-bottom: 16px;
+    }
+    .agent-progress .step {
+      flex: 1; height: 6px; border-radius: 3px; background: #e9ecef; transition: background .3s;
+    }
+    .agent-progress .step.done { background: var(--accent, #4361ee); }
+    .agent-progress .step.active { background: linear-gradient(90deg, #4361ee, #f72585); animation: shimmer 1.5s infinite; }
+    @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    .guide-options {
+      display: flex; gap: 8px; margin: 12px 0;
+    }
+    .guide-options button {
+      flex: 1; padding: 10px; border: 1px solid var(--line, #ddd);
+      border-radius: 8px; background: #fff; cursor: pointer;
+      font-size: 13px; text-align: center; transition: all .2s;
+    }
+    .guide-options button:hover { border-color: var(--accent); background: #f8f9ff; }
+    .guide-options button .emoji { font-size: 18px; display: block; margin-bottom: 4px; }
+
+    .kb-result {
+      background: #f0f3ff; border-radius: 8px; padding: 12px;
+      margin: 8px 0; font-size: 13px; max-height: 200px; overflow-y: auto;
+    }
+    .kb-result .snippet { padding: 4px 0; border-bottom: 1px solid #e0e5f0; }
+    .kb-result .snippet:last-child { border-bottom: none; }
+
+    .composer-area {
+      display: flex; gap: 8px; margin-top: 12px;
+    }
+    .composer-area input {
+      flex: 1; padding: 10px 14px; border: 1px solid var(--line, #ddd);
+      border-radius: 8px; font-size: 14px; outline: none;
+    }
+    .composer-area input:focus { border-color: var(--accent, #4361ee); }
+    .composer-area button {
+      padding: 10px 20px; border: none; border-radius: 8px;
+      background: var(--accent, #4361ee); color: #fff;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+
+    .msg-list { max-height: 400px; overflow-y: auto; margin-bottom: 12px; }
+    .msg { padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+    .msg.user { background: #f0f3ff; margin-left: 30px; }
+    .msg.assistant { background: #f8f9fa; margin-right: 30px; border: 1px solid #eee; }
+
+    .start-panel { padding: 40px 20px; text-align: center; }
+    .start-panel h2 { font-size: 20px; margin-bottom: 12px; }
+    .start-panel p { color: var(--sub, #666); font-size: 14px; margin-bottom: 20px; }
+    .start-panel textarea {
+      width: 100%; height: 100px; border: 1px solid var(--line, #ddd);
+      border-radius: 10px; padding: 14px; font-size: 14px; resize: vertical;
+      font-family: inherit; margin-bottom: 12px;
+    }
+    .start-panel textarea:focus { outline: none; border-color: var(--accent, #4361ee); }
+    .start-panel .btn-primary {
+      padding: 12px 32px; border: none; border-radius: 10px;
+      background: var(--accent, #4361ee); color: #fff;
+      font-size: 16px; font-weight: 600; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-root">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">AI</div>
+        <div>
+          <div class="logo-title">ContractAI</div>
+          <div class="logo-sub">智能合同管理平台</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="home.html" class="nav-item"><span class="nav-icon">🏠</span> 总览</a>
+        <a href="smart-draft.html" class="nav-item active"><span class="nav-icon">✍️</span> 智能起草</a>
+        <a href="contract-generate.html" class="nav-item"><span class="nav-icon">📝</span> 合同生成</a>
+        <a href="contract-draft.html" class="nav-item"><span class="nav-icon">📄</span> 模板填空</a>
+        <a href="contract-review.html" class="nav-item"><span class="nav-icon">🔍</span> 合同审查</a>
+        <a href="contract-chat.html" class="nav-item"><span class="nav-icon">💬</span> 合同对话</a>
+        <a href="knowledge.html" class="nav-item"><span class="nav-icon">📚</span> 知识库</a>
+      </nav>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content" style="margin-left:220px; display:grid; grid-template-columns:1fr 420px; height:100vh;">
+      <!-- Left: Editor -->
+      <div class="editor-panel" style="padding:20px; overflow-y:auto;">
+        <div id="startPanel" class="start-panel">
+          <h2>✍️ 智能起草</h2>
+          <p>描述你的合同需求，上传参考文件，AI 多智能体协作帮你起草专业合同</p>
+          <textarea id="descriptionInput" placeholder="例如：帮我起草一份设备采购合同，甲方是ABC科技有限公司，采购一批服务器设备，预算约50万元..."></textarea>
+          <div style="margin-bottom:16px">
+            <button class="btn-primary" onclick="startSmartDraft()">开始起草</button>
+          </div>
+          <div style="font-size:12px;color:#999">支持上传采购清单、历史合同、自有模板等参考文件</div>
+        </div>
+        <div id="editorContainer" style="display:none; height:100%;">
+          <div id="editorToolbar" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;margin-bottom:12px;">
+            <span style="font-weight:600;font-size:15px;">合同草稿</span>
+            <div style="display:flex;gap:8px;">
+              <button onclick="downloadDraft()" style="padding:6px 14px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;">📥 下载</button>
+              <button onclick="copyDraft()" style="padding:6px 14px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;">📋 复制</button>
+            </div>
+          </div>
+          <div id="officeEditor"></div>
+        </div>
+      </div>
+
+      <!-- Right: Controls -->
+      <div class="right-panel" style="padding:20px; border-left:1px solid #eee; overflow-y:auto; background:#fafbfc;">
+        <!-- File Upload -->
+        <div class="section-title" style="font-size:14px;font-weight:600;margin-bottom:10px;">📁 参考文件</div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <div class="icon">📎</div>
+          <div class="text">点击或拖拽上传文件<br><small>支持 .docx .doc .pdf .xlsx .txt</small></div>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".docx,.doc,.pdf,.xlsx,.xls,.txt" style="display:none" onchange="handleFiles(this.files)">
+        <ul class="file-list" id="fileList"></ul>
+
+        <!-- Knowledge Mode Toggle -->
+        <div class="section-title" style="font-size:14px;font-weight:600;margin-bottom:10px;">🔄 知识模式</div>
+        <div class="knowledge-toggle">
+          <button class="active" onclick="setKnowledgeMode('industry', this)" id="kbIndustry">
+            行业惯例
+            <span class="sub">通用法规+行业规则</span>
+          </button>
+          <button onclick="setKnowledgeMode('enterprise', this)" id="kbEnterprise">
+            企业自定
+            <span class="sub">企业专属规则</span>
+          </button>
+        </div>
+
+        <!-- Agent Progress -->
+        <div class="section-title" style="font-size:14px;font-weight:600;margin-bottom:10px;">🤖 智能体进度</div>
+        <div class="agent-progress" id="agentProgress">
+          <div class="step" id="step-intent" title="意图分析"></div>
+          <div class="step" id="step-extract" title="数据提取"></div>
+          <div class="step" id="step-knowledge" title="知识检索"></div>
+          <div class="step" id="step-generate" title="草稿生成"></div>
+          <div class="step" id="step-iterate" title="迭代完善"></div>
+        </div>
+        <div id="stepLabel" style="font-size:12px;color:#999;margin-bottom:16px;text-align:center;">等待开始</div>
+
+        <!-- Chat / Dialogue -->
+        <div class="section-title" style="font-size:14px;font-weight:600;margin-bottom:10px;">💬 对话区</div>
+        <div class="msg-list" id="msgList">
+          <div class="msg assistant" style="color:#999;text-align:center;">描述合同需求并上传文件后开始</div>
+        </div>
+
+        <!-- Guide Options (shown per question) -->
+        <div id="guideSection" style="display:none;">
+          <div class="guide-options">
+            <button onclick="selectGuide('ask_user')">
+              <span class="emoji">💬</span>我来回答
+            </button>
+            <button onclick="selectGuide('kb_search')">
+              <span class="emoji">📚</span>知识库检索
+            </button>
+            <button onclick="selectGuide('llm_infer')">
+              <span class="emoji">🤖</span>AI 推断
+            </button>
+          </div>
+        </div>
+
+        <!-- Composer -->
+        <div class="composer-area" id="composerArea" style="display:none;">
+          <input id="composerInput" placeholder="输入回答..." onkeydown="if(event.key==='Enter')sendAnswer()">
+          <button onclick="sendAnswer()">发送</button>
+        </div>
+
+        <!-- Generate Button -->
+        <div id="generateSection" style="display:none; margin-top:12px;">
+          <button onclick="generateDraft()" style="width:100%;padding:12px;border:none;border-radius:8px;background:linear-gradient(135deg,#4361ee,#f72585);color:#fff;font-size:15px;font-weight:600;cursor:pointer;">
+            ✨ 生成合同草稿
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="office-editor.js"></script>
+  <script src="smart-draft.js"></script>
+</body>
+</html>
