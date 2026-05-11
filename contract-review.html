@@ -1,161 +1,406 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>合同审查 - ContractAI</title>
-  <link rel="stylesheet" href="./app.css" />
-  <link rel="stylesheet" href="./knowledge.css" />
-  <link rel="stylesheet" href="./office-editor.css" />
+  <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="office-editor.css">
+  <style>
+    /* ── Review-specific styles ── */
+    .review-layout { display: flex; flex-direction: column; gap: 12px; flex: 1; overflow: hidden; }
+    .review-top { display: flex; gap: 12px; align-items: stretch; }
+    .review-top .score-strip {
+      display: flex; gap: 0; background: var(--glass-solid); border: 1px solid var(--glass-border);
+      border-radius: var(--r-md); overflow: hidden; flex: 1;
+    }
+    .review-top .score-item {
+      flex: 1; padding: 10px 14px; text-align: center; border-right: 1px solid var(--line);
+    }
+    .review-top .score-item:last-child { border-right: none; }
+    .review-top .score-item .label { font-size: 11px; color: var(--muted); }
+    .review-top .score-item .value { font-size: 18px; font-weight: 700; color: var(--ink); }
+    .review-top .score-item .sub { font-size: 10px; color: var(--subtle); }
+    .review-top .cmd-strip {
+      display: flex; gap: 6px; align-items: center; background: var(--glass-solid);
+      border: 1px solid var(--glass-border); border-radius: var(--r-md); padding: 8px 12px;
+    }
+    .review-board { display: grid; grid-template-columns: 1fr 360px; gap: 12px; flex: 1; min-height: 0; }
+    .review-source, .review-issues-panel {
+      background: var(--glass-solid); border: 1px solid var(--glass-border);
+      border-radius: var(--r-md); display: flex; flex-direction: column; overflow: hidden;
+    }
+    .panel-head-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-bottom: 1px solid var(--line);
+    }
+    .panel-head-bar h3 { font-size: 13px; font-weight: 600; }
+    .panel-head-bar .actions { display: flex; gap: 6px; }
+    .contract-source { flex: 1; overflow-y: auto; padding: 14px; font-family: var(--font-serif); font-size: 13px; line-height: 1.8; }
+    .issue-list { flex: 1; overflow-y: auto; padding: 8px; }
+    .issue-card {
+      padding: 10px 12px; border-radius: var(--r-sm); border-left: 3px solid var(--line-strong);
+      background: #fafafa; margin-bottom: 6px; cursor: pointer; transition: all 0.15s;
+    }
+    .issue-card:hover { background: #f3f4f6; transform: translateY(-1px); }
+    .issue-card.high { border-left-color: var(--red); }
+    .issue-card.mid { border-left-color: var(--amber); }
+    .issue-card.low { border-left-color: var(--accent); }
+    .issue-card .issue-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .issue-card .issue-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .issue-card .issue-basis { font-size: 11px; color: var(--subtle); margin-top: 4px; padding: 6px 8px; background: #f0f0f0; border-radius: 4px; }
+    .issue-card .issue-actions { display: flex; gap: 4px; margin-top: 6px; }
+    .issue-card .issue-actions button {
+      padding: 3px 8px; border-radius: 4px; border: 1px solid var(--line-strong);
+      background: #fff; font-size: 11px; cursor: pointer;
+    }
+    .issue-card .issue-actions button:hover { border-color: var(--accent); }
+    .filter-tabs { display: flex; gap: 2px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    .filter-tabs button {
+      flex: 1; padding: 5px 8px; border: none; border-radius: 4px;
+      background: transparent; font-size: 11px; color: var(--muted); cursor: pointer;
+    }
+    .filter-tabs button.active { background: var(--accent-soft); color: var(--accent-hover); font-weight: 500; }
+    .issue-nav { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+    .review-summary-bar {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      background: var(--glass-solid); border: 1px solid var(--glass-border); border-radius: var(--r-md);
+    }
+    .review-summary-bar p { flex: 1; font-size: 13px; color: var(--muted); }
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; z-index: 500;
+    }
+    .modal-box {
+      background: #fff; border-radius: var(--r-lg); box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      width: 560px; max-height: 80vh; overflow-y: auto; padding: 24px;
+    }
+    .modal-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .modal-box .desc { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+    .modal-box textarea {
+      width: 100%; min-height: 120px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+      padding: 10px; font-size: 13px; font-family: var(--font); resize: vertical; margin-bottom: 12px;
+    }
+    .modal-box textarea:focus { outline: none; border-color: var(--accent); }
+    .modal-box .file-drop {
+      border: 2px dashed var(--line-strong); border-radius: var(--r-md); padding: 20px;
+      text-align: center; cursor: pointer; margin-bottom: 12px; transition: all 0.2s;
+    }
+    .modal-box .file-drop:hover { border-color: var(--accent); background: var(--accent-softer); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .risk-anno {
+      position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px;
+    }
+    .risk-anno.high { background: var(--red); }
+    .risk-anno.mid { background: var(--amber); }
+    .risk-anno.low { background: var(--accent); }
+    .source-line { position: relative; padding: 2px 0; }
+    .source-line.highlight-high { background: rgba(239,68,68,0.08); }
+    .source-line.highlight-mid { background: rgba(245,158,11,0.08); }
+    .source-line.highlight-low { background: rgba(234,179,8,0.08); }
+    .source-line.active { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+    .server-pill {
+      display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px;
+      border-radius: var(--r-pill); font-size: 11px; font-weight: 500;
+    }
+    .server-pill.ok { background: var(--green-soft); color: #16a34a; }
+    .server-pill.err { background: var(--red-soft); color: var(--red); }
+    .empty-review {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; padding: 40px; text-align: center; color: var(--muted);
+    }
+    .empty-review .icon { width: 48px; height: 48px; color: var(--subtle); opacity: 0.4; margin-bottom: 12px; }
+  </style>
 </head>
-<body class="workbench-page">
-  <!-- AI Status Bar -->
-  <div class="ai-status-bar">
-    <div class="status-left">
-      <span class="status-dot" id="aiDot"></span>
-      <span>AI 模型</span>
-      <span class="model-info" id="aiModel">检测中...</span>
-    </div>
-    <div class="status-right" id="aiProvider"></div>
+<body>
+<!-- AI Status Bar -->
+<div class="ai-status-bar">
+  <div class="status-left">
+    <span class="status-dot" id="aiDot"></span>
+    <span>AI 模型</span>
+    <span class="model-info" id="aiModel">检测中...</span>
   </div>
+  <div class="status-right" id="aiProvider"></div>
+</div>
 
-  <aside class="sidebar" style="margin-top:32px">
-    <a class="brand" href="./home.html" style="text-decoration:none;color:inherit;">
-      <span>AI</span>
-      <div>
-        <strong>ContractAI</strong>
-        <small>智能合同管理平台</small>
-      </div>
+<div class="app-layout">
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <a class="brand" href="home.html">
+      <div class="logo">AI</div>
+      <div class="text"><strong>ContractAI</strong><small>智能合同管理平台</small></div>
     </a>
     <nav>
-      <a href="./template-fill.html"><span class="app-icon" style="width:16px;height:16px;vertical-align:middle;margin-right:6px" id="navTF"></span>模板填写</a>
-      <a href="./smart-draft.html"><span class="app-icon" style="width:16px;height:16px;vertical-align:middle;margin-right:6px" id="navSD"></span>智能起草</a>
-      <a href="./contract-review.html" class="active"><span class="app-icon" style="width:16px;height:16px;vertical-align:middle;margin-right:6px" id="navCR"></span>合同审查</a>
-      <a href="./knowledge.html"><span class="app-icon" style="width:16px;height:16px;vertical-align:middle;margin-right:6px" id="navKB"></span>知识库</a>
+      <div class="nav-group">
+        <div class="nav-group-label">合同起草</div>
+        <a class="nav-item" href="template-fill.html"><span class="app-icon" id="navTF"></span><span>模板填写</span></a>
+        <a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group">
+        <a class="nav-item active" href="contract-review.html"><span class="app-icon" id="navCR"></span><span>合同审查</span></a>
+        <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKB"></span><span>知识库</span></a>
+      </div>
     </nav>
   </aside>
 
-  <main>
-    <div class="review-top-strip">
-      <header class="topbar review-strip-topbar">
-        <div>
-          <h1>智能合同审查</h1>
+  <!-- Main -->
+  <div class="app-main">
+    <div class="contract-panel" style="gap:10px">
+      <!-- Top: Score + Commands -->
+      <div class="review-top">
+        <div class="score-strip" id="review-scoreboard">
+          <div class="score-item"><div class="label">合同评分</div><div class="value" id="score-value">--</div></div>
+          <div class="score-item"><div class="label">综合风险</div><div class="value" id="score-risk">待审查</div></div>
+          <div class="score-item"><div class="label">风险问题</div><div class="value" id="score-issues">0</div><div class="sub" id="score-breakdown">高 0 / 中 0</div></div>
+          <div class="score-item"><div class="label">审查点</div><div class="value" id="score-points">0</div></div>
+          <div class="score-item"><div class="label">AI 审查</div><div class="value" id="score-ai">待调用</div></div>
         </div>
-        <div class="server-state" id="server-state">检查服务中...</div>
-      </header>
+        <div class="cmd-strip">
+          <button class="btn btn-outline btn-sm" onclick="openImport()">上传/粘贴合同</button>
+          <button class="btn btn-outline btn-sm" id="export-report-btn" disabled>导出报告</button>
+          <button class="btn btn-primary btn-sm" id="review-btn" onclick="startReview()">开始审查</button>
+        </div>
+      </div>
 
-      <section class="review-score-area review-strip-score">
-        <section class="review-scoreboard" id="review-scoreboard">
-        <article>
-          <span>合同评分</span>
-          <strong>--</strong>
-        </article>
-        <article>
-          <span>综合风险</span>
-          <strong>待审查</strong>
-        </article>
-        <article>
-          <span>风险问题</span>
-          <strong>0</strong>
-          <small>高 0 / 中 0</small>
-        </article>
-        <article>
-          <span>审查点</span>
-          <strong>0</strong>
-        </article>
-        <article>
-          <span>AI审查</span>
-          <strong>待调用</strong>
-        </article>
-        </section>
-      </section>
+      <!-- Summary -->
+      <div class="review-summary-bar" id="review-summary">
+        <span class="tag tag-accent" id="summary-tag">待审查</span>
+        <p id="summary-text">审查完成后显示整体意见、综合风险和合同评分。</p>
+      </div>
 
-      <section class="panel compact-review-input review-command-panel review-strip-commands">
-        <div class="panel-head compact-head">
-          <div>
-            <h2>待审合同</h2>
+      <!-- Board: Source + Issues -->
+      <div class="review-board">
+        <!-- Source -->
+        <div class="review-source">
+          <div class="panel-head-bar">
+            <h3>合同原文与标记</h3>
+            <div class="actions">
+              <button class="btn btn-ghost btn-sm" onclick="copySource()">复制原文</button>
+              <button class="btn btn-primary btn-sm" onclick="downloadCorrected()">下载修改后</button>
+            </div>
           </div>
-          <div class="actions">
-            <button class="secondary upload-contract-btn" type="button" id="open-import-btn">上传/粘贴合同</button>
-            <button class="secondary" type="button" id="export-report-btn" disabled>导出审查报告</button>
-            <button class="primary" type="button" id="review-btn">开始审查</button>
+          <div class="contract-source" id="review-editor-container">
+            <div class="empty-review" id="empty-source">
+              <div class="icon"><span class="app-icon" style="width:48px;height:48px" id="icoEmpty"></span></div>
+              <p>上传合同后，原文将在此显示<br>风险片段会高亮标记</p>
+            </div>
           </div>
         </div>
-        <div class="review-summary-card review-summary-inline" id="review-summary">
-          <div>
-            <strong>审查结果</strong>
-            <p>审查完成后显示整体意见、综合风险和合同评分。</p>
+
+        <!-- Issues -->
+        <div class="review-issues-panel">
+          <div class="panel-head-bar">
+            <h3>风险点和意见</h3>
+            <button class="btn btn-ghost btn-sm" id="accept-all-btn" disabled>接受全部</button>
           </div>
-          <span class="tag neutral">待审查</span>
+          <div class="filter-tabs" id="review-filter-bar">
+            <button class="active" data-review-filter="summary">审查结果</button>
+            <button data-review-filter="risk">风险问题</button>
+            <button data-review-filter="common">常见问题</button>
+            <button data-review-filter="rule">规则库</button>
+          </div>
+          <div class="issue-list" id="review-issues">
+            <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">审查结果会按风险等级列出问题、依据和修改建议</div>
+          </div>
+          <div class="issue-nav" id="issue-nav" style="display:none">
+            <button class="btn btn-ghost btn-sm" id="prev-issue-btn">上一个</button>
+            <span id="issue-counter">0 / 0</span>
+            <button class="btn btn-ghost btn-sm" id="next-issue-btn">下一个</button>
+          </div>
         </div>
-      </section>
+      </div>
     </div>
+  </div>
+</div>
 
-    <section class="review-board">
-      <article class="review-source-panel panel">
-        <div class="panel-head compact-head">
-          <div>
-            <h2>合同原文与标记</h2>
-            <p id="source-meta">命中的风险片段会高亮显示。</p>
-          </div>
-          <div class="actions">
-            <button class="secondary" type="button" id="copy-corrected-btn">复制当前原文</button>
-            <button class="primary" type="button" id="download-corrected-btn">下载修改后合同</button>
-          </div>
-        </div>
-        <div id="review-editor-container" class="contract-source"></div>
-      </article>
+<!-- Import Modal -->
+<div class="modal-overlay" id="review-import-modal" style="display:none">
+  <div class="modal-box">
+    <h3>导入待审合同</h3>
+    <p class="desc">上传 Word/PDF/TXT，或直接粘贴合同文本。</p>
+    <div class="file-drop" onclick="document.getElementById('review-file').click()">
+      <span class="app-icon" style="width:24px;height:24px;color:var(--accent);margin-bottom:8px" id="icoUploadModal"></span>
+      <div style="font-size:13px;color:var(--muted)">点击选择合同文件<br>支持 Word、PDF、TXT</div>
+    </div>
+    <input type="file" id="review-file" accept=".doc,.docx,.pdf,.txt,.md,.html,.json" style="display:none">
+    <textarea id="review-import-text" placeholder="也可以直接粘贴合同全文..."></textarea>
+    <textarea id="review-text" hidden></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeImport()">取消</button>
+      <button class="btn btn-primary" onclick="confirmImport()">导入合同</button>
+    </div>
+  </div>
+</div>
 
-      <article class="review-issue-panel panel">
-        <div class="panel-head compact-head">
-          <div>
-            <h2>风险点和意见</h2>
-            <p>审查完成后按问题逐项定位原文。</p>
-          </div>
-          <div class="actions">
-            <button class="secondary mini" type="button" id="accept-all-btn" disabled>接受全部</button>
-          </div>
-        </div>
-        <div class="review-workflow" id="review-workflow"></div>
-        <div class="review-filter-bar" id="review-filter-bar">
-          <button class="active" type="button" data-review-filter="summary">审查结果</button>
-          <button type="button" data-review-filter="risk">风险问题</button>
-          <button type="button" data-review-filter="common">常见问题</button>
-          <button type="button" data-review-filter="rule">规则库</button>
-        </div>
-        <div class="issue-nav" id="issue-nav">
-          <button class="secondary" type="button" id="prev-issue-btn">上一个</button>
-          <span id="issue-counter">0 / 0</span>
-          <button class="secondary" type="button" id="next-issue-btn">下一个</button>
-        </div>
-        <div class="review-output" id="review-issues">
-          <div class="notice">审查结果会按风险等级列出问题、依据和修改建议。</div>
-        </div>
-      </article>
-    </section>
-
-    <div class="modal-backdrop" id="review-import-modal" hidden>
-      <form class="rule-detail-form review-import-dialog" id="review-form">
-        <div class="modal-head">
-          <div>
-            <h3>导入待审合同</h3>
-            <p>上传 Word/PDF/TXT，或直接粘贴合同文本。</p>
-          </div>
-          <button class="secondary" type="button" id="close-import-btn">关闭</button>
-        </div>
-        <label class="review-file-zone modal-file-zone">
-          <input id="review-file" name="contractFile" type="file" accept=".doc,.docx,.pdf,.txt,.md,.html,.json" />
-          <strong>选择合同文件</strong>
-          <span id="review-file-hint">支持 Word、PDF、TXT</span>
-        </label>
-        <label>合同文本
-          <textarea id="review-import-text" name="contractText" placeholder="也可以直接粘贴合同全文。"></textarea>
-        </label>
-        <textarea id="review-text" hidden></textarea>
-        <div class="modal-actions">
-          <button class="secondary" type="button" id="clear-import-btn">清空</button>
-          <button class="primary" type="button" id="confirm-import-btn">导入原�
 <script src="icons.js"></script>
+<script src="office-editor.js"></script>
 <script src="contract-review.js"></script>
+<script>
+// ── Review UI Controller ──
+let reviewEditor = null;
+let reviewContractText = "";
+let reviewIssues = [];
+let currentIssueIdx = 0;
+
+window.addEventListener("DOMContentLoaded", () => {
+  // Set icons
+  const icons = { navTF:"templateFill", navSD:"smartDraft", navCR:"contractReview", navKB:"knowledge", icoEmpty:"fileText", icoUploadModal:"upload" };
+  for (const [id, name] of Object.entries(icons)) {
+    const el = document.getElementById(id);
+    if (el && window.AppIcons) el.innerHTML = AppIcons[name] || "";
+  }
+  // AI status
+  fetch("/api/health").then(r=>r.json()).then(d=>{
+    document.getElementById("aiModel").textContent = d.model||"unknown";
+    document.getElementById("aiProvider").textContent = d.provider||"";
+    document.getElementById("aiDot").style.background = d.apiKeyConfigured?"var(--green)":"var(--red)";
+  }).catch(()=>{
+    document.getElementById("aiModel").textContent="离线";
+    document.getElementById("aiDot").style.background="var(--red)";
+  });
+  // Init editor
+  try { reviewEditor = new OfficeEditor(document.getElementById("review-editor-container")); } catch(e) {}
+  // Filter tabs
+  document.querySelectorAll(".filter-tabs button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filter-tabs button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+});
+
+function openImport() { document.getElementById("review-import-modal").style.display="flex"; }
+function closeImport() { document.getElementById("review-import-modal").style.display="none"; }
+
+async function confirmImport() {
+  const file = document.getElementById("review-file").files[0];
+  const text = document.getElementById("review-import-text").value.trim();
+  if (!file && !text) return alert("请选择文件或粘贴文本");
+
+  if (file) {
+    const formData = new FormData();
+    formData.append("contractFile", file);
+    try {
+      const res = await fetch("/api/contracts/parse", { method:"POST", body: formData });
+      const data = await res.json();
+      reviewContractText = data.text || data.content || "";
+    } catch(e) { alert("解析失败: "+e.message); return; }
+  } else {
+    reviewContractText = text;
+  }
+
+  // Display in source panel
+  document.getElementById("empty-source").style.display = "none";
+  if (reviewEditor) {
+    reviewEditor.setContent(reviewContractText);
+  } else {
+    document.getElementById("review-editor-container").innerHTML = `<div style="padding:14px;font-family:var(--font-serif);font-size:13px;line-height:1.8;white-space:pre-wrap">${esc(reviewContractText)}</div>`;
+  }
+
+  closeImport();
+  document.getElementById("summary-text").textContent = `已导入合同（${reviewContractText.length} 字），点击"开始审查"。`;
+  document.getElementById("summary-tag").textContent = "已导入";
+  document.getElementById("summary-tag").className = "tag tag-green";
+}
+
+async function startReview() {
+  if (!reviewContractText) return alert("请先导入合同");
+  document.getElementById("review-btn").disabled = true;
+  document.getElementById("review-btn").textContent = "审查中...";
+  document.getElementById("score-ai").textContent = "审查中";
+  document.getElementById("summary-text").textContent = "正在审查合同，请稍候...";
+
+  try {
+    const res = await fetch("/api/contracts/review", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ contractText: reviewContractText, reviewMode:"full" })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    reviewIssues = data.issues || [];
+    currentIssueIdx = 0;
+
+    // Update scores
+    document.getElementById("score-value").textContent = data.score || "--";
+    document.getElementById("score-risk").textContent = data.riskLevel || "正常";
+    document.getElementById("score-issues").textContent = reviewIssues.length;
+    const high = reviewIssues.filter(i=>i.severity==="high").length;
+    const mid = reviewIssues.filter(i=>i.severity==="mid"||i.severity==="medium").length;
+    document.getElementById("score-breakdown").textContent = `高 ${high} / 中 ${mid}`;
+    document.getElementById("score-points").textContent = data.reviewPoints || reviewIssues.length;
+    document.getElementById("score-ai").textContent = "已完成";
+
+    document.getElementById("summary-text").textContent = data.summary || `发现 ${reviewIssues.length} 个问题`;
+    document.getElementById("summary-tag").textContent = reviewIssues.length > 0 ? "有风险" : "通过";
+    document.getElementById("summary-tag").className = reviewIssues.length > 0 ? "tag tag-amber" : "tag tag-green";
+
+    renderIssues(reviewIssues);
+    if (reviewIssues.length > 0) {
+      document.getElementById("issue-nav").style.display = "flex";
+      document.getElementById("accept-all-btn").disabled = false;
+    }
+  } catch(e) {
+    document.getElementById("score-ai").textContent = "失败";
+    document.getElementById("summary-text").textContent = "审查失败: " + e.message;
+  }
+  document.getElementById("review-btn").disabled = false;
+  document.getElementById("review-btn").textContent = "开始审查";
+}
+
+function renderIssues(issues) {
+  const container = document.getElementById("review-issues");
+  container.innerHTML = issues.map((issue, i) => {
+    const sev = issue.severity === "high" ? "high" : issue.severity === "mid" || issue.severity === "medium" ? "mid" : "low";
+    return `<div class="issue-card ${sev}" onclick="focusIssue(${i})" id="issue-${i}">
+      <div class="issue-title">${i+1}. ${esc(issue.title || issue.category || "问题")}</div>
+      <div class="issue-desc">${esc(issue.description || issue.suggestion || "")}</div>
+      ${issue.originalText ? `<div class="issue-basis">原文: ${esc(issue.originalText.slice(0,120))}</div>` : ""}
+      ${issue.suggestion ? `<div class="issue-basis" style="background:var(--accent-softer)">建议: ${esc(issue.suggestion.slice(0,120))}</div>` : ""}
+      <div class="issue-actions">
+        <button onclick="event.stopPropagation();acceptIssue(${i})">接受</button>
+        <button onclick="event.stopPropagation();dismissIssue(${i})">忽略</button>
+      </div>
+    </div>`;
+  }).join("");
+  updateCounter();
+}
+
+function focusIssue(idx) {
+  currentIssueIdx = idx;
+  updateCounter();
+  document.querySelectorAll(".issue-card").forEach((c,i) => c.style.outline = i===idx?"2px solid var(--accent)":"none");
+}
+
+function updateCounter() {
+  document.getElementById("issue-counter").textContent = `${currentIssueIdx+1} / ${reviewIssues.length}`;
+}
+
+function acceptIssue(idx) {
+  const card = document.getElementById(`issue-${idx}`);
+  if (card) { card.style.opacity = "0.4"; card.style.textDecoration = "line-through"; }
+}
+
+function dismissIssue(idx) {
+  const card = document.getElementById(`issue-${idx}`);
+  if (card) card.style.display = "none";
+}
+
+function copySource() {
+  navigator.clipboard.writeText(reviewContractText).then(()=>alert("已复制"));
+}
+
+function downloadCorrected() {
+  if (!reviewContractText) return;
+  const blob = new Blob([reviewContractText], {type:"text/plain;charset=utf-8"});
+  const a = document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download = `审查后合同_${new Date().toISOString().slice(0,10)}.txt`; a.click();
+}
+
+function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>"); }
+</script>
 </body>
 </html>
