@@ -259,7 +259,7 @@ body {
   padding: 10px 14px; border-radius: var(--r-md);
   font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word;
 }
-.chat-msg.assistant .bubble { background: #f3f4f6; color: var(--ink); border-bottom-left-radius: 4px; }
+.chat-msg.assistant .bubble { background: #f5f5f7; color: var(--ink); border-bottom-left-radius: 4px; }
 .chat-msg.user .bubble { background: var(--ink); color: #fff; border-bottom-right-radius: 4px; }
 @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 
@@ -357,9 +357,9 @@ body {
 .upload-zone {
   border: 2px dashed var(--line-strong); border-radius: var(--r-md);
   padding: 24px; text-align: center; cursor: pointer;
-  transition: all 0.2s var(--ease); background: var(--accent-softer);
+  transition: all 0.2s var(--ease); background: rgba(191,149,63,0.03);
 }
-.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--accent-soft); }
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(191,149,63,0.06); }
 .upload-zone .upload-icon { width: 40px; height: 40px; margin: 0 auto 8px; color: var(--accent); opacity: 0.6; }
 .upload-zone .upload-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
 

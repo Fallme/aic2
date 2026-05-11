@@ -42,10 +42,10 @@
     .kb-file-zone {
       border: 2px dashed var(--line-strong); border-radius: var(--r-md);
       padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s;
-      background: var(--accent-softer); min-height: 120px;
+      background: rgba(191,149,63,0.03); min-height: 120px;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    .kb-file-zone:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .kb-file-zone:hover { border-color: var(--accent); background: rgba(191,149,63,0.06); }
     .kb-file-zone .icon { width: 32px; height: 32px; color: var(--accent); opacity: 0.5; margin-bottom: 8px; }
     .kb-file-zone strong { font-size: 13px; display: block; margin-bottom: 4px; }
     .kb-file-zone span { font-size: 11px; color: var(--muted); }
@@ -187,6 +187,7 @@
       <div class="kb-header">
         <h1>知识库</h1>
         <p>上传制度、合同、模板、法规和交易习惯，AI 自动提取规则。</p>
+        <div class="server-state" id="server-state" style="margin-top:8px">检查服务中...</div>
       </div>
 
       <!-- Stats -->
