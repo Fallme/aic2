@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const zlib = require("zlib");
-const { execFile } = require("child_process");
+const { execFile, spawn } = require("child_process");
 const { DocxFormatParser } = require("./docx-format-parser");
 
 const ROOT = __dirname;
@@ -5447,5 +5447,16 @@ initializeStore().then(() => {
     console.log(`OpenAI API key configured: ${OPENAI_API_KEY ? "yes" : "no"}`);
     console.log(`DashScope API key configured: ${DASHSCOPE_API_KEY ? "yes" : "no"}`);
     console.log(`Store backend: ${storeBackend}`);
+
+    // Auto-start token-monitor
+    const tokenMonitorPath = path.join(__dirname, "..", "token-monitor", "server.js");
+    if (fs.existsSync(tokenMonitorPath)) {
+      const tm = spawn(process.execPath, [tokenMonitorPath], {
+        stdio: "inherit",
+        detached: false,
+      });
+      tm.on("error", (err) => console.error("[token-monitor] start failed:", err.message));
+      console.log(`Token Monitor started at http://localhost:3001`);
+    }
   });
 });
