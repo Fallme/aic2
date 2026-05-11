@@ -6,7 +6,7 @@ const { URL } = require("url");
 
 const PORT = Number(process.env.PORT || 3001);
 const MIMO_BASE = "https://platform.xiaomimimo.com";
-const POLL_INTERVAL = 10 * 60 * 1000; // 10 minutes
+const POLL_INTERVAL = 10 * 1000; // 10 seconds
 const STORE_PATH = path.join(__dirname, "store.json");
 const ENV_PATH = path.join(__dirname, "..", ".env");
 
