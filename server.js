@@ -5182,21 +5182,68 @@ async function handleUploadTemplateFixed(req, res) {
   if (!parts || !parts.files.length) return sendJson(res, 400, { error: "请上传文件" });
 
   const file = parts.files[0];
-  if (!/\.docx?$/i.test(file.filename)) return sendJson(res, 400, { error: "仅支持 .docx 文件" });
+  if (!/\.docx?$/i.test(file.filename)) return sendJson(res, 400, { error: "仅支持 .doc/.docx 文件" });
 
   const docxId = crypto.randomUUID();
-  const savePath = path.join(UPLOAD_DIR, `${docxId}.docx`);
+  const isDoc = /\.doc$/i.test(file.filename) && !/\.docx$/i.test(file.filename);
+  const ext = isDoc ? "doc" : "docx";
+  const savePath = path.join(UPLOAD_DIR, `${docxId}.${ext}`);
   if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   fs.writeFileSync(savePath, file.buffer);
 
   try {
-    const result = await parseTemplate(file.buffer);
+    let result;
+    if (isDoc) {
+      // .doc file: use word-extractor to get text, then extract placeholders
+      const docParser = new DocFormatParser(file.buffer);
+      const parsed = await docParser.parse();
+      const text = parsed.text || "";
+      // Extract placeholder fields from text
+      const PLACEHOLDER_PATTERNS = [
+        { regex: /【([^】]{1,60})】/g, type: "bracket" },
+        { regex: /\{([^}{]{1,60})\}/g, type: "brace" },
+        { regex: /<([^<>{]{1,60})>/g, type: "angle" },
+        { regex: /_{4,}/g, type: "blank" },
+        { regex: /（(待填|填写|请填写|请输入|请补充|待补充|待定|暂缺)）/g, type: "pending" },
+      ];
+      const fields = [];
+      const seen = new Set();
+      for (const pat of PLACEHOLDER_PATTERNS) {
+        let m;
+        const re = new RegExp(pat.regex.source, pat.regex.flags);
+        while ((m = re.exec(text)) !== null) {
+          const placeholder = m[0];
+          const label = m[1] || placeholder;
+          if (!seen.has(placeholder)) {
+            seen.add(placeholder);
+            fields.push({ placeholder, label, fieldType: guessFieldType(label), importance: "optional", location: "text" });
+          }
+        }
+      }
+      result = { fields, paragraphs: [{ text: text.slice(0, 5000) }], tables: [], media: [] };
+    } else {
+      // .docx file: use JSZip-based parser
+      result = await parseTemplate(file.buffer);
+    }
     result.docxId = docxId;
     result.fileName = file.filename;
     return sendJson(res, 200, result);
   } catch (err) {
     return sendJson(res, 500, { error: `模板解析失败: ${err.message}` });
   }
+}
+
+function guessFieldType(label) {
+  const l = (label || "").toLowerCase();
+  if (l.includes("甲方") || l.includes("买方") || l.includes("委托")) return "partyA";
+  if (l.includes("乙方") || l.includes("卖方") || l.includes("受托")) return "partyB";
+  if (l.includes("金额") || l.includes("总价") || l.includes("价格") || l.includes("费用")) return "amount";
+  if (l.includes("日期") || l.includes("时间")) return "date";
+  if (l.includes("期限") || l.includes("有效期")) return "term";
+  if (l.includes("地址") || l.includes("住所")) return "address";
+  if (l.includes("电话") || l.includes("联系")) return "contact";
+  if (l.includes("名称") || l.includes("公司")) return "name";
+  return "text";
 }
 
 async function handleParseTemplateFixed(req, res) {
