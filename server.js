@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const zlib = require("zlib");
 const { execFile, spawn } = require("child_process");
 const { DocxFormatParser } = require("./docx-format-parser");
+const { parseTemplate } = require("./template-parser");
 
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, "data");
