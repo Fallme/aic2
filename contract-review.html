@@ -236,199 +236,149 @@
 </div>
 
 <script src="icons.js"></script>
-<script src="office-editor.js"></script>
-<script src="docx-viewer.js"></script>
 <script>
-// ── Review UI Controller ──
-let reviewEditor = null;
+// ── Review UI Controller (self-contained, no external deps) ──
 let reviewContractText = "";
 let reviewIssues = [];
 let currentIssueIdx = 0;
 
 window.addEventListener("DOMContentLoaded", () => {
-  // Set icons
-  const icons = { navTF:"templateFill", navSD:"smartDraft", navCR:"contractReview", navKB:"knowledge", icoEmpty:"fileText", icoUploadModal:"upload" };
+  // Icons
+  const icons = { navTF:"templateFill", navSD:"smartDraft", navCR:"contractReview", navKB:"knowledge" };
   for (const [id, name] of Object.entries(icons)) {
     const el = document.getElementById(id);
     if (el && window.AppIcons) el.innerHTML = AppIcons[name] || "";
   }
   // AI status
   fetch("/api/health").then(r=>r.json()).then(d=>{
-    document.getElementById("aiModel").textContent = d.model||"unknown";
-    document.getElementById("aiProvider").textContent = d.provider||"";
-    document.getElementById("aiDot").style.background = d.apiKeyConfigured?"var(--green)":"var(--red)";
+    const m=document.getElementById("aiModel"), p=document.getElementById("aiProvider"), dot=document.getElementById("aiDot");
+    if(m) m.textContent=d.model||"unknown";
+    if(p) p.textContent=d.provider||"";
+    if(dot) dot.style.background=d.apiKeyConfigured?"var(--green)":"var(--red)";
   }).catch(()=>{
-    document.getElementById("aiModel").textContent="离线";
-    document.getElementById("aiDot").style.background="var(--red)";
+    const m=document.getElementById("aiModel"), dot=document.getElementById("aiDot");
+    if(m) m.textContent="离线";
+    if(dot) dot.style.background="var(--red)";
   });
-  // Init editor
-  try { reviewEditor = new OfficeEditor(document.getElementById("review-editor-container")); } catch(e) {}
+  // File input listener
+  const fi = document.getElementById("review-file");
+  if (fi) fi.addEventListener("change", () => { if(fi.files[0]) handleFile(fi.files[0]); fi.value=""; });
   // Filter tabs
-  document.querySelectorAll(".filter-tabs button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".filter-tabs button").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
+  document.querySelectorAll(".filter-tabs button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      document.querySelectorAll(".filter-tabs button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
     });
   });
 });
 
-function openImport() {
-  // 点击按钮直接打开文件选择器
-  document.getElementById("review-file").click();
-}
+// ── Upload ──
+function openImport() { document.getElementById("review-file").click(); }
 
-function closeImport() { document.getElementById("review-import-modal").style.display="none"; }
+async function handleFile(file) {
+  const box = document.getElementById("review-editor-container");
+  const summary = document.getElementById("summary-text");
+  const tag = document.getElementById("summary-tag");
 
-// 文件选择后自动解析
-document.addEventListener("DOMContentLoaded", () => {
-  const fileInput = document.getElementById("review-file");
-  if (fileInput) {
-    fileInput.addEventListener("change", async () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-      await parseAndDisplay(file);
-      fileInput.value = ""; // 重置以允许重新选择
-    });
-  }
-});
-
-let docxViewer = null;
-
-async function parseAndDisplay(file) {
-  document.getElementById("empty-source").style.display = "none";
-  const container = document.getElementById("review-editor-container");
-
-  // 显示加载状态
-  container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted)">
-    <div style="font-size:14px;margin-bottom:8px">正在解析「${esc(file.name)}」...</div>
-    <div style="width:200px;height:4px;background:#e5e5e5;border-radius:2px;margin:0 auto;overflow:hidden"><div style="width:60%;height:100%;background:var(--accent);border-radius:2px;animation:loadBar 1s ease-in-out infinite"></div></div>
-    <style>@keyframes loadBar{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}</style>
-  </div>`;
+  // Loading state
+  box.innerHTML = `<div style="padding:60px;text-align:center;color:#86868b">
+    <div style="width:32px;height:32px;border:3px solid #e5e5e5;border-top-color:#bf953f;border-radius:50%;margin:0 auto 16px;animation:spin .8s linear infinite"></div>
+    <div style="font-size:14px">正在解析「${esc(file.name)}」...</div>
+  </div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+  summary.textContent = `正在解析「${file.name}」...`;
+  tag.textContent = "解析中"; tag.className = "tag tag-accent";
 
   try {
-    if (file.name.match(/\.docx$/i)) {
-      // .docx 文件：用 docx-preview 高保真渲染
-      container.innerHTML = "";
-      docxViewer = new DocxViewer(container, { readOnly: true });
-      await docxViewer.loadFromFile(file);
+    if (file.name.match(/\.(docx|doc)$/i)) {
+      // Word: send to server for parsing
+      const fd = new FormData();
+      fd.append("contractFile", file);
+      const res = await fetch("/api/contracts/parse", { method:"POST", body: fd });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const raw = await res.text();
+      let data; try { data = JSON.parse(raw); } catch { throw new Error("服务器返回异常"); }
+      if (data.error) throw new Error(data.error);
 
-      // 同时提取纯文本用于审查
-      const formData = new FormData();
-      formData.append("contractFile", file);
-      const res = await fetch("/api/contracts/parse", { method:"POST", body: formData });
-      const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); } catch { data = {}; }
-      reviewContractText = data.contractText || data.text || "";
-
-    } else if (file.name.match(/\.doc$/i)) {
-      // .doc 文件：用 API 解析后显示格式化 HTML
-      const formData = new FormData();
-      formData.append("contractFile", file);
-      const res = await fetch("/api/contracts/parse", { method:"POST", body: formData });
-      const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); } catch { throw new Error("服务器返回异常"); }
-      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
       reviewContractText = data.contractText || data.text || "";
       if (!reviewContractText) throw new Error("未提取到合同文本");
 
-      // 用 mammoth 生成的 HTML 显示
-      if (data.contractHtml) {
-        container.innerHTML = `<div style="padding:20px 40px;font-family:var(--font-serif);font-size:13px;line-height:1.9;max-width:820px;margin:0 auto;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-radius:4px;min-height:400px">${data.contractHtml}</div>`;
+      // Display: use contractHtml if available, else plain text
+      if (data.contractHtml && data.contractHtml.length > 50) {
+        box.innerHTML = `<div style="padding:24px 40px;max-width:820px;margin:0 auto;background:#fff;min-height:400px;font-family:'SimSun','Noto Serif SC',serif;font-size:14px;line-height:2;color:#1d1d1f">${data.contractHtml}</div>`;
       } else {
-        renderSourceText(reviewContractText);
+        showText(reviewContractText);
       }
-
     } else {
-      // 文本文件：直接读取
+      // Text file: read directly
       reviewContractText = await file.text();
-      renderSourceText(reviewContractText);
+      showText(reviewContractText);
     }
 
-    document.getElementById("summary-text").textContent = `已导入「${file.name}」（${reviewContractText.length} 字），点击"开始审查"。`;
-    document.getElementById("summary-tag").textContent = "已导入";
-    document.getElementById("summary-tag").className = "tag tag-green";
+    summary.textContent = `已导入「${file.name}」（${reviewContractText.length} 字），点击"开始审查"。`;
+    tag.textContent = "已导入"; tag.className = "tag tag-green";
 
   } catch(e) {
-    container.innerHTML = `<div style="padding:40px;text-align:center">
-      <div style="color:var(--red);font-size:14px;margin-bottom:12px">解析失败</div>
-      <div style="color:var(--muted);font-size:13px;margin-bottom:16px">${esc(e.message)}</div>
-      <button class="btn btn-outline btn-sm" onclick="document.getElementById('review-file').click()">重新选择</button>
+    console.error("Parse error:", e);
+    box.innerHTML = `<div style="padding:60px;text-align:center">
+      <div style="font-size:16px;color:#ff3b30;margin-bottom:8px">解析失败</div>
+      <div style="font-size:13px;color:#86868b;margin-bottom:20px">${esc(e.message)}</div>
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('review-file').click()">重新选择文件</button>
     </div>`;
-    document.getElementById("summary-text").textContent = "解析失败: " + e.message;
-    document.getElementById("summary-tag").textContent = "失败";
-    document.getElementById("summary-tag").className = "tag tag-red";
+    summary.textContent = "解析失败: " + e.message;
+    tag.textContent = "失败"; tag.className = "tag tag-red";
   }
 }
 
-function renderSourceText(text) {
-  const container = document.getElementById("review-editor-container");
-  // 可选中复制的纯文本展示
-  container.innerHTML = `<div style="padding:16px;font-family:var(--font-serif);font-size:13px;line-height:1.9;white-space:pre-wrap;user-select:text;cursor:text;color:var(--ink)" id="source-text-content">${esc(text)}</div>`;
+function showText(text) {
+  document.getElementById("review-editor-container").innerHTML =
+    `<div style="padding:24px 40px;max-width:820px;margin:0 auto;background:#fff;min-height:400px;font-family:'SimSun','Noto Serif SC',serif;font-size:14px;line-height:2;white-space:pre-wrap;user-select:text;color:#1d1d1f">${esc(text)}</div>`;
 }
 
 function copySource() {
   if (!reviewContractText) return alert("暂无合同文本");
-  navigator.clipboard.writeText(reviewContractText).then(() => {
-    const btn = document.querySelector('[onclick="copySource()"]');
-    if (btn) { btn.textContent = "已复制"; setTimeout(() => btn.textContent = "复制原文", 1500); }
+  navigator.clipboard.writeText(reviewContractText).then(()=>{
+    const b=document.querySelector('[onclick="copySource()"]');
+    if(b){b.textContent="已复制 ✓";setTimeout(()=>b.textContent="复制原文",1500);}
   });
 }
 
 function pasteText() {
-  const text = prompt("请粘贴合同文本：");
-  if (text && text.trim()) {
-    reviewContractText = text.trim();
-    renderSourceText(reviewContractText);
+  const t = prompt("请粘贴合同文本：");
+  if (t && t.trim()) {
+    reviewContractText = t.trim();
+    showText(reviewContractText);
     document.getElementById("summary-text").textContent = `已导入合同（${reviewContractText.length} 字），点击"开始审查"。`;
     document.getElementById("summary-tag").textContent = "已导入";
     document.getElementById("summary-tag").className = "tag tag-green";
   }
 }
 
-async function confirmImport() {
-  // 兼容：如果有粘贴的文本
-  const text = document.getElementById("review-import-text").value.trim();
-  if (text) {
-    reviewContractText = text;
-    renderSourceText(text);
-    closeImport();
-    document.getElementById("summary-text").textContent = `已导入合同（${text.length} 字），点击"开始审查"。`;
-    document.getElementById("summary-tag").textContent = "已导入";
-    document.getElementById("summary-tag").className = "tag tag-green";
-  }
-}
-
+// ── Review ──
 async function startReview() {
   if (!reviewContractText) return alert("请先导入合同");
-  document.getElementById("review-btn").disabled = true;
-  document.getElementById("review-btn").textContent = "审查中...";
+  const btn = document.getElementById("review-btn");
+  btn.disabled = true; btn.textContent = "审查中...";
   document.getElementById("score-ai").textContent = "审查中";
   document.getElementById("summary-text").textContent = "正在审查合同，请稍候...";
 
   try {
     const res = await fetch("/api/contracts/review", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
+      method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ contractText: reviewContractText, reviewMode:"full" })
     });
-    const data = await res.json();
+    const raw = await res.text();
+    let data; try { data = JSON.parse(raw); } catch { throw new Error("服务器返回异常"); }
     if (data.error) throw new Error(data.error);
 
     reviewIssues = data.issues || [];
-    currentIssueIdx = 0;
-
-    // Update scores
     document.getElementById("score-value").textContent = data.score || "--";
     document.getElementById("score-risk").textContent = data.riskLevel || "正常";
     document.getElementById("score-issues").textContent = reviewIssues.length;
-    const high = reviewIssues.filter(i=>i.severity==="high").length;
-    const mid = reviewIssues.filter(i=>i.severity==="mid"||i.severity==="medium").length;
-    document.getElementById("score-breakdown").textContent = `高 ${high} / 中 ${mid}`;
+    const hi=reviewIssues.filter(i=>i.severity==="high").length;
+    const mi=reviewIssues.filter(i=>i.severity==="mid"||i.severity==="medium").length;
+    document.getElementById("score-breakdown").textContent = `高 ${hi} / 中 ${mi}`;
     document.getElementById("score-points").textContent = data.reviewPoints || reviewIssues.length;
     document.getElementById("score-ai").textContent = "已完成";
-
     document.getElementById("summary-text").textContent = data.summary || `发现 ${reviewIssues.length} 个问题`;
     document.getElementById("summary-tag").textContent = reviewIssues.length > 0 ? "有风险" : "通过";
     document.getElementById("summary-tag").className = reviewIssues.length > 0 ? "tag tag-amber" : "tag tag-green";
@@ -442,19 +392,19 @@ async function startReview() {
     document.getElementById("score-ai").textContent = "失败";
     document.getElementById("summary-text").textContent = "审查失败: " + e.message;
   }
-  document.getElementById("review-btn").disabled = false;
-  document.getElementById("review-btn").textContent = "开始审查";
+  btn.disabled = false; btn.textContent = "开始审查";
 }
 
+// ── Issues ──
 function renderIssues(issues) {
-  const container = document.getElementById("review-issues");
-  container.innerHTML = issues.map((issue, i) => {
-    const sev = issue.severity === "high" ? "high" : issue.severity === "mid" || issue.severity === "medium" ? "mid" : "low";
+  const c = document.getElementById("review-issues");
+  c.innerHTML = issues.map((issue, i) => {
+    const sev = issue.severity==="high"?"high":(issue.severity==="mid"||issue.severity==="medium")?"mid":"low";
     return `<div class="issue-card ${sev}" onclick="focusIssue(${i})" id="issue-${i}">
-      <div class="issue-title">${i+1}. ${esc(issue.title || issue.category || "问题")}</div>
-      <div class="issue-desc">${esc(issue.description || issue.suggestion || "")}</div>
-      ${issue.originalText ? `<div class="issue-basis">原文: ${esc(issue.originalText.slice(0,120))}</div>` : ""}
-      ${issue.suggestion ? `<div class="issue-basis" style="background:var(--accent-softer)">建议: ${esc(issue.suggestion.slice(0,120))}</div>` : ""}
+      <div class="issue-title">${i+1}. ${esc(issue.title||issue.category||"问题")}</div>
+      <div class="issue-desc">${esc(issue.description||issue.suggestion||"")}</div>
+      ${issue.originalText?`<div class="issue-basis">原文: ${esc(issue.originalText.slice(0,150))}</div>`:""}
+      ${issue.suggestion?`<div class="issue-basis" style="background:rgba(191,149,63,0.06)">建议: ${esc(issue.suggestion.slice(0,150))}</div>`:""}
       <div class="issue-actions">
         <button onclick="event.stopPropagation();acceptIssue(${i})">接受</button>
         <button onclick="event.stopPropagation();dismissIssue(${i})">忽略</button>
@@ -467,32 +417,17 @@ function renderIssues(issues) {
 function focusIssue(idx) {
   currentIssueIdx = idx;
   updateCounter();
-  document.querySelectorAll(".issue-card").forEach((c,i) => c.style.outline = i===idx?"2px solid var(--accent)":"none");
+  document.querySelectorAll(".issue-card").forEach((c,i)=>c.style.outline=i===idx?"2px solid #bf953f":"none");
 }
-
-function updateCounter() {
-  document.getElementById("issue-counter").textContent = `${currentIssueIdx+1} / ${reviewIssues.length}`;
-}
-
-function acceptIssue(idx) {
-  const card = document.getElementById(`issue-${idx}`);
-  if (card) { card.style.opacity = "0.4"; card.style.textDecoration = "line-through"; }
-}
-
-function dismissIssue(idx) {
-  const card = document.getElementById(`issue-${idx}`);
-  if (card) card.style.display = "none";
-}
-
-function copySource() {
-  navigator.clipboard.writeText(reviewContractText).then(()=>alert("已复制"));
-}
+function updateCounter() { document.getElementById("issue-counter").textContent=`${currentIssueIdx+1} / ${reviewIssues.length}`; }
+function acceptIssue(i) { const c=document.getElementById(`issue-${i}`); if(c){c.style.opacity="0.4";c.style.textDecoration="line-through";} }
+function dismissIssue(i) { const c=document.getElementById(`issue-${i}`); if(c) c.style.display="none"; }
 
 function downloadCorrected() {
   if (!reviewContractText) return;
-  const blob = new Blob([reviewContractText], {type:"text/plain;charset=utf-8"});
-  const a = document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download = `审查后合同_${new Date().toISOString().slice(0,10)}.txt`; a.click();
+  const b=new Blob([reviewContractText],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(b);
+  a.download=`审查后合同_${new Date().toISOString().slice(0,10)}.txt`; a.click();
 }
 
 function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>"); }
