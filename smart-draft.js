@@ -152,7 +152,9 @@ async function startDraft() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description: desc, knowledgeMode, fileTexts: uploadedFiles.map((f) => ({ name: f.name, text: f.text })) }),
     });
-    const data = await res.json();
+    const initText = await res.text();
+    let data;
+    try { data = JSON.parse(initText); } catch { throw new Error("服务器响应异常，请稍后重试"); }
     if (data.error) throw new Error(data.error);
 
     sessionId = data.sessionId;
@@ -265,7 +267,9 @@ async function generateDraft() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, guidanceMode: "llm_infer" }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error("服务器返回错误，请重试"); }
     if (data.error) throw new Error(data.error);
 
     currentDraft = typeof data.draft === "string" ? data.draft : data.draft?.content || JSON.stringify(data.draft);

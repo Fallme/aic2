@@ -1179,6 +1179,13 @@ async function extractText(filePath, originalName, buffer) {
   const ext = path.extname(originalName).toLowerCase();
   if ([".txt", ".md", ".csv", ".json", ".html", ".htm", ".xml"].includes(ext)) return buffer.toString("utf8");
   if (ext === ".docx") return extractDocxText(buffer);
+  if (ext === ".doc") {
+    try {
+      const docParser = new DocFormatParser(buffer);
+      const parsed = await docParser.parse();
+      return (parsed.text || "").slice(0, 120000);
+    } catch (e) { console.error("[DocFormatParser] extractText error:", e.message); }
+  }
   if (ext === ".pdf") return (await runPdfToText(filePath)) || extractPdfFallback(buffer);
   return buffer.toString("utf8").replace(/\0/g, "").slice(0, 120000);
 }
@@ -4586,10 +4593,10 @@ async function parseReviewContractInput(req, body) {
         } catch (e) { console.error("[DocxFormatParser] docx parse error:", e.message); formattedResult = null; }
       } else if (ext === ".doc") {
         try {
-          const docxBuffer = await convertDocToDocx(files[0].buffer);
-          const parser = new DocxFormatParser(docxBuffer);
-          formattedResult = await parser.parse();
-        } catch (e) { console.error("[DocxFormatParser] doc parse error:", e.message); formattedResult = null; }
+          const docParser = new DocFormatParser(files[0].buffer);
+          const parsed = await docParser.parse();
+          formattedResult = { html: parsed.html || "", text: parsed.text || "" };
+        } catch (e) { console.error("[DocFormatParser] doc parse error:", e.message); formattedResult = null; }
       }
       if (formattedResult) {
         contractText = `${contractText}\n${formattedResult.text}`.trim();
