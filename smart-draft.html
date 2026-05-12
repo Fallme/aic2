@@ -5,31 +5,92 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>智能起草 - ContractAI</title>
   <link rel="stylesheet" href="app.css">
-  <link rel="stylesheet" href="office-editor.css">
+  <style>
+    /* ── Start View: Template Library ── */
+    .start-view { display:flex; flex-direction:column; height:100%; overflow-y:auto; padding:28px; }
+    .start-header { text-align:center; margin-bottom:24px; }
+    .start-header h1 { font-size:24px; font-weight:700; letter-spacing:-0.3px; }
+    .start-header p { color:var(--muted); font-size:13px; margin-top:4px; }
+    .mode-tabs { display:flex; gap:4px; margin-bottom:20px; background:#f0f0f0; border-radius:var(--r-sm); padding:3px; width:fit-content; }
+    .mode-tabs button { padding:8px 20px; border:none; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; background:transparent; color:var(--muted); transition:all .15s; font-family:var(--font); }
+    .mode-tabs button.active { background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+    .tpl-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+    .tpl-card { padding:14px; border:1.5px solid var(--line-strong); border-radius:var(--r-md); cursor:pointer; transition:all .15s; background:#fff; }
+    .tpl-card:hover { border-color:var(--accent); box-shadow:0 2px 8px rgba(191,149,63,.12); }
+    .tpl-card.selected { border-color:var(--accent); background:rgba(191,149,63,.04); }
+    .tpl-card .tpl-name { font-size:14px; font-weight:600; margin-bottom:4px; }
+    .tpl-card .tpl-desc { font-size:12px; color:var(--muted); }
+    .tpl-card .tpl-tag { display:inline-block; margin-top:6px; padding:2px 8px; border-radius:var(--r-pill); font-size:10px; background:var(--accent-soft); color:var(--accent-hover); }
+    .ai-input-area { margin-top:16px; }
+    .ai-input-area textarea { width:100%; height:80px; border:1.5px solid var(--line-strong); border-radius:var(--r-md); padding:12px; font-size:14px; font-family:var(--font); resize:none; }
+    .ai-input-area textarea:focus { outline:none; border-color:var(--accent); }
+    .start-actions { display:flex; gap:10px; margin-top:12px; justify-content:center; }
+
+    /* ── Draft View: Left Word + Right Chat ── */
+    .draft-view { display:none; flex:1; overflow:hidden; }
+    .draft-left { flex:1; display:flex; flex-direction:column; overflow:hidden; padding:16px; gap:10px; }
+    .draft-left .word-area { flex:1; background:#fff; border:1px solid var(--glass-border); border-radius:var(--r-md); overflow-y:auto; padding:0; }
+    .draft-left .word-area .docx-render { padding:40px 60px; font-family:'SimSun','Noto Serif SC',serif; font-size:14px; line-height:2; color:#1d1d1f; max-width:820px; margin:0 auto; min-height:100%; }
+    .draft-left .word-area .docx-render h1,.docx-render h2,.docx-render h3 { font-family:'SimHei','Noto Sans SC',sans-serif; margin:16px 0 8px; }
+    .draft-left .word-area .docx-render table { border-collapse:collapse; width:100%; margin:12px 0; }
+    .draft-left .word-area .docx-render td,.docx-render th { border:1px solid #ccc; padding:6px 10px; font-size:13px; }
+    .draft-left .word-area .typing-line { border-right:2px solid var(--accent); animation:blink 0.8s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Agent progress bar */
+    .agent-bar { display:flex; align-items:center; gap:8px; padding:6px 12px; background:var(--glass-solid); border:1px solid var(--glass-border); border-radius:var(--r-sm); font-size:11px; color:var(--muted); }
+    .agent-bar .steps { display:flex; gap:3px; flex:1; }
+    .agent-bar .s { flex:1; height:3px; border-radius:2px; background:rgba(0,0,0,.06); transition:background .3s; }
+    .agent-bar .s.done { background:var(--accent); }
+    .agent-bar .s.active { background:var(--accent); animation:shimmer 1.2s infinite; }
+    @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .agent-bar .label { min-width:100px; text-align:right; color:var(--accent-hover); font-weight:500; }
+
+    /* Right chat panel -豆包 style */
+    .draft-right { width:400px; display:flex; flex-direction:column; border-left:1px solid var(--line); background:var(--glass-solid); }
+    .draft-right .chat-header { padding:12px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; }
+    .draft-right .chat-header h3 { font-size:14px; font-weight:600; }
+    .draft-right .chat-thread { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
+
+    /* Three options above input */
+    .guide-bar { display:flex; gap:4px; padding:8px 14px 0; }
+    .guide-bar button { flex:1; padding:7px 4px; border:1px solid var(--line-strong); border-radius:var(--r-sm); background:#fff; font-size:11px; cursor:pointer; transition:all .15s; font-family:var(--font); color:var(--muted); }
+    .guide-bar button:hover { border-color:var(--accent); color:var(--accent-hover); background:rgba(191,149,63,.03); }
+    .guide-bar button.active { border-color:var(--accent); color:var(--accent-hover); background:var(--accent-soft); }
+
+    /* Compose */
+    .compose-row { display:flex; gap:6px; padding:10px 14px 14px; border-top:1px solid var(--line); align-items:flex-end; }
+    .compose-row .attach { width:32px; height:32px; border:none; background:none; color:var(--muted); cursor:pointer; border-radius:var(--r-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .compose-row .attach:hover { color:var(--accent); }
+    .compose-row input { flex:1; padding:8px 12px; border:1px solid var(--line-strong); border-radius:var(--r-sm); font-size:13px; font-family:var(--font); }
+    .compose-row input:focus { outline:none; border-color:var(--accent); }
+    .compose-row .send { width:32px; height:32px; border:none; border-radius:50%; background:var(--accent-gradient); color:#1d1d1f; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+    /* KB chips */
+    .kb-row { display:flex; gap:4px; padding:4px 14px 0; flex-wrap:wrap; }
+    .kb-chip { padding:3px 10px; border-radius:var(--r-pill); font-size:10px; border:1px solid var(--line-strong); background:#fff; cursor:pointer; transition:all .15s; }
+    .kb-chip.active { background:var(--accent-soft); border-color:var(--accent); color:var(--accent-hover); }
+  </style>
 </head>
 <body>
 <!-- AI Status Bar -->
 <div class="ai-status-bar">
   <div class="status-left">
     <span class="status-dot" id="aiDot"></span>
-    <span>AI 模型</span>
+    <span>AI</span>
     <span class="model-info" id="aiModel">检测中...</span>
   </div>
   <div class="status-right" id="aiProvider"></div>
 </div>
 
 <div class="app-layout">
-  <!-- Sidebar -->
   <aside class="app-sidebar">
-    <a class="brand" href="home.html">
-      <div class="logo">AI</div>
-      <div class="text"><strong>ContractAI</strong><small>智能合同管理平台</small></div>
-    </a>
+    <a class="brand" href="home.html"><div class="logo">AI</div><div class="text"><strong>ContractAI</strong><small>智能合同管理平台</small></div></a>
     <nav>
       <div class="nav-group">
         <div class="nav-group-label">合同起草</div>
-        <a class="nav-item" href="template-fill.html"><span class="app-icon" id="navTF"></span><span>模板填写</span></a>
         <a class="nav-item active" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a>
+        <a class="nav-item" href="template-fill.html"><span class="app-icon" id="navTF"></span><span>模板填写</span></a>
       </div>
       <div class="nav-divider"></div>
       <div class="nav-group">
@@ -40,83 +101,107 @@
   </aside>
 
   <div class="app-main">
-    <!-- Center -->
-    <div class="contract-panel">
-      <div class="panel-header">
-        <div class="panel-title">智能起草</div>
-        <div class="panel-actions" id="editorActions" style="display:none">
-          <button class="btn btn-outline btn-sm" onclick="downloadDraft()"><span class="app-icon" style="width:14px;height:14px" id="icoDL"></span> 下载</button>
-          <button class="btn btn-outline btn-sm" onclick="copyDraft()"><span class="app-icon" style="width:14px;height:14px" id="icoCP"></span> 复制</button>
+    <!-- ===== START VIEW: Template Library + AI Input ===== -->
+    <div class="contract-panel" id="startPanel">
+      <div class="start-view">
+        <div class="start-header">
+          <h1>智能起草</h1>
+          <p>选择模板开始起草，或直接描述需求让 AI 自动匹配</p>
         </div>
-      </div>
 
-      <!-- Completion Bar -->
-      <div class="completion-bar" id="completionBar" style="display:none">
-        <span>完成度</span>
-        <span class="pct" id="completionPct">0%</span>
-        <div class="bar"><div class="fill" id="completionFill" style="width:0%"></div></div>
-        <span id="completionLabel">等待开始</span>
-      </div>
-
-      <!-- AI Progress -->
-      <div id="aiProgressWrap" style="display:none">
-        <div class="ai-progress" id="aiProgress">
-          <div class="step" id="sp-intent"></div>
-          <div class="step" id="sp-extract"></div>
-          <div class="step" id="sp-knowledge"></div>
-          <div class="step" id="sp-generate"></div>
-          <div class="step" id="sp-iterate"></div>
+        <div class="mode-tabs">
+          <button class="active" onclick="switchMode('tpl',this)">选择模板</button>
+          <button onclick="switchMode('ai',this)">AI 智能起草</button>
         </div>
-        <div class="ai-progress-label" id="aiProgressLabel">准备中...</div>
-      </div>
 
-      <!-- Start View -->
-      <div class="editor-wrap" id="startView">
-        <div class="start-view">
-          <h2>AI 智能起草</h2>
-          <p>描述合同需求，AI 多智能体协作帮你起草专业合同</p>
-          <textarea id="descriptionInput" placeholder="例如：帮我起草一份设备采购合同，甲方是ABC科技有限公司，采购一批服务器设备，预算约50万元..."></textarea>
-          <button class="btn btn-primary" style="margin-top:12px;padding:10px 28px" onclick="startDraft()">
+        <!-- Template Library -->
+        <div id="tplMode">
+          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+            <input type="text" id="tplSearch" placeholder="搜索模板..." style="flex:1;padding:8px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;font-family:var(--font)" oninput="filterTemplates()">
+            <select id="tplCategory" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:12px" onchange="filterTemplates()">
+              <option value="">全部类型</option>
+              <option value="goods">采购</option><option value="service">服务</option>
+              <option value="software">软件开发</option><option value="labor">劳动</option>
+              <option value="rental">租赁</option><option value="sales">销售</option>
+              <option value="consulting">咨询</option><option value="agency">代理</option>
+              <option value="nda">保密</option><option value="framework">框架</option>
+            </select>
+          </div>
+          <div class="tpl-grid" id="tplGrid"></div>
+        </div>
+
+        <!-- AI Mode: just textarea -->
+        <div id="aiMode" style="display:none">
+          <div class="ai-input-area">
+            <textarea id="aiDesc" placeholder="描述你的合同需求，例如：&#10;帮我起草一份设备采购合同，甲方是ABC科技有限公司，采购一批服务器设备，预算约50万元..."></textarea>
+          </div>
+        </div>
+
+        <div class="start-actions">
+          <button class="btn btn-primary" onclick="startDraft()" style="padding:10px 32px">
             <span class="app-icon" style="width:16px;height:16px" id="icoStart"></span> 开始起草
           </button>
         </div>
       </div>
-
-      <!-- Editor View -->
-      <div class="editor-wrap" id="editorView" style="display:none">
-        <div id="editorContainer" style="height:100%"></div>
-      </div>
     </div>
 
-    <!-- Right: Chat -->
-    <div class="chat-panel">
-      <div class="chat-header">
-        <h3>AI 对话</h3>
-        <span class="tag tag-accent" id="sessionTag" style="display:none">进行中</span>
-      </div>
-      <div class="chat-thread" id="chatThread">
-        <div class="chat-msg assistant">
-          <div class="avatar">AI</div>
-          <div class="bubble">描述你的合同需求，我会引导你完成起草。支持上传参考文件（采购清单、历史合同等）。</div>
+    <!-- ===== DRAFT VIEW: Word + Chat ===== -->
+    <div class="draft-view" id="draftView" style="display:none">
+      <div class="draft-left">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px">
+          <span style="font-size:14px;font-weight:600" id="draftTitle">合同草稿</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="copyDraft()">复制</button>
+            <button class="btn btn-outline btn-sm" onclick="downloadDraft()">下载</button>
+          </div>
+        </div>
+        <!-- Agent Progress -->
+        <div class="agent-bar" id="agentBar" style="display:none">
+          <div class="steps">
+            <div class="s" id="as-intent"></div>
+            <div class="s" id="as-match"></div>
+            <div class="s" id="as-fields"></div>
+            <div class="s" id="as-draft"></div>
+            <div class="s" id="as-done"></div>
+          </div>
+          <div class="label" id="agentLabel">准备中...</div>
+        </div>
+        <!-- Word Area -->
+        <div class="word-area" id="wordArea">
+          <div class="docx-render" id="docxContent" style="color:#999;text-align:center;padding-top:80px">
+            合同内容将在此显示
+          </div>
         </div>
       </div>
-      <div class="kb-section">
-        <div class="kb-label">审查维度</div>
-        <div class="kb-chips">
-          <span class="kb-chip active" data-kb="通用法规" onclick="toggleKB(this)">通用法规</span>
-          <span class="kb-chip" data-kb="行业惯例" onclick="toggleKB(this)">行业惯例</span>
-          <span class="kb-chip" data-kb="企业自定" onclick="toggleKB(this)">企业自定</span>
+
+      <div class="draft-right">
+        <div class="chat-header">
+          <h3>AI 对话</h3>
+          <span class="tag tag-accent" id="statusTag" style="display:none">进行中</span>
         </div>
-      </div>
-      <div class="chat-compose">
-        <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap" id="fileChips"></div>
-        <div class="compose-bar">
-          <button class="attach-btn" onclick="document.getElementById('attachInput').click()">
+        <div class="chat-thread" id="chatThread">
+          <div class="chat-msg assistant"><div class="avatar">AI</div><div class="bubble">请选择模板或描述需求，我会引导你完成合同起草。</div></div>
+        </div>
+        <!-- Knowledge chips -->
+        <div class="kb-row" id="kbRow">
+          <span class="kb-chip active" onclick="toggleKB(this)">通用法规</span>
+          <span class="kb-chip" onclick="toggleKB(this)">行业惯例</span>
+          <span class="kb-chip" onclick="toggleKB(this)">企业自定</span>
+        </div>
+        <!-- Three guidance options -->
+        <div class="guide-bar" id="guideBar" style="display:none">
+          <button onclick="pickGuide('ask')" id="gAsk">回答问题</button>
+          <button onclick="pickGuide('kb')" id="gKB">知识库检索</button>
+          <button onclick="pickGuide('ai')" id="gAI">AI 推断</button>
+        </div>
+        <!-- Compose -->
+        <div class="compose-row">
+          <button class="attach" onclick="document.getElementById('fileInput').click()">
             <span class="app-icon" style="width:18px;height:18px" id="icoClip"></span>
           </button>
-          <input type="file" id="attachInput" multiple accept=".docx,.doc,.pdf,.xlsx,.txt" style="display:none" onchange="handleFiles(this.files)">
+          <input type="file" id="fileInput" multiple accept=".docx,.doc,.pdf,.xlsx,.txt" style="display:none" onchange="handleAttachFiles(this.files)">
           <input type="text" id="chatInput" placeholder="输入回答..." onkeydown="if(event.key==='Enter')sendAnswer()">
-          <button class="send-btn" onclick="sendAnswer()">
+          <button class="send" onclick="sendAnswer()">
             <span class="app-icon" style="width:16px;height:16px" id="icoSend"></span>
           </button>
         </div>
@@ -126,7 +211,6 @@
 </div>
 
 <script src="icons.js"></script>
-<script src="office-editor.js"></script>
 <script src="smart-draft.js"></script>
 </body>
 </html>

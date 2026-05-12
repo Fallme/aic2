@@ -1,314 +1,328 @@
-// smart-draft.js — Smart Draft with progress + AI status + completion
+// smart-draft.js — Template Library + AI Draft + Word Real-time Display
 
-const API_BASE = "";
-let editor = null;
 let sessionId = "";
 let knowledgeMode = "industry";
-let uploadedFiles = [];
-let currentQuestion = null;
-let allAnswers = {};
 let currentDraft = "";
+let selectedTpl = null;
+let aiMode = false;
+let currentQuestion = null;
 let isProcessing = false;
+let attachedFiles = [];
 
-const PROGRESS_STEPS = [
-  { key: "intent", label: "分析合同意图..." },
-  { key: "extract", label: "提取参考数据..." },
-  { key: "knowledge", label: "检索法律法规..." },
-  { key: "generate", label: "生成合同草稿..." },
-  { key: "iterate", label: "完善合同细节..." },
-  { key: "done", label: "完成" },
-];
+const STEPS = ["intent","match","fields","draft","done"];
+const STEP_LABELS = { intent:"分析合同意图...", match:"匹配合同模板...", fields:"识别关键条款...", draft:"生成合同草稿...", done:"完成" };
 
 // ── Init ──
 window.addEventListener("DOMContentLoaded", () => {
-  setIcons();
-  checkAIStatus();
-  // KB: 通用法规 is default active (set in HTML)
+  const icons = { navSD:"smartDraft", navTF:"templateFill", navCR:"contractReview", navKB:"knowledge", icoStart:"sparkles", icoClip:"paperclip", icoSend:"send" };
+  for (const [id, n] of Object.entries(icons)) { const el=document.getElementById(id); if(el&&window.AppIcons) el.innerHTML=AppIcons[n]||""; }
+  fetchAIStatus();
+  loadTemplates();
 });
 
-function setIcons() {
-  const m = {
-    navTF: "templateFill", navSD: "smartDraft", navCR: "contractReview", navKB: "knowledge",
-    icoDL: "download", icoCP: "copy", icoStart: "sparkles", icoClip: "paperclip", icoSend: "send",
-  };
-  for (const [id, name] of Object.entries(m)) {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = AppIcons[name] || "";
-  }
-}
-
-// ── AI Status ──
-async function checkAIStatus() {
+async function fetchAIStatus() {
   try {
-    const res = await fetch(`${API_BASE}/api/health`);
-    const d = await res.json();
+    const d = await (await fetch("/api/health")).json();
     document.getElementById("aiModel").textContent = d.model || "unknown";
     document.getElementById("aiProvider").textContent = d.provider || "";
     document.getElementById("aiDot").style.background = d.apiKeyConfigured ? "var(--green)" : "var(--red)";
-  } catch {
-    document.getElementById("aiModel").textContent = "离线";
-    document.getElementById("aiDot").style.background = "var(--red)";
-  }
+  } catch { document.getElementById("aiModel").textContent="离线"; document.getElementById("aiDot").style.background="var(--red)"; }
 }
 
-// ── Knowledge Toggle ──
-function toggleKB(el) {
-  el.classList.toggle("active");
-  const active = document.querySelectorAll(".kb-chip.active");
-  knowledgeMode = active.length > 0 ? active[0].dataset.kb : "industry";
+// ── Template Library ──
+let allTemplates = [];
+
+async function loadTemplates() {
+  try {
+    const res = await fetch("/api/smart-draft/templates");
+    allTemplates = await res.json();
+    renderTemplates(allTemplates);
+  } catch { document.getElementById("tplGrid").innerHTML = '<div style="color:var(--muted);font-size:13px">加载模板失败</div>'; }
 }
 
-// ── Files ──
-async function handleFiles(fileList) {
-  for (const file of fileList) {
-    const text = await readText(file);
-    uploadedFiles.push({ name: file.name, text: text.slice(0, 10000), size: file.size });
-    addFileChip(file.name);
-  }
+function renderTemplates(tpls) {
+  const grid = document.getElementById("tplGrid");
+  grid.innerHTML = tpls.map(t => `
+    <div class="tpl-card ${selectedTpl?.id===t.id?'selected':''}" onclick="selectTpl('${t.id}')">
+      <div class="tpl-name">${t.name}</div>
+      <div class="tpl-desc">${t.description}</div>
+      <span class="tpl-tag">${t.category||t.type}</span>
+    </div>
+  `).join("");
 }
-function readText(file) {
-  return new Promise((resolve) => {
-    if (file.name.match(/\.(docx|doc|pdf)$/i)) { resolve(`[File: ${file.name}]`); return; }
-    const r = new FileReader(); r.onload = () => resolve(r.result || ""); r.onerror = () => resolve(""); r.readAsText(file);
+
+function selectTpl(id) {
+  selectedTpl = allTemplates.find(t => t.id === id) || null;
+  renderTemplates(allTemplates);
+  // Switch to AI mode with hint
+  document.getElementById("aiMode").style.display = "block";
+  document.getElementById("tplMode").style.display = "none";
+  document.querySelectorAll(".mode-tabs button").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".mode-tabs button")[1].classList.add("active");
+  aiMode = true;
+  document.getElementById("aiDesc").placeholder = `已选择「${selectedTpl.name}」模板，请描述合同具体信息...`;
+  document.getElementById("aiDesc").focus();
+}
+
+function switchMode(mode, btn) {
+  aiMode = (mode === "ai");
+  document.querySelectorAll(".mode-tabs button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("tplMode").style.display = aiMode ? "none" : "block";
+  document.getElementById("aiMode").style.display = aiMode ? "block" : "none";
+  if (aiMode) { selectedTpl = null; renderTemplates(allTemplates); document.getElementById("aiDesc").focus(); }
+}
+
+function filterTemplates() {
+  const q = document.getElementById("tplSearch").value.toLowerCase();
+  const cat = document.getElementById("tplCategory").value;
+  const filtered = allTemplates.filter(t => {
+    if (cat && t.type !== cat) return false;
+    if (q && !t.name.toLowerCase().includes(q) && !t.description.toLowerCase().includes(q)) return false;
+    return true;
   });
-}
-function addFileChip(name) {
-  const chip = document.createElement("span");
-  chip.className = "tag tag-accent"; chip.textContent = name; chip.style.cursor = "pointer";
-  chip.onclick = () => chip.remove();
-  document.getElementById("fileChips").appendChild(chip);
+  renderTemplates(filtered);
 }
 
-// ── Completion Bar ──
-function setCompletion(pct, label) {
-  document.getElementById("completionBar").style.display = "flex";
-  document.getElementById("completionPct").textContent = pct + "%";
-  document.getElementById("completionFill").style.width = pct + "%";
-  document.getElementById("completionLabel").textContent = label || "";
-}
+function toggleKB(el) { el.classList.toggle("active"); }
 
-// ── AI Progress ──
-function showProgress() {
-  document.getElementById("aiProgressWrap").style.display = "block";
-}
-function setStep(stepKey) {
-  const idx = PROGRESS_STEPS.findIndex((s) => s.key === stepKey);
-  PROGRESS_STEPS.forEach((s, i) => {
-    const el = document.getElementById("sp-" + s.key);
-    if (!el) return;
-    el.className = "step";
-    if (i < idx) el.classList.add("done");
-    else if (i === idx) el.classList.add("active");
-  });
-  const step = PROGRESS_STEPS[idx];
-  document.getElementById("aiProgressLabel").textContent = step ? step.label : "";
-  // Update completion based on step
-  const pct = Math.min(90, Math.round((idx / (PROGRESS_STEPS.length - 1)) * 100));
-  setCompletion(pct, step ? step.label : "");
-}
-
-// ── Chat ──
-function addMsg(role, content) {
-  const thread = document.getElementById("chatThread");
-  const div = document.createElement("div");
-  div.className = `chat-msg ${role}`;
-  div.innerHTML = `<div class="avatar">${role === "assistant" ? "AI" : "U"}</div><div class="bubble">${esc(content)}</div>`;
-  thread.appendChild(div);
-  thread.scrollTop = thread.scrollHeight;
-}
-function renderMessages(messages) {
-  const thread = document.getElementById("chatThread");
-  thread.innerHTML = "";
-  (messages || []).forEach((m) => {
-    const div = document.createElement("div");
-    div.className = `chat-msg ${m.role}`;
-    div.innerHTML = `<div class="avatar">${m.role === "assistant" ? "AI" : "U"}</div><div class="bubble">${esc(m.content)}</div>`;
-    thread.appendChild(div);
-  });
-  thread.scrollTop = thread.scrollHeight;
-}
-function esc(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>"); }
-
-// ── Start ──
+// ── Start Draft ──
 async function startDraft() {
-  const desc = document.getElementById("descriptionInput").value.trim();
-  if (!desc && uploadedFiles.length === 0) return alert("请输入需求或上传文件");
+  const desc = document.getElementById("aiDesc")?.value.trim() || "";
+  const tplHint = selectedTpl ? `${selectedTpl.name}模板` : "";
+  const fullDesc = [tplHint, desc].filter(Boolean).join("，");
+
+  if (!fullDesc) return alert("请选择模板或输入需求描述");
   if (isProcessing) return;
   isProcessing = true;
 
-  document.getElementById("startView").style.display = "none";
-  document.getElementById("editorView").style.display = "block";
-  document.getElementById("editorActions").style.display = "flex";
-  document.getElementById("sessionTag").style.display = "inline-flex";
+  // Switch to draft view
+  document.getElementById("startPanel").style.display = "none";
+  document.getElementById("draftView").style.display = "flex";
+  document.getElementById("statusTag").style.display = "inline-flex";
+  document.getElementById("agentBar").style.display = "flex";
 
-  if (!editor) editor = new OfficeEditor(document.getElementById("editorContainer"));
-
-  showProgress();
-  setStep("intent");
+  showAgentStep("intent");
 
   try {
-    const res = await fetch(`${API_BASE}/api/smart-draft/init`, {
+    const res = await fetch("/api/smart-draft/init", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: desc, knowledgeMode, fileTexts: uploadedFiles.map((f) => ({ name: f.name, text: f.text })) }),
+      body: JSON.stringify({ description: fullDesc, knowledgeMode, fileTexts: [] }),
     });
-    const initText = await res.text();
-    let data;
-    try { data = JSON.parse(initText); } catch { throw new Error("服务器响应异常，请稍后重试"); }
+    const txt = await res.text();
+    let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器响应异常"); }
     if (data.error) throw new Error(data.error);
 
     sessionId = data.sessionId;
-    allAnswers = data.answers || {};
-
-    if (data.dialogue?.missingCount > 0) {
-      setStep("iterate");
-      setCompletion(40, `已识别${data.rulesCount || 0}条规则，还需补充${data.dialogue.missingCount}项`);
-    } else {
-      setStep("generate");
-      setCompletion(50, "信息齐全，准备生成");
-    }
+    showAgentStep("match");
 
     if (data.messages) renderMessages(data.messages);
-    if (data.extractedData?.items?.length > 0) addMsg("assistant", `已提取 ${data.extractedData.items.length} 条数据`);
 
     if (data.dialogue?.missingCount > 0) {
+      showAgentStep("fields");
       currentQuestion = data.dialogue.currentQuestion;
-      showGuideButtons();
+      showGuideOptions();
     } else {
+      showAgentStep("draft");
       showGenerateBtn();
     }
-  } catch (e) {
-    addMsg("assistant", `错误: ${e.message}`);
-    setCompletion(0, "出错");
+  } catch(e) {
+    addMsg("assistant", "错误: " + e.message);
   }
   isProcessing = false;
 }
 
-// ── Guide Buttons ──
-function showGuideButtons() {
-  const thread = document.getElementById("chatThread");
-  const div = document.createElement("div");
-  div.className = "chat-msg assistant";
-  div.innerHTML = `
-    <div class="avatar">AI</div>
-    <div>
-      <div class="bubble">${esc(currentQuestion?.question || "请补充信息")}</div>
-      <div class="guide-options">
-        <button class="guide-btn" onclick="pickGuide('ask_user')"><span class="guide-icon">${AppIcons.send}</span>我来回答</button>
-        <button class="guide-btn" onclick="pickGuide('kb_search')"><span class="guide-icon">${AppIcons.search}</span>知识库检索</button>
-        <button class="guide-btn" onclick="pickGuide('llm_infer')"><span class="guide-icon">${AppIcons.sparkles}</span>AI 推断</button>
-      </div>
-    </div>`;
-  thread.appendChild(div);
-  thread.scrollTop = thread.scrollHeight;
+// ── Agent Progress ──
+function showAgentStep(step) {
+  const idx = STEPS.indexOf(step);
+  STEPS.forEach((s,i) => {
+    const el = document.getElementById("as-"+s);
+    if(!el) return;
+    el.className = "s";
+    if (i < idx) el.classList.add("done");
+    else if (i === idx) el.classList.add("active");
+  });
+  document.getElementById("agentLabel").textContent = STEP_LABELS[step] || step;
+}
+
+// ── Chat ──
+function addMsg(role, content) {
+  const t = document.getElementById("chatThread");
+  const d = document.createElement("div");
+  d.className = `chat-msg ${role}`;
+  d.innerHTML = `<div class="avatar">${role==="assistant"?"AI":"U"}</div><div class="bubble">${esc(content)}</div>`;
+  t.appendChild(d); t.scrollTop = t.scrollHeight;
+}
+
+function renderMessages(msgs) {
+  const t = document.getElementById("chatThread");
+  t.innerHTML = "";
+  (msgs||[]).forEach(m => {
+    const d = document.createElement("div");
+    d.className = `chat-msg ${m.role}`;
+    d.innerHTML = `<div class="avatar">${m.role==="assistant"?"AI":"U"}</div><div class="bubble">${esc(m.content)}</div>`;
+    t.appendChild(d);
+  });
+  t.scrollTop = t.scrollHeight;
+}
+
+// ── Guide Options ──
+function showGuideOptions() {
+  document.getElementById("guideBar").style.display = "flex";
+  // Add question to chat
+  if (currentQuestion) {
+    const t = document.getElementById("chatThread");
+    const d = document.createElement("div");
+    d.className = "chat-msg assistant";
+    d.innerHTML = `<div class="avatar">AI</div><div class="bubble">${esc(currentQuestion.question||"请补充信息")}</div>`;
+    t.appendChild(d); t.scrollTop = t.scrollHeight;
+  }
 }
 
 function showGenerateBtn() {
-  const thread = document.getElementById("chatThread");
-  const div = document.createElement("div");
-  div.className = "chat-msg assistant";
-  div.innerHTML = `<div class="avatar">AI</div><div><div class="bubble">信息已齐全。</div><div style="padding-top:8px"><button class="btn btn-primary btn-sm" onclick="generateDraft()"><span class="app-icon" style="width:14px;height:14px">${AppIcons.sparkles}</span> 生成合同草稿</button></div></div>`;
-  thread.appendChild(div);
-  thread.scrollTop = thread.scrollHeight;
+  const t = document.getElementById("chatThread");
+  const d = document.createElement("div");
+  d.className = "chat-msg assistant";
+  d.innerHTML = `<div class="avatar">AI</div><div><div class="bubble">信息已齐全，可以生成草稿。</div><div style="padding-top:8px"><button class="btn btn-primary btn-sm" onclick="generateDraft()">生成合同草稿</button></div></div>`;
+  t.appendChild(d); t.scrollTop = t.scrollHeight;
 }
 
 async function pickGuide(mode) {
-  document.querySelectorAll(".guide-options").forEach((el) => el.parentElement.removeChild(el));
-  if (mode === "ask_user") { document.getElementById("chatInput").focus(); return; }
-  addMsg("user", mode === "kb_search" ? "从知识库查找" : "AI 自动推断");
-  if (mode === "llm_infer") { showProgress(); setStep("knowledge"); addMsg("assistant", "正在检索知识库..."); }
+  document.getElementById("guideBar").style.display = "none";
+  if (mode === "ask") { document.getElementById("chatInput").focus(); return; }
+
+  const labels = { kb: "从知识库检索", ai: "AI 自动推断" };
+  addMsg("user", labels[mode]);
+
+  if (mode === "ai") { showAgentStep("draft"); addMsg("assistant", "正在推断..."); }
 
   try {
-    const res = await fetch(`${API_BASE}/api/smart-draft/guide`, {
+    const res = await fetch("/api/smart-draft/guide", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, mode }),
+      body: JSON.stringify({ sessionId, mode: mode === "kb" ? "kb_search" : "llm_infer" }),
     });
-    const data = await res.json();
+    const txt = await res.text();
+    let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
     if (data.messages) renderMessages(data.messages);
-    if (data.answers) allAnswers = data.answers;
-    if (data.dialogue?.missingCount > 0) { currentQuestion = data.dialogue.currentQuestion; showGuideButtons(); }
-    else showGenerateBtn();
-  } catch (e) { addMsg("assistant", `错误: ${e.message}`); }
+    if (data.dialogue?.missingCount > 0) {
+      currentQuestion = data.dialogue.currentQuestion;
+      showGuideOptions();
+    } else {
+      showAgentStep("draft");
+      showGenerateBtn();
+    }
+  } catch(e) { addMsg("assistant", "错误: " + e.message); }
 }
 
 // ── Send Answer ──
 async function sendAnswer() {
   const input = document.getElementById("chatInput");
-  const value = input.value.trim();
-  if (!value || !sessionId) return;
+  const val = input.value.trim();
+  if (!val || !sessionId) return;
   input.value = "";
+  document.getElementById("guideBar").style.display = "none";
+
   const field = currentQuestion?.hint || "补充信息";
-  addMsg("user", value);
+  addMsg("user", val);
 
   try {
-    const res = await fetch(`${API_BASE}/api/smart-draft/answer`, {
+    const res = await fetch("/api/smart-draft/answer", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, field, value }),
+      body: JSON.stringify({ sessionId, field, value: val }),
     });
-    const data = await res.json();
+    const txt = await res.text();
+    let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
     if (data.messages) renderMessages(data.messages);
-    if (data.answers) allAnswers = data.answers;
-    if (data.dialogue?.missingCount > 0) { currentQuestion = data.dialogue.currentQuestion; showGuideButtons(); }
-    else showGenerateBtn();
-  } catch (e) { addMsg("assistant", `错误: ${e.message}`); }
+    if (data.dialogue?.missingCount > 0) {
+      currentQuestion = data.dialogue.currentQuestion;
+      showGuideOptions();
+    } else {
+      showAgentStep("draft");
+      showGenerateBtn();
+    }
+  } catch(e) { addMsg("assistant", "错误: " + e.message); }
 }
 
-// ── Generate ──
+// ── Generate with line-by-line display ──
 async function generateDraft() {
   if (!sessionId || isProcessing) return;
   isProcessing = true;
-  showProgress();
-  setStep("generate");
-  setCompletion(60, "正在生成合同草稿...");
-  addMsg("assistant", "正在生成合同草稿，请稍候...");
+  showAgentStep("draft");
+  addMsg("assistant", "正在生成合同草稿...");
 
   try {
-    const res = await fetch(`${API_BASE}/api/smart-draft/generate`, {
+    const res = await fetch("/api/smart-draft/generate", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, guidanceMode: "llm_infer" }),
     });
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch { throw new Error("服务器返回错误，请重试"); }
+    const txt = await res.text();
+    let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器返回异常，请重试"); }
     if (data.error) throw new Error(data.error);
 
     currentDraft = typeof data.draft === "string" ? data.draft : data.draft?.content || JSON.stringify(data.draft);
     currentDraft = currentDraft.replace(/^```[\s\S]*?\n/gm, "").replace(/\n```$/gm, "");
 
-    // Type draft line by line into editor
-    if (editor) {
-      const lines = currentDraft.split("\n");
-      let accumulated = "";
-      for (let i = 0; i < lines.length; i++) {
-        accumulated += (i > 0 ? "\n" : "") + lines[i];
-        editor.setContent(accumulated);
-        // Small delay for visual effect
-        if (i < lines.length - 1) await delay(30);
-      }
-    }
+    // Line-by-line display in Word area
+    await typeDraftLineByLine(currentDraft);
 
-    setStep("done");
-    setCompletion(100, "草稿已完成");
+    showAgentStep("done");
     if (data.messages) renderMessages(data.messages);
-    addMsg("assistant", `草稿已生成${data.appliedRules ? `，应用了 ${data.appliedRules.length} 条规则` : ""}`);
-    document.getElementById("sessionTag").textContent = "已完成";
-  } catch (e) {
-    addMsg("assistant", `生成失败: ${e.message}`);
-    setCompletion(0, "生成失败");
+    addMsg("assistant", `草稿已生成${data.appliedRules?`，应用了 ${data.appliedRules.length} 条规则`:""}`);
+    document.getElementById("statusTag").textContent = "已完成";
+  } catch(e) {
+    addMsg("assistant", "生成失败: " + e.message);
   }
   isProcessing = false;
 }
 
-function delay(ms) { return new Promise((r) => setTimeout(r, ms)); }
+async function typeDraftLineByLine(text) {
+  const container = document.getElementById("docxContent");
+  container.innerHTML = "";
+  const lines = text.split("\n");
+  let accumulated = "";
+
+  for (let i = 0; i < lines.length; i++) {
+    accumulated += (i > 0 ? "\n" : "") + lines[i];
+    // Render as formatted HTML
+    container.innerHTML = renderContractHTML(accumulated);
+    // Scroll to bottom
+    const area = document.getElementById("wordArea");
+    area.scrollTop = area.scrollHeight;
+    // Delay for visual effect
+    await delay(20);
+  }
+}
+
+function renderContractHTML(text) {
+  // Convert markdown-like formatting to HTML
+  return text
+    .replace(/^# (.+)$/gm, '<h1 style="text-align:center;font-size:20px;margin:20px 0 12px">$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2 style="font-size:16px;margin:16px 0 8px;border-bottom:1px solid #eee;padding-bottom:4px">$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3 style="font-size:14px;margin:12px 0 6px">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Attach files ──
+function handleAttachFiles(files) {
+  for (const f of files) attachedFiles.push(f.name);
+  addMsg("user", "已上传: " + attachedFiles.join(", "));
+}
 
 // ── Download / Copy ──
 function downloadDraft() {
   if (!currentDraft) return;
-  const blob = new Blob([currentDraft], { type: "text/plain;charset=utf-8" });
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-  a.download = `合同草稿_${new Date().toISOString().slice(0, 10)}.txt`; a.click();
+  const b = new Blob([currentDraft], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(b);
+  a.download = `合同草稿_${new Date().toISOString().slice(0,10)}.txt`; a.click();
 }
+
 function copyDraft() {
   if (!currentDraft) return;
   navigator.clipboard.writeText(currentDraft).then(() => alert("已复制"));
 }
+
+function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>"); }
