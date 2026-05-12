@@ -158,7 +158,8 @@
           <div class="score-item"><div class="label">AI 审查</div><div class="value" id="score-ai">待调用</div></div>
         </div>
         <div class="cmd-strip">
-          <button class="btn btn-outline btn-sm" onclick="openImport()">上传/粘贴合同</button>
+          <button class="btn btn-outline btn-sm" onclick="openImport()">上传合同</button>
+          <button class="btn btn-outline btn-sm" onclick="pasteText()">粘贴文本</button>
           <button class="btn btn-outline btn-sm" id="export-report-btn" disabled>导出报告</button>
           <button class="btn btn-primary btn-sm" id="review-btn" onclick="startReview()">开始审查</button>
         </div>
@@ -177,7 +178,7 @@
           <div class="panel-head-bar">
             <h3>合同原文与标记</h3>
             <div class="actions">
-              <button class="btn btn-ghost btn-sm" onclick="copySource()">复制原文</button>
+              <button class="btn btn-ghost btn-sm" onclick="copySource()" id="copy-source-btn">复制原文</button>
               <button class="btn btn-primary btn-sm" onclick="downloadCorrected()">下载修改后</button>
             </div>
           </div>
@@ -236,7 +237,6 @@
 
 <script src="icons.js"></script>
 <script src="office-editor.js"></script>
-<script src="contract-review.js"></script>
 <script>
 // ── Review UI Controller ──
 let reviewEditor = null;
@@ -271,38 +271,108 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-function openImport() { document.getElementById("review-import-modal").style.display="flex"; }
+function openImport() {
+  // 点击按钮直接打开文件选择器
+  document.getElementById("review-file").click();
+}
+
 function closeImport() { document.getElementById("review-import-modal").style.display="none"; }
 
-async function confirmImport() {
-  const file = document.getElementById("review-file").files[0];
-  const text = document.getElementById("review-import-text").value.trim();
-  if (!file && !text) return alert("请选择文件或粘贴文本");
+// 文件选择后自动解析
+document.addEventListener("DOMContentLoaded", () => {
+  const fileInput = document.getElementById("review-file");
+  if (fileInput) {
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      await parseAndDisplay(file);
+      fileInput.value = ""; // 重置以允许重新选择
+    });
+  }
+});
 
-  if (file) {
+async function parseAndDisplay(file) {
+  // 显示加载状态
+  document.getElementById("empty-source").style.display = "none";
+  const container = document.getElementById("review-editor-container");
+  container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted)">
+    <div style="font-size:14px;margin-bottom:8px">正在解析「${esc(file.name)}」...</div>
+    <div style="width:40px;height:4px;background:#e5e5e5;border-radius:2px;margin:0 auto;overflow:hidden"><div style="width:60%;height:100%;background:var(--accent);border-radius:2px;animation:loadBar 1s ease-in-out infinite"></div></div>
+    <style>@keyframes loadBar{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}</style>
+  </div>`;
+
+  if (file.name.match(/\.(docx|doc)$/i)) {
+    // Word 文件：用 API 解析
     const formData = new FormData();
     formData.append("contractFile", file);
     try {
       const res = await fetch("/api/contracts/parse", { method:"POST", body: formData });
-      const data = await res.json();
-      reviewContractText = data.text || data.content || "";
-    } catch(e) { alert("解析失败: "+e.message); return; }
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error("服务器返回异常"); }
+      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+      reviewContractText = data.contractText || data.text || data.content || "";
+      if (!reviewContractText) throw new Error("未提取到合同文本");
+    } catch(e) {
+      container.innerHTML = `<div style="padding:20px;color:var(--red);font-size:13px">
+        <strong>解析失败</strong><br>${esc(e.message)}<br><br>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('review-file').click()">重新选择</button>
+      </div>`;
+      document.getElementById("summary-text").textContent = "解析失败: " + e.message;
+      document.getElementById("summary-tag").textContent = "失败";
+      document.getElementById("summary-tag").className = "tag tag-red";
+      return;
+    }
   } else {
-    reviewContractText = text;
+    // 文本文件：直接读取
+    reviewContractText = await file.text();
   }
 
-  // Display in source panel
-  document.getElementById("empty-source").style.display = "none";
-  if (reviewEditor) {
-    reviewEditor.setContent(reviewContractText);
-  } else {
-    document.getElementById("review-editor-container").innerHTML = `<div style="padding:14px;font-family:var(--font-serif);font-size:13px;line-height:1.8;white-space:pre-wrap">${esc(reviewContractText)}</div>`;
-  }
+  // 显示合同文本（可复制）
+  renderSourceText(reviewContractText);
 
-  closeImport();
-  document.getElementById("summary-text").textContent = `已导入合同（${reviewContractText.length} 字），点击"开始审查"。`;
+  document.getElementById("summary-text").textContent = `已导入「${file.name}」（${reviewContractText.length} 字），点击"开始审查"。`;
   document.getElementById("summary-tag").textContent = "已导入";
   document.getElementById("summary-tag").className = "tag tag-green";
+  document.getElementById("summary-tag").style.display = "inline-flex";
+}
+
+function renderSourceText(text) {
+  const container = document.getElementById("review-editor-container");
+  // 可选中复制的纯文本展示
+  container.innerHTML = `<div style="padding:16px;font-family:var(--font-serif);font-size:13px;line-height:1.9;white-space:pre-wrap;user-select:text;cursor:text;color:var(--ink)" id="source-text-content">${esc(text)}</div>`;
+}
+
+function copySource() {
+  if (!reviewContractText) return alert("暂无合同文本");
+  navigator.clipboard.writeText(reviewContractText).then(() => {
+    const btn = document.querySelector('[onclick="copySource()"]');
+    if (btn) { btn.textContent = "已复制"; setTimeout(() => btn.textContent = "复制原文", 1500); }
+  });
+}
+
+function pasteText() {
+  const text = prompt("请粘贴合同文本：");
+  if (text && text.trim()) {
+    reviewContractText = text.trim();
+    renderSourceText(reviewContractText);
+    document.getElementById("summary-text").textContent = `已导入合同（${reviewContractText.length} 字），点击"开始审查"。`;
+    document.getElementById("summary-tag").textContent = "已导入";
+    document.getElementById("summary-tag").className = "tag tag-green";
+  }
+}
+
+async function confirmImport() {
+  // 兼容：如果有粘贴的文本
+  const text = document.getElementById("review-import-text").value.trim();
+  if (text) {
+    reviewContractText = text;
+    renderSourceText(text);
+    closeImport();
+    document.getElementById("summary-text").textContent = `已导入合同（${text.length} 字），点击"开始审查"。`;
+    document.getElementById("summary-tag").textContent = "已导入";
+    document.getElementById("summary-tag").className = "tag tag-green";
+  }
 }
 
 async function startReview() {
