@@ -56,8 +56,22 @@ async function handleUpload(file) {
 
     renderFields(data.fields || []);
 
-    // Load preview in editor
-    if (docxId) {
+    // Load preview with docx-preview for .docx, OfficeEditor for others
+    const editorContainer = document.getElementById("editorContainer");
+    if (file.name.match(/\.docx$/i)) {
+      // Use docx-preview for high-fidelity Word rendering
+      editorContainer.innerHTML = "";
+      try {
+        const viewer = new DocxViewer(editorContainer, { readOnly: true });
+        await viewer.loadFromFile(file);
+      } catch (e) {
+        // Fallback to text display
+        if (data.paragraphs) {
+          editorContainer.innerHTML = `<div style="padding:20px;font-family:var(--font-serif);font-size:13px;line-height:1.9;white-space:pre-wrap">${data.paragraphs.map(p => esc(p.text || "")).join("\n")}</div>`;
+        }
+      }
+    } else if (docxId) {
+      // .doc or other: use API parse + OfficeEditor
       try {
         const pres = await fetch(`/api/templates/parse`, {
           method: "POST",

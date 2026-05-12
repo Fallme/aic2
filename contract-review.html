@@ -237,6 +237,7 @@
 
 <script src="icons.js"></script>
 <script src="office-editor.js"></script>
+<script src="docx-viewer.js"></script>
 <script>
 // ── Review UI Controller ──
 let reviewEditor = null;
@@ -291,50 +292,74 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+let docxViewer = null;
+
 async function parseAndDisplay(file) {
-  // 显示加载状态
   document.getElementById("empty-source").style.display = "none";
   const container = document.getElementById("review-editor-container");
+
+  // 显示加载状态
   container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted)">
     <div style="font-size:14px;margin-bottom:8px">正在解析「${esc(file.name)}」...</div>
-    <div style="width:40px;height:4px;background:#e5e5e5;border-radius:2px;margin:0 auto;overflow:hidden"><div style="width:60%;height:100%;background:var(--accent);border-radius:2px;animation:loadBar 1s ease-in-out infinite"></div></div>
+    <div style="width:200px;height:4px;background:#e5e5e5;border-radius:2px;margin:0 auto;overflow:hidden"><div style="width:60%;height:100%;background:var(--accent);border-radius:2px;animation:loadBar 1s ease-in-out infinite"></div></div>
     <style>@keyframes loadBar{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}</style>
   </div>`;
 
-  if (file.name.match(/\.(docx|doc)$/i)) {
-    // Word 文件：用 API 解析
-    const formData = new FormData();
-    formData.append("contractFile", file);
-    try {
+  try {
+    if (file.name.match(/\.docx$/i)) {
+      // .docx 文件：用 docx-preview 高保真渲染
+      container.innerHTML = "";
+      docxViewer = new DocxViewer(container, { readOnly: true });
+      await docxViewer.loadFromFile(file);
+
+      // 同时提取纯文本用于审查
+      const formData = new FormData();
+      formData.append("contractFile", file);
+      const res = await fetch("/api/contracts/parse", { method:"POST", body: formData });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = {}; }
+      reviewContractText = data.contractText || data.text || "";
+
+    } else if (file.name.match(/\.doc$/i)) {
+      // .doc 文件：用 API 解析后显示格式化 HTML
+      const formData = new FormData();
+      formData.append("contractFile", file);
       const res = await fetch("/api/contracts/parse", { method:"POST", body: formData });
       const text = await res.text();
       let data;
       try { data = JSON.parse(text); } catch { throw new Error("服务器返回异常"); }
       if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
-      reviewContractText = data.contractText || data.text || data.content || "";
+      reviewContractText = data.contractText || data.text || "";
       if (!reviewContractText) throw new Error("未提取到合同文本");
-    } catch(e) {
-      container.innerHTML = `<div style="padding:20px;color:var(--red);font-size:13px">
-        <strong>解析失败</strong><br>${esc(e.message)}<br><br>
-        <button class="btn btn-outline btn-sm" onclick="document.getElementById('review-file').click()">重新选择</button>
-      </div>`;
-      document.getElementById("summary-text").textContent = "解析失败: " + e.message;
-      document.getElementById("summary-tag").textContent = "失败";
-      document.getElementById("summary-tag").className = "tag tag-red";
-      return;
+
+      // 用 mammoth 生成的 HTML 显示
+      if (data.contractHtml) {
+        container.innerHTML = `<div style="padding:20px 40px;font-family:var(--font-serif);font-size:13px;line-height:1.9;max-width:820px;margin:0 auto;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-radius:4px;min-height:400px">${data.contractHtml}</div>`;
+      } else {
+        renderSourceText(reviewContractText);
+      }
+
+    } else {
+      // 文本文件：直接读取
+      reviewContractText = await file.text();
+      renderSourceText(reviewContractText);
     }
-  } else {
-    // 文本文件：直接读取
-    reviewContractText = await file.text();
+
+    document.getElementById("summary-text").textContent = `已导入「${file.name}」（${reviewContractText.length} 字），点击"开始审查"。`;
+    document.getElementById("summary-tag").textContent = "已导入";
+    document.getElementById("summary-tag").className = "tag tag-green";
+
+  } catch(e) {
+    container.innerHTML = `<div style="padding:40px;text-align:center">
+      <div style="color:var(--red);font-size:14px;margin-bottom:12px">解析失败</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:16px">${esc(e.message)}</div>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('review-file').click()">重新选择</button>
+    </div>`;
+    document.getElementById("summary-text").textContent = "解析失败: " + e.message;
+    document.getElementById("summary-tag").textContent = "失败";
+    document.getElementById("summary-tag").className = "tag tag-red";
   }
-
-  // 显示合同文本（可复制）
-  renderSourceText(reviewContractText);
-
-  document.getElementById("summary-text").textContent = `已导入「${file.name}」（${reviewContractText.length} 字），点击"开始审查"。`;
-  document.getElementById("summary-tag").textContent = "已导入";
-  document.getElementById("summary-tag").className = "tag tag-green";
-  document.getElementById("summary-tag").style.display = "inline-flex";
 }
 
 function renderSourceText(text) {
