@@ -48,7 +48,60 @@
     .kb-rule-form .form-row{display:flex;gap:6px;margin-top:6px}
     .kb-rule-form select,.kb-rule-form input{padding:7px 10px;border:1px solid #d0d5dd;border-radius:var(--r-sm);font-size:12px;font-family:var(--font)}
 
-    .kb-rule-list{display:flex;flex-direction:column;gap:4px}
+    .kb-rule-list{display:flex;flex-direction:column;gap:8px}
+
+    /* Pending cards */
+    .pending-card{background:#fffbf0;border:1px solid #ffe0b2;border-left:3px solid var(--gold)}
+    .pending-card h3{color:var(--ink)}
+
+    /* Rule cards */
+    .rule-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:16px 18px;margin-bottom:8px}
+    .rule-card h3{font-size:15px;font-weight:600;margin-bottom:8px;color:var(--ink)}
+    .rule-card .rule-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+    .rule-card dl{display:grid;grid-template-columns:100px 1fr;gap:4px 12px;font-size:13px;margin-bottom:12px}
+    .rule-card dt{color:var(--muted);font-weight:500}
+    .rule-card dd{color:var(--ink)}
+    .rule-card .quote{background:#f0f5ff;border-left:3px solid var(--blue);padding:8px 12px;border-radius:0 var(--r-xs) var(--r-xs) 0;font-size:12px;color:var(--ink);line-height:1.6;margin-bottom:12px}
+    .rule-card .card-actions{display:flex;gap:6px}
+
+    /* Rule folder */
+    .rule-folder{margin-bottom:4px}
+    .rule-folder summary{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink);list-style:none}
+    .rule-folder summary::-webkit-details-marker{display:none}
+    .rule-folder .folder-icon{color:var(--muted);font-size:12px}
+    .rule-folder .tag{font-size:11px}
+
+    /* Rule row */
+    .rule-row-list{padding:0 14px 8px}
+    .rule-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:4px;font-size:13px;background:#fafbfc}
+    .rule-row strong{font-weight:600;color:var(--ink)}
+    .rule-row small{color:var(--muted);font-size:11px}
+    .rule-row .row-source{flex:1;color:var(--muted);font-size:12px;text-align:right}
+    .rule-row .row-actions{display:flex;gap:4px}
+
+    /* Tags */
+    .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-pill);font-size:11px;font-weight:500;white-space:nowrap}
+    .tag.detail{background:var(--blue-soft);color:var(--blue)}
+    .tag.ok{background:var(--green-bg);color:#16a34a}
+    .tag.high{background:var(--red-bg);color:var(--red)}
+    .tag.mid{background:var(--amber-bg);color:#d97706}
+    .tag.neutral{background:#f0f0f0;color:var(--muted)}
+
+    /* Buttons */
+    .btn{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:var(--r-sm);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;border:none;font-family:var(--font)}
+    .btn-primary{background:var(--gold-gradient);color:#1d1d1f;font-weight:600;box-shadow:0 2px 6px rgba(191,149,63,.15)}
+    .btn-primary:hover{box-shadow:0 2px 10px rgba(191,149,63,.25)}
+    .btn-outline{background:#fff;border:1px solid #d0d5dd;color:var(--ink)}
+    .btn-outline:hover{border-color:var(--gold)}
+    .btn-ghost{background:transparent;color:var(--muted)}
+    .btn-ghost:hover{background:rgba(0,0,0,.04)}
+    .btn-sm{padding:5px 12px;font-size:11px}
+    .btn.danger{background:var(--red-bg);color:var(--red);border:1px solid transparent}
+    .btn.danger:hover{background:#fee;border-color:var(--red)}
+    .mini{padding:4px 10px;font-size:11px;border-radius:var(--r-xs)}
+    .secondary{background:#fff;border:1px solid #d0d5dd;color:var(--ink);padding:5px 12px;font-size:12px;border-radius:var(--r-sm);cursor:pointer;font-family:var(--font)}
+    .secondary:hover{border-color:var(--gold)}
+    .danger{background:var(--red-bg);color:var(--red);border:1px solid transparent;padding:5px 12px;font-size:12px;border-radius:var(--r-sm);cursor:pointer;font-family:var(--font)}
 
     .kb-extract-status{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--gold-bg);border-radius:var(--r-sm);margin-top:12px;font-size:13px;color:var(--gold-dark)}
     .kb-extract-status .spinner{width:16px;height:16px;border:2px solid var(--gold);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
