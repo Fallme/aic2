@@ -6,12 +6,13 @@
   --gold:#bf953f;--gold-dark:#9a7530;--gold-light:#d4b06a;
   --gold-gradient:linear-gradient(135deg,#bf953f,#fcf6ba,#b38728,#fbf5b7,#aa771c);
   --gold-bg:rgba(191,149,63,.08);--gold-border:rgba(191,149,63,.2);
+  --accent:var(--gold);--accent-soft:var(--gold-bg);
   --bg:var(--light-gray);--surface:#fff;--surface2:#f5f5f5;
   --green:#34c759;--green-bg:rgba(52,199,89,.08);
   --red:#ff3b30;--red-bg:rgba(255,59,48,.08);
   --ink:#1d1d1f;--ink-soft:#3a3a3c;--muted:#8e8e93;--subtle:#aeaeb2;
   --line:rgba(0,0,0,.06);--line-strong:rgba(0,0,0,.12);
-  --sidebar-bg:#48484a;--sidebar-w:220px;
+  --sidebar-bg:#3a3a3c;--sidebar-w:220px;
   --sidebar-text:rgba(255,255,255,.7);--sidebar-active:rgba(191,149,63,.2);--sidebar-hover:rgba(255,255,255,.08);
   --font:'Inter','Noto Sans SC',-apple-system,BlinkMacSystemFont,sans-serif;
   --font-serif:'SimSun','Noto Serif SC',serif;

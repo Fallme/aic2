@@ -8,7 +8,7 @@
   <style>
     /* Apple-inspired knowledge base styles */
     .kb-main { padding: 20px 28px; overflow-y: auto; flex: 1; }
-    .kb-header { margin-bottom: 24px; }
+    .kb-header { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1.5px solid var(--gold-border); }
     .kb-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
     .kb-header p { font-size: 14px; color: var(--muted); }
 
@@ -24,13 +24,13 @@
 
     /* Section card */
     .kb-section {
-      background: var(--glass-solid); border: 1px solid var(--glass-border);
-      border-radius: var(--r-lg); backdrop-filter: blur(12px);
+      background: var(--surface); border: 1.5px solid var(--gold-border);
+      border-radius: var(--r-lg);
       margin-bottom: 16px; overflow: hidden;
     }
     .kb-section-head {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px; border-bottom: 1px solid var(--line);
+      padding: 16px 20px; border-bottom: 1.5px solid var(--gold-border);
     }
     .kb-section-head h2 { font-size: 15px; font-weight: 600; }
     .kb-section-head .sub { font-size: 12px; color: var(--muted); }
@@ -52,10 +52,10 @@
     .kb-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .kb-form-grid label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
     .kb-form-grid input, .kb-form-grid select {
-      padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+      padding: 8px 10px; border: 1.5px solid var(--gold-border); border-radius: var(--r-sm);
       font-size: 13px; font-family: var(--font);
     }
-    .kb-form-grid input:focus, .kb-form-grid select:focus { outline: none; border-color: var(--accent); }
+    .kb-form-grid input:focus, .kb-form-grid select:focus { outline: none; border-color: var(--gold); }
 
     /* Table */
     .kb-table-wrap { overflow-x: auto; }
@@ -66,7 +66,7 @@
       border-bottom: 1px solid var(--line);
     }
     .kb-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); }
-    .kb-table tr:hover td { background: rgba(0,0,0,0.02); }
+    .kb-table tr:hover td { background: rgba(0,0,0,.03); }
 
     /* Toolbar */
     .kb-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -74,19 +74,19 @@
       padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
       font-size: 12px; font-family: var(--font);
     }
-    .kb-toolbar input:focus, .kb-toolbar select:focus { outline: none; border-color: var(--accent); }
+    .kb-toolbar input:focus, .kb-toolbar select:focus { outline: none; border-color: var(--gold); }
     .kb-toolbar input[type="search"] { flex: 1; min-width: 200px; }
 
     /* Custom rule form */
     .kb-rule-form { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; }
     .kb-rule-form textarea {
-      flex: 1; min-height: 60px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+      flex: 1; min-height: 60px; border: 1.5px solid var(--gold-border); border-radius: var(--r-sm);
       padding: 8px 10px; font-size: 13px; font-family: var(--font); resize: vertical;
     }
-    .kb-rule-form textarea:focus { outline: none; border-color: var(--accent); }
+    .kb-rule-form textarea:focus { outline: none; border-color: var(--gold); }
     .kb-rule-form .form-row { display: flex; gap: 6px; margin-top: 6px; }
     .kb-rule-form select, .kb-rule-form input {
-      padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+      padding: 7px 10px; border: 1.5px solid var(--gold-border); border-radius: var(--r-sm);
       font-size: 12px; font-family: var(--font);
     }
 
@@ -132,19 +132,21 @@
 
     /* Modal */
     .kb-modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
       display: flex; align-items: center; justify-content: center; z-index: 500;
     }
     .kb-modal {
-      background: #fff; border-radius: var(--r-lg); box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      background: var(--surface); border: 1.5px solid var(--gold-border);
+      border-radius: var(--r-lg); box-shadow: 0 20px 60px rgba(0,0,0,.2);
       width: 600px; max-height: 80vh; overflow-y: auto; padding: 24px;
     }
     .kb-modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
     .kb-modal label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
     .kb-modal input, .kb-modal textarea, .kb-modal select {
-      padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+      padding: 8px 10px; border: 1.5px solid var(--gold-border); border-radius: var(--r-sm);
       font-size: 13px; font-family: var(--font);
     }
+    .kb-modal input:focus, .kb-modal textarea:focus, .kb-modal select:focus { border-color: var(--gold); outline: none; }
     .kb-modal textarea { min-height: 80px; resize: vertical; }
     .kb-modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
   </style>
