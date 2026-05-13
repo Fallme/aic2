@@ -51,41 +51,42 @@
     .kb-rule-list{display:flex;flex-direction:column;gap:8px}
 
     /* Pending cards */
-    .pending-card{background:#fffbf0;border:1px solid #ffe0b2;border-left:3px solid var(--gold)}
+    .pending-card{background:#fff8f0;border:1px solid rgba(160,120,48,.15);border-left:3px solid var(--gold);margin-bottom:8px}
     .pending-card h3{color:var(--ink)}
 
     /* Rule cards */
-    .rule-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:16px 18px;margin-bottom:8px}
+    .rule-card{background:#fff;border:1px solid var(--gray5);border-radius:var(--r-sm);padding:16px 18px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
     .rule-card h3{font-size:15px;font-weight:600;margin-bottom:8px;color:var(--ink)}
     .rule-card .rule-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
     .rule-card dl{display:grid;grid-template-columns:100px 1fr;gap:4px 12px;font-size:13px;margin-bottom:12px}
     .rule-card dt{color:var(--muted);font-weight:500}
     .rule-card dd{color:var(--ink)}
-    .rule-card .quote{background:#f0f5ff;border-left:3px solid var(--blue);padding:8px 12px;border-radius:0 var(--r-xs) var(--r-xs) 0;font-size:12px;color:var(--ink);line-height:1.6;margin-bottom:12px}
+    .rule-card .quote{background:var(--gold-bg);border-left:3px solid var(--gold);padding:8px 12px;border-radius:0 var(--r-xs) var(--r-xs) 0;font-size:12px;color:var(--ink);line-height:1.6;margin-bottom:12px}
     .rule-card .card-actions{display:flex;gap:6px}
 
     /* Rule folder */
     .rule-folder{margin-bottom:4px}
-    .rule-folder summary{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink);list-style:none}
+    .rule-folder summary{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink);list-style:none;background:#fafbfc;border-radius:var(--r-sm);transition:background .15s}
+    .rule-folder summary:hover{background:#f0f1f3}
     .rule-folder summary::-webkit-details-marker{display:none}
     .rule-folder .folder-icon{color:var(--muted);font-size:12px}
     .rule-folder .tag{font-size:11px}
 
     /* Rule row */
-    .rule-row-list{padding:0 14px 8px}
-    .rule-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:4px;font-size:13px;background:#fafbfc}
+    .rule-row-list{padding:4px 8px 8px}
+    .rule-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--gray5);border-radius:var(--r-sm);margin-bottom:4px;font-size:13px;background:#fff}
     .rule-row strong{font-weight:600;color:var(--ink)}
     .rule-row small{color:var(--muted);font-size:11px}
     .rule-row .row-source{flex:1;color:var(--muted);font-size:12px;text-align:right}
     .rule-row .row-actions{display:flex;gap:4px}
 
-    /* Tags */
-    .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-pill);font-size:11px;font-weight:500;white-space:nowrap}
-    .tag.detail{background:var(--blue-soft);color:var(--blue)}
-    .tag.ok{background:var(--green-bg);color:#16a34a}
-    .tag.high{background:var(--red-bg);color:var(--red)}
-    .tag.mid{background:var(--amber-bg);color:#d97706}
-    .tag.neutral{background:#f0f0f0;color:var(--muted)}
+    /* Tags with containers */
+    .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-sm);font-size:11px;font-weight:500;border:1px solid transparent;white-space:nowrap}
+    .tag.detail{background:rgba(52,120,246,.06);color:#3478f6;border-color:rgba(52,120,246,.12)}
+    .tag.ok{background:var(--green-bg);color:var(--green);border-color:rgba(90,138,106,.15)}
+    .tag.high{background:var(--red-bg);color:var(--red);border-color:rgba(184,84,80,.15)}
+    .tag.mid{background:var(--amber-bg);color:var(--amber);border-color:rgba(196,122,32,.15)}
+    .tag.neutral{background:var(--gray7);color:var(--muted);border-color:var(--gray5)}
 
     /* Buttons */
     .btn{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:var(--r-sm);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;border:none;font-family:var(--font)}
@@ -103,8 +104,10 @@
     .secondary:hover{border-color:var(--gold)}
     .danger{background:var(--red-bg);color:var(--red);border:1px solid transparent;padding:5px 12px;font-size:12px;border-radius:var(--r-sm);cursor:pointer;font-family:var(--font)}
 
-    .kb-extract-status{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--gold-bg);border-radius:var(--r-sm);margin-top:12px;font-size:13px;color:var(--gold-dark)}
+    .kb-extract-status{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:var(--r-sm);margin-top:12px;font-size:13px;color:var(--gold-dark)}
     .kb-extract-status .spinner{width:16px;height:16px;border:2px solid var(--gold);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+    .kb-extract-status .status-text{font-weight:500}
+    .kb-extract-status .status-step{font-size:11px;color:var(--muted);margin-left:8px}
     @keyframes spin{to{transform:rotate(360deg)}}
 
     .kb-notice{padding:8px 12px;background:#f8f9fa;border-radius:var(--r-sm);font-size:12px;color:var(--muted);margin-top:8px}
@@ -218,7 +221,11 @@
               <tbody id="document-body"></tbody>
             </table>
           </div>
-          <div class="kb-extract-status" id="extract-status" style="display:none"><div class="spinner"></div><strong id="extract-status-title">AI 提取中</strong><span id="extract-status-text">正在准备文档...</span></div>
+          <div class="kb-extract-status" id="extract-status" style="display:none">
+            <div class="spinner"></div>
+            <span class="status-text" id="extract-status-title">AI 提取中</span>
+            <span class="status-step" id="extract-status-text">正在准备文档...</span>
+          </div>
         </div>
       </div>
 
