@@ -5,117 +5,117 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ContractAI - 智能合同管理平台</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root{
-      --gold:#bf953f;--gold-light:#d4b06a;--gold-dark:#9a7530;
-      --gold-gradient:linear-gradient(135deg,#bf953f 0%,#fcf6ba 50%,#b38728 100%);
-      --font:'Inter','Noto Sans SC',-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text',sans-serif;
+      --gold:#d4a853;--gold-light:#e8c97a;--gold-dim:rgba(212,168,83,.12);
+      --bg:#09090b;--surface:#18181b;--surface2:#27272a;--border:rgba(255,255,255,.06);
+      --text:#fafafa;--text2:#a1a1aa;--text3:#71717a;
+      --font:'Inter',system-ui,-apple-system,sans-serif;
     }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    *{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
-    body{font-family:var(--font);color:#1d1d1f;background:#fff;overflow-x:hidden;line-height:1.5}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.5}
 
-    /* ═══ NAV — Apple-style glassmorphism ═══ */
-    .nav{position:fixed;top:0;left:0;right:0;height:48px;z-index:999;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(22px,5vw,80px);background:rgba(251,251,253,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.04)}
-    .nav .logo{display:flex;align-items:center;gap:8px;text-decoration:none}
-    .nav .logo .mark{width:28px;height:28px;background:var(--gold-gradient);border-radius:7px;display:grid;place-items:center;font-size:11px;font-weight:900;color:#1d1d1f}
-    .nav .logo span{font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-.2px}
-    .nav-center{display:flex;gap:28px}
-    .nav-center a{font-size:12px;color:rgba(29,29,31,.8);text-decoration:none;font-weight:400;transition:color .2s}
-    .nav-center a:hover{color:#000}
-    .nav .cta{font-size:12px;font-weight:500;color:var(--gold);text-decoration:none;padding:5px 14px;border:1px solid rgba(191,149,63,.3);border-radius:980px;transition:all .2s}
-    .nav .cta:hover{background:rgba(191,149,63,.06);border-color:var(--gold)}
+    /* ═══ NAV ═══ */
+    .nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:999;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(20px,5vw,64px);background:rgba(9,9,11,.6);backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);border-bottom:1px solid var(--border)}
+    .nav .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .nav .logo .mark{width:30px;height:30px;background:linear-gradient(135deg,#d4a853,#b8860b);border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:900;color:#09090b}
+    .nav .logo span{font-size:15px;font-weight:600;color:#fafafa;letter-spacing:-.3px}
+    .nav-center{display:flex;gap:32px}
+    .nav-center a{font-size:13px;color:var(--text2);text-decoration:none;font-weight:400;transition:color .2s}
+    .nav-center a:hover{color:#fff}
+    .nav .cta{font-size:13px;font-weight:500;color:#09090b;text-decoration:none;padding:7px 18px;background:var(--gold);border-radius:980px;transition:all .2s}
+    .nav .cta:hover{background:var(--gold-light)}
 
-    /* ═══ HERO — Apple minimal ═══ */
-    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:140px 24px 100px;background:linear-gradient(180deg,#fbfbfd 0%,#f5f5f7 100%);position:relative;overflow:hidden}
-    .hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(to top,#fff,transparent);pointer-events:none}
-    .hero .eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--gold);font-weight:500;margin-bottom:16px;letter-spacing:.3px}
-    .hero .eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:dotPulse 2s ease infinite}
-    @keyframes dotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-    .hero h1{font-size:clamp(48px,8vw,88px);font-weight:800;line-height:1.02;letter-spacing:-2.5px;margin-bottom:20px;max-width:760px;color:#1d1d1f}
-    .hero h1 em{font-style:normal;background:var(--gold-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    .hero .desc{font-size:clamp(17px,2.2vw,21px);color:#86868b;line-height:1.5;max-width:520px;margin-bottom:40px;font-weight:400}
-    .hero-actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
-    .hero-actions a{display:inline-flex;align-items:center;gap:6px;padding:14px 28px;border-radius:980px;font-size:15px;font-weight:500;text-decoration:none;transition:all .3s cubic-bezier(.4,0,.2,1)}
-    .hero-actions .fill{background:var(--gold-gradient);color:#1d1d1f;box-shadow:0 2px 12px rgba(191,149,63,.15)}
-    .hero-actions .fill:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(191,149,63,.25)}
-    .hero-actions .ghost{color:#1d1d1f;border:1px solid rgba(0,0,0,.12)}
-    .hero-actions .ghost:hover{border-color:rgba(0,0,0,.25);background:rgba(0,0,0,.02)}
+    /* ═══ HERO ═══ */
+    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 100px;position:relative;overflow:hidden}
+    .hero::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(212,168,83,.06) 0%,transparent 60%);pointer-events:none}
+    .hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(to top,var(--bg),transparent);pointer-events:none}
+    .hero .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid rgba(212,168,83,.2);border-radius:980px;font-size:12px;color:var(--gold);font-weight:500;margin-bottom:24px;background:rgba(212,168,83,.04)}
+    .hero .badge .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:pulse 2s ease infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .hero h1{font-size:clamp(52px,8vw,96px);font-weight:800;line-height:1;letter-spacing:-3px;margin-bottom:24px;max-width:800px}
+    .hero h1 .g{background:linear-gradient(135deg,#d4a853,#f0d68a,#b8860b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero .desc{font-size:clamp(16px,2vw,19px);color:var(--text2);max-width:500px;margin-bottom:40px;line-height:1.6}
+    .hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+    .hero-btns a{display:inline-flex;align-items:center;gap:6px;padding:13px 28px;border-radius:980px;font-size:14px;font-weight:500;text-decoration:none;transition:all .25s}
+    .hero-btns .fill{background:var(--gold);color:#09090b}
+    .hero-btns .fill:hover{background:var(--gold-light);transform:translateY(-1px)}
+    .hero-btns .outline{border:1px solid rgba(255,255,255,.15);color:#fafafa}
+    .hero-btns .outline:hover{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.04)}
 
-    /* ═══ METRICS — Clean numbers ═══ */
-    .metrics{display:flex;justify-content:center;gap:clamp(40px,8vw,100px);padding:64px 24px;background:#fff}
-    .metric{text-align:center}
-    .metric .num{font-size:clamp(40px,6vw,64px);font-weight:800;letter-spacing:-2px;line-height:1;color:#1d1d1f}
-    .metric .unit{font-size:clamp(18px,3vw,28px);font-weight:500;color:#86868b}
-    .metric .label{font-size:14px;color:#86868b;margin-top:8px;font-weight:400}
+    /* ═══ METRICS ═══ */
+    .metrics{display:flex;justify-content:center;gap:clamp(40px,8vw,100px);padding:60px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+    .metric .num{font-size:clamp(40px,6vw,60px);font-weight:800;letter-spacing:-2px;line-height:1}
+    .metric .unit{font-size:clamp(16px,2.5vw,24px);font-weight:500;color:var(--text3)}
+    .metric .label{font-size:13px;color:var(--text3);margin-top:8px}
 
-    /* ═══ SECTIONS — Apple spacing ═══ */
-    .section{padding:clamp(80px,10vw,120px) clamp(20px,5vw,40px)}
-    .section-inner{max-width:1060px;margin:0 auto}
-    .section-header{text-align:center;margin-bottom:clamp(40px,5vw,64px)}
-    .section-header .tag{display:inline-block;font-size:12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
-    .section-header h2{font-size:clamp(36px,5vw,52px);font-weight:800;letter-spacing:-1.5px;line-height:1.08;color:#1d1d1f}
-    .section-header .sub{font-size:17px;color:#86868b;margin-top:12px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.5}
-    .section-gray{background:#f5f5f7}
+    /* ═══ SECTIONS ═══ */
+    .section{padding:clamp(80px,10vw,140px) clamp(20px,5vw,40px)}
+    .section-inner{max-width:1080px;margin:0 auto}
+    .sec-head{text-align:center;margin-bottom:clamp(48px,6vw,72px)}
+    .sec-head .tag{font-size:12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;display:block}
+    .sec-head h2{font-size:clamp(36px,5vw,56px);font-weight:800;letter-spacing:-1.5px;line-height:1.05}
+    .sec-head .sub{font-size:16px;color:var(--text2);margin-top:12px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.5}
+    .sec-alt{background:var(--surface)}
 
-    /* ═══ PRODUCT CARDS — Apple style ═══ */
-    .products{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-    .product-card{background:#fff;border-radius:20px;padding:40px 28px 32px;border:1px solid rgba(0,0,0,.06);position:relative;overflow:hidden;transition:transform .4s cubic-bezier(.4,0,.2,1),box-shadow .4s}
-    .product-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.06)}
-    .product-card .icon-wrap{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;margin-bottom:24px}
-    .product-card .icon-wrap.kb{background:linear-gradient(135deg,rgba(191,149,63,.08),rgba(191,149,63,.02))}
-    .product-card .icon-wrap.gn{background:linear-gradient(135deg,rgba(52,120,246,.08),rgba(52,120,246,.02))}
-    .product-card .icon-wrap.rv{background:linear-gradient(135deg,rgba(52,199,89,.08),rgba(52,199,89,.02))}
-    .product-card h3{font-size:21px;font-weight:700;letter-spacing:-.3px;margin-bottom:8px}
-    .product-card p{font-size:14px;color:#86868b;line-height:1.6;margin-bottom:24px}
-    .product-card .link{display:inline-flex;align-items:center;gap:4px;font-size:14px;font-weight:500;color:var(--gold);text-decoration:none;transition:gap .3s}
-    .product-card .link:hover{gap:8px}
+    /* ═══ CARDS ═══ */
+    .card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 24px;transition:all .3s ease;position:relative;overflow:hidden}
+    .card:hover{border-color:rgba(212,168,83,.15);transform:translateY(-2px)}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(212,168,83,.3),transparent);opacity:0;transition:opacity .3s}
+    .card:hover::before{opacity:1}
+    .card .icon{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;margin-bottom:20px}
+    .card .icon.kb{background:rgba(212,168,83,.08)}
+    .card .icon.gn{background:rgba(99,102,241,.08)}
+    .card .icon.rv{background:rgba(52,211,153,.08)}
+    .card h3{font-size:18px;font-weight:600;margin-bottom:8px;letter-spacing:-.2px}
+    .card p{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px}
+    .card .link{font-size:13px;font-weight:500;color:var(--gold);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:gap .2s}
+    .card .link:hover{gap:8px}
 
-    /* ═══ PROCESS — Numbered steps ═══ */
-    .process-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;position:relative}
-    .process-grid::before{content:'';position:absolute;top:32px;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(191,149,63,.15),rgba(191,149,63,.15),transparent)}
+    /* ═══ PROCESS ═══ */
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;position:relative}
+    .steps::before{content:'';position:absolute;top:36px;left:12.5%;right:12.5%;height:1px;background:linear-gradient(90deg,transparent,rgba(212,168,83,.12),transparent)}
     .step{text-align:center;position:relative}
-    .step .num{width:64px;height:64px;border-radius:50%;margin:0 auto 20px;background:#fff;border:1.5px solid rgba(0,0,0,.08);display:grid;place-items:center;font-size:22px;font-weight:800;color:#1d1d1f;position:relative;z-index:1;transition:all .4s cubic-bezier(.4,0,.2,1)}
-    .step:hover .num{background:var(--gold-gradient);color:#fff;border-color:transparent;transform:scale(1.08);box-shadow:0 8px 28px rgba(191,149,63,.2)}
-    .step h4{font-size:17px;font-weight:600;margin-bottom:6px}
-    .step p{font-size:13px;color:#86868b;line-height:1.55}
+    .step .n{width:72px;height:72px;border-radius:50%;margin:0 auto 20px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;font-size:24px;font-weight:700;color:var(--text2);position:relative;z-index:1;transition:all .3s}
+    .step:hover .n{background:linear-gradient(135deg,#d4a853,#b8860b);color:#09090b;border-color:transparent;transform:scale(1.05);box-shadow:0 0 30px rgba(212,168,83,.15)}
+    .step h4{font-size:15px;font-weight:600;margin-bottom:6px}
+    .step p{font-size:12px;color:var(--text3);line-height:1.5}
 
-    /* ═══ FEATURES — Clean list ═══ */
-    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-    .feature{background:#fff;border-radius:16px;padding:32px 24px;border:1px solid rgba(0,0,0,.06);transition:transform .3s}
-    .feature:hover{transform:translateY(-2px)}
-    .feature .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-bottom:16px}
-    .feature h3{font-size:17px;font-weight:600;margin-bottom:8px}
-    .feature p{font-size:13px;color:#86868b;line-height:1.6}
+    /* ═══ FEATURES ═══ */
+    .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .feat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 24px;transition:border-color .3s}
+    .feat:hover{border-color:rgba(212,168,83,.15)}
+    .feat .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-bottom:14px}
+    .feat h3{font-size:16px;font-weight:600;margin-bottom:6px}
+    .feat p{font-size:13px;color:var(--text2);line-height:1.6}
 
-    /* ═══ CTA — Apple gradient ═══ */
-    .cta-section{text-align:center;padding:clamp(80px,12vw,140px) 24px;position:relative;overflow:hidden}
-    .cta-section::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(191,149,63,.05) 0%,transparent 70%);pointer-events:none}
-    .cta-section h2{font-size:clamp(36px,5vw,56px);font-weight:800;letter-spacing:-1.5px;margin-bottom:12px}
-    .cta-section .sub{font-size:17px;color:#86868b;margin-bottom:32px}
-    .cta-section a{display:inline-flex;align-items:center;gap:8px;padding:16px 40px;border-radius:980px;background:var(--gold-gradient);color:#1d1d1f;font-size:16px;font-weight:600;text-decoration:none;box-shadow:0 4px 16px rgba(191,149,63,.15);transition:all .3s}
-    .cta-section a:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(191,149,63,.25)}
-    .cta-section a svg{width:16px;height:16px;transition:transform .3s}
+    /* ═══ CTA ═══ */
+    .cta-section{text-align:center;padding:clamp(80px,12vw,160px) 24px;position:relative}
+    .cta-section::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(212,168,83,.04) 0%,transparent 60%);pointer-events:none}
+    .cta-section h2{font-size:clamp(36px,5vw,52px);font-weight:800;letter-spacing:-1.5px;margin-bottom:12px}
+    .cta-section .sub{font-size:16px;color:var(--text2);margin-bottom:32px}
+    .cta-section a{display:inline-flex;align-items:center;gap:8px;padding:14px 36px;border-radius:980px;background:var(--gold);color:#09090b;font-size:15px;font-weight:600;text-decoration:none;transition:all .25s}
+    .cta-section a:hover{background:var(--gold-light);transform:translateY(-1px)}
+    .cta-section a svg{width:16px;height:16px;transition:transform .2s}
     .cta-section a:hover svg{transform:translateX(3px)}
 
-    /* ═══ FOOTER — Apple minimal ═══ */
-    .footer{padding:20px;text-align:center;font-size:12px;color:#aeaeb2;border-top:1px solid rgba(0,0,0,.04)}
+    /* ═══ FOOTER ═══ */
+    .footer{padding:20px;text-align:center;font-size:11px;color:var(--text3);border-top:1px solid var(--border)}
 
-    /* ═══ Responsive ═══ */
     @media(max-width:768px){
       .nav-center{display:none}
-      .products,.features-grid{grid-template-columns:1fr}
-      .process-grid{grid-template-columns:repeat(2,1fr);gap:40px}
-      .process-grid::before{display:none}
-      .hero{min-height:90vh;padding:120px 20px 80px}
-      .hero h1{letter-spacing:-1.5px}
+      .card-grid,.feat-grid{grid-template-columns:1fr}
+      .steps{grid-template-columns:repeat(2,1fr);gap:32px}
+      .steps::before{display:none}
+      .hero h1{letter-spacing:-2px}
     }
   </style>
 </head>
 <body>
 
-<!-- ═══ Nav ═══ -->
 <nav class="nav">
   <a class="logo" href="home.html"><div class="mark">AI</div><span>ContractAI</span></a>
   <div class="nav-center">
@@ -123,22 +123,20 @@
     <a href="#process">流程</a>
     <a href="#features">特性</a>
   </div>
-  <a class="cta" href="smart-draft.html">进入控制台</a>
+  <a class="cta" href="smart-draft.html">开始使用</a>
 </nav>
 
-<!-- ═══ Hero ═══ -->
 <section class="hero">
-  <div class="eyebrow"><span class="dot"></span>AI 驱动的新一代合同管理平台</div>
-  <h1>让 AI 守护<br>每一份<em>重要合同</em></h1>
+  <div class="badge"><span class="dot"></span>AI 驱动的新一代合同管理平台</div>
+  <h1>让 AI 守护<br>每一份<span class="g">重要合同</span></h1>
   <p class="desc">从智能起草到风险审查，从知识沉淀到规则复用，覆盖合同全生命周期。</p>
-  <div class="hero-actions">
+  <div class="hero-btns">
     <a class="fill" href="smart-draft.html">AI 智能起草</a>
-    <a class="ghost" href="contract-review.html">合同审查</a>
-    <a class="ghost" href="knowledge.html">知识库</a>
+    <a class="outline" href="contract-review.html">合同审查</a>
+    <a class="outline" href="knowledge.html">知识库</a>
   </div>
 </section>
 
-<!-- ═══ Metrics ═══ -->
 <div class="metrics">
   <div class="metric"><div class="num">10<span class="unit">+</span></div><div class="label">预置合同模板</div></div>
   <div class="metric"><div class="num">8<span class="unit">大</span></div><div class="label">审查维度</div></div>
@@ -146,34 +144,33 @@
   <div class="metric"><div class="num">0<span class="unit">门槛</span></div><div class="label">即开即用</div></div>
 </div>
 
-<!-- ═══ Products ═══ -->
 <section class="section" id="products">
   <div class="section-inner">
-    <div class="section-header">
-      <div class="tag">核心产品</div>
+    <div class="sec-head">
+      <span class="tag">核心产品</span>
       <h2>三大模块，一个闭环</h2>
       <p class="sub">知识沉淀驱动智能起草，智能起草产出合规合同，合同审查反馈优化知识库。</p>
     </div>
-    <div class="products">
-      <div class="product-card">
-        <div class="icon-wrap kb">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#bf953f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>
+    <div class="card-grid">
+      <div class="card">
+        <div class="icon kb">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d4a853" stroke-width="1.8" stroke-linecap="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>
         </div>
         <h3>知识库</h3>
         <p>上传企业制度、历史合同、法规文件，AI 自动解析文档、提取业务规则，按四大维度分类管理。</p>
         <a class="link" href="knowledge.html">进入知识库 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
       </div>
-      <div class="product-card">
-        <div class="icon-wrap gn">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3478f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
+      <div class="card">
+        <div class="icon gn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.8" stroke-linecap="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
         </div>
         <h3>智能起草</h3>
         <p>选择模板或描述需求，AI 对话式追问关键信息，结合知识库规则实时生成合规合同草稿。</p>
         <a class="link" href="smart-draft.html">开始起草 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
       </div>
-      <div class="product-card">
-        <div class="icon-wrap rv">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+      <div class="card">
+        <div class="icon rv">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
         </div>
         <h3>合同审查</h3>
         <p>上传或粘贴合同，多维度智能审查，逐条标注风险原文，提供修正建议，一键采纳修改。</p>
@@ -183,47 +180,43 @@
   </div>
 </section>
 
-<!-- ═══ Process ═══ -->
-<section class="section section-gray" id="process">
+<section class="section sec-alt" id="process">
   <div class="section-inner">
-    <div class="section-header">
-      <div class="tag">使用流程</div>
+    <div class="sec-head">
+      <span class="tag">使用流程</span>
       <h2>四步完成</h2>
       <p class="sub">从上传资料到输出合规合同，全流程 AI 辅助。</p>
     </div>
-    <div class="process-grid">
-      <div class="step"><div class="num">1</div><h4>上传资料</h4><p>将企业制度、合同模板、法规文件上传到知识库</p></div>
-      <div class="step"><div class="num">2</div><h4>审核规则</h4><p>对 AI 提取的规则进行审核、启用，建立规则体系</p></div>
-      <div class="step"><div class="num">3</div><h4>智能起草</h4><p>描述需求或选择模板，AI 对话式生成完整合同</p></div>
-      <div class="step"><div class="num">4</div><h4>风险审查</h4><p>对合同进行 AI 审查，定位风险、修正问题</p></div>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><h4>上传资料</h4><p>将企业制度、合同模板、法规文件上传到知识库</p></div>
+      <div class="step"><div class="n">2</div><h4>审核规则</h4><p>对 AI 提取的规则进行审核、启用，建立规则体系</p></div>
+      <div class="step"><div class="n">3</div><h4>智能起草</h4><p>描述需求或选择模板，AI 对话式生成完整合同</p></div>
+      <div class="step"><div class="n">4</div><h4>风险审查</h4><p>对合同进行 AI 审查，定位风险、修正问题</p></div>
     </div>
   </div>
 </section>
 
-<!-- ═══ Features ═══ -->
 <section class="section" id="features">
   <div class="section-inner">
-    <div class="section-header">
-      <div class="tag">产品特性</div>
+    <div class="sec-head">
+      <span class="tag">产品特性</span>
       <h2>为什么选择 ContractAI</h2>
       <p class="sub">专注合同管理的核心能力</p>
     </div>
-    <div class="features-grid">
-      <div class="feature"><div class="dot"></div><h3>格式保真</h3><p>合同可导出为 Word 文档，保留字体、表格、缩进等完整格式，所见即所得。</p></div>
-      <div class="feature"><div class="dot"></div><h3>知识沉淀</h3><p>知识库持续积累，规则自动复用到起草和审查，越用越智能。</p></div>
-      <div class="feature"><div class="dot"></div><h3>多智能体协作</h3><p>意图分析、数据提取、知识检索、草稿生成，多 Agent 协同工作。</p></div>
+    <div class="feat-grid">
+      <div class="feat"><div class="dot"></div><h3>格式保真</h3><p>合同可导出为 Word 文档，保留字体、表格、缩进等完整格式，所见即所得。</p></div>
+      <div class="feat"><div class="dot"></div><h3>知识沉淀</h3><p>知识库持续积累，规则自动复用到起草和审查，越用越智能。</p></div>
+      <div class="feat"><div class="dot"></div><h3>多智能体协作</h3><p>意图分析、数据提取、知识检索、草稿生成，多 Agent 协同工作。</p></div>
     </div>
   </div>
 </section>
 
-<!-- ═══ CTA ═══ -->
 <section class="cta-section">
   <h2>开始使用 ContractAI</h2>
   <p class="sub">让 AI 为你的合同管理赋能</p>
   <a href="smart-draft.html">立即体验 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
 </section>
 
-<!-- ═══ Footer ═══ -->
 <div class="footer">&copy; 2026 ContractAI. 智能合同管理平台。</div>
 
 </body>
