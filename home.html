@@ -9,7 +9,8 @@
   <style>
     /* ═══ Design Tokens (Linear-inspired) ═══ */
     :root{
-      --bg:#0a0a0f;--bg2:#111118;--surface:#18181f;--surface2:#1f1f28;--surface3:#262630;
+      --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--surface:#18181f;--surface2:#1f1f28;--surface3:#262630;
+      --gray:#2a2a35;--gray2:#35354a;--gray3:#40405a;
       --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);
       --text:#ededed;--text2:#9a9a9f;--text3:#6b6b73;
       --gold:#f5a623;--gold2:#ffb347;--gold3:#e8963e;
@@ -34,7 +35,7 @@
     .nav .cta:hover{box-shadow:0 0 30px rgba(245,166,35,.2);transform:translateY(-1px)}
 
     /* ═══ HERO ═══ */
-    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 100px;position:relative;overflow:hidden}
+    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 100px;position:relative;overflow:hidden;background:var(--bg2)}
     .hero::before{content:'';position:absolute;top:-300px;left:50%;transform:translateX(-50%);width:900px;height:900px;background:radial-gradient(circle,rgba(245,166,35,.04) 0%,transparent 55%);pointer-events:none}
     .hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(to top,var(--bg),transparent);pointer-events:none}
     .hero .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border:1px solid rgba(245,166,35,.15);border-radius:980px;font-size:12px;color:var(--gold);font-weight:500;margin-bottom:28px;background:rgba(245,166,35,.04);letter-spacing:.3px}
@@ -51,8 +52,8 @@
     .hero-btns .ghost:hover{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.03)}
 
     /* ═══ METRICS ═══ */
-    .metrics{display:flex;justify-content:center;gap:clamp(40px,8vw,100px);padding:64px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-    .metric .num{font-size:clamp(40px,6vw,56px);font-weight:800;letter-spacing:-2px;line-height:1}
+    .metrics{display:flex;justify-content:center;gap:clamp(40px,8vw,100px);padding:64px 24px;background:var(--bg3);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+    .metric .num{font-size:clamp(40px,6vw,56px);font-weight:800;letter-spacing:-2px;line-height:1;color:var(--gold)}
     .metric .unit{font-size:clamp(16px,2.5vw,22px);font-weight:500;color:var(--text3)}
     .metric .label{font-size:13px;color:var(--text3);margin-top:8px}
 
@@ -63,12 +64,12 @@
     .sec-head .tag{font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:2.5px;margin-bottom:14px;display:block}
     .sec-head h2{font-size:clamp(36px,5vw,52px);font-weight:700;letter-spacing:-1.5px;line-height:1.1}
     .sec-head .sub{font-size:16px;color:var(--text2);margin-top:14px;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.55}
-    .sec-alt{background:var(--bg2)}
+    .sec-alt{background:var(--bg3)}
 
     /* ═══ CARDS ═══ */
     .card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 28px;transition:all .35s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden}
-    .card:hover{border-color:rgba(245,166,35,.12);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+    .card{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:36px 28px;transition:all .35s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden}
+    .card:hover{border-color:rgba(245,166,35,.12);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
     .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(245,166,35,.25),transparent);opacity:0;transition:opacity .35s}
     .card:hover::before{opacity:1}
     .card .icon{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;margin-bottom:22px}
@@ -84,21 +85,21 @@
     .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;position:relative}
     .steps::before{content:'';position:absolute;top:36px;left:12.5%;right:12.5%;height:1px;background:linear-gradient(90deg,transparent,rgba(245,166,35,.1),transparent)}
     .step{text-align:center;position:relative}
-    .step .n{width:72px;height:72px;border-radius:50%;margin:0 auto 20px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;font-size:24px;font-weight:700;color:var(--text2);position:relative;z-index:1;transition:all .35s}
+    .step .n{width:72px;height:72px;border-radius:50%;margin:0 auto 20px;background:var(--surface2);border:1px solid var(--border2);display:grid;place-items:center;font-size:24px;font-weight:700;color:var(--text2);position:relative;z-index:1;transition:all .35s}
     .step:hover .n{background:var(--gold-gradient);color:#0a0a0f;border-color:transparent;transform:scale(1.08);box-shadow:var(--gold-glow)}
     .step h4{font-size:15px;font-weight:600;margin-bottom:6px}
     .step p{font-size:12px;color:var(--text3);line-height:1.5}
 
     /* ═══ FEATURES ═══ */
     .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .feat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 24px;transition:border-color .3s}
+    .feat{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:28px 24px;transition:border-color .3s}
     .feat:hover{border-color:rgba(245,166,35,.1)}
     .feat .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-bottom:14px;box-shadow:0 0 12px rgba(245,166,35,.2)}
     .feat h3{font-size:16px;font-weight:600;margin-bottom:6px}
     .feat p{font-size:13px;color:var(--text2);line-height:1.6}
 
     /* ═══ CTA ═══ */
-    .cta-section{text-align:center;padding:clamp(80px,12vw,160px) 24px;position:relative}
+    .cta-section{text-align:center;padding:clamp(80px,12vw,160px) 24px;position:relative;background:var(--bg3)}
     .cta-section::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(245,166,35,.03) 0%,transparent 60%);pointer-events:none}
     .cta-section h2{font-size:clamp(36px,5vw,52px);font-weight:700;letter-spacing:-1.5px;margin-bottom:12px}
     .cta-section .sub{font-size:16px;color:var(--text2);margin-bottom:32px}
