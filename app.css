@@ -99,7 +99,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1
 
 /* ── Sidebar ── */
 .app-layout{display:flex;height:100vh;overflow:hidden}
-.app-sidebar{width:var(--sidebar-w);background:var(--sidebar-bg);display:flex;flex-direction:column;flex-shrink:0;z-index:100;margin-top:32px}
+.app-sidebar{position:fixed;top:32px;left:0;bottom:0;width:var(--sidebar-w);background:var(--sidebar-bg);display:flex;flex-direction:column;z-index:100}
 .app-sidebar .brand{display:flex;align-items:center;gap:10px;padding:20px 16px 16px;text-decoration:none;color:#fff}
 .app-sidebar .brand .logo{width:36px;height:36px;background:var(--gold-gradient);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#1d1d1f}
 .app-sidebar .brand .text strong{font-size:15px;font-weight:600;display:block}
@@ -115,7 +115,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1
 .app-sidebar .nav-divider{height:1px;background:rgba(255,255,255,.06);margin:8px 12px}
 
 /* ── Main ── */
-.app-main{flex:1;display:flex;overflow:hidden;background:var(--bg);margin-top:32px}
+.app-main{margin-left:var(--sidebar-w);flex:1;display:flex;overflow:hidden;background:var(--bg);margin-top:32px}
 
 /* ── Contract Panel ── */
 .contract-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:var(--gap-lg);gap:var(--gap-md)}
@@ -243,5 +243,5 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1
 ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:3px}
 
 /* ── Responsive ── */
-@media(max-width:980px){.app-sidebar{width:60px}.app-sidebar .brand .text,.app-sidebar .nav-group-label,.app-sidebar .nav-item span:not(.app-icon){display:none}.chat-panel{width:320px}}
+@media(max-width:980px){.app-sidebar{width:60px}.app-main{margin-left:60px}.app-sidebar .brand .text,.app-sidebar .nav-group-label,.app-sidebar .nav-item span:not(.app-icon){display:none}.chat-panel{width:320px}}
 @media(max-width:768px){.chat-panel{display:none}}
