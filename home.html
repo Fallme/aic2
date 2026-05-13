@@ -8,124 +8,116 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root{
-      --gray1:#4a4a4f;--gray2:#676f70;--gray3:#8a8e93;--gray4:#b0b5ba;
-      --gray5:#d0d4d8;--gray6:#e8eaed;--gray7:#f2f3f5;
-      --gold:#d4a853;--gold-dark:#b8912e;--gold-light:#e8c97a;
-      --gold-gradient:linear-gradient(135deg,#d4a853,#e8c97a,#b8912e);
+      --bg:#f5f5f7;--surface:#fff;--gray1:#1d1d1f;--gray2:#424245;
+      --gray3:#6e6e73;--gray4:#86868b;--gray5:#d2d2d7;--gray6:#e8e8ed;
+      --gold:#b8912e;--gold-light:#d4b06a;--gold-dark:#8a6b1f;
+      --gold-gradient:linear-gradient(135deg,#b8912e,#d4b06a,#8a6b1f);
       --font:'Inter',system-ui,-apple-system,sans-serif;
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{font-size:16px;scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
-    body{font-family:var(--font);color:#1d1d1f;overflow-x:hidden;line-height:1.5}
+    body{font-family:var(--font);background:var(--bg);color:var(--gray1);overflow-x:hidden;line-height:1.5}
 
-    /* Background texture */
-    .texture-bg{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:-1;opacity:.03;
-      background-image:repeating-linear-gradient(45deg,var(--gray3) 0,var(--gray3) 1px,transparent 1px,transparent 20px),
-                        repeating-linear-gradient(-45deg,var(--gray3) 0,var(--gray3) 1px,transparent 1px,transparent 20px)}
+    /* Nav */
+    .nav{position:fixed;top:0;left:0;right:0;height:48px;z-index:999;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(22px,5vw,80px);background:rgba(255,255,255,.8);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.04)}
+    .nav .logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+    .nav .logo .mark{width:28px;height:28px;background:var(--gold-gradient);border-radius:7px;display:grid;place-items:center;font-size:11px;font-weight:900;color:#fff}
+    .nav .logo span{font-size:14px;font-weight:600;color:var(--gray1);letter-spacing:-.2px}
+    .nav-center{display:flex;gap:28px}
+    .nav-center a{font-size:12px;color:var(--gray3);text-decoration:none;font-weight:400;transition:color .2s}
+    .nav-center a:hover{color:var(--gray1)}
+    .nav .cta{font-size:12px;font-weight:500;color:var(--gold);text-decoration:none;padding:5px 14px;border:1px solid rgba(184,145,46,.3);border-radius:980px;transition:all .2s}
+    .nav .cta:hover{background:rgba(184,145,46,.06);border-color:var(--gold)}
 
-    /* ═══ NAV ═══ */
-    .nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:999;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(20px,5vw,64px);background:rgba(74,74,79,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.08)}
-    .nav .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-    .nav .logo .mark{width:30px;height:30px;background:var(--gold-gradient);border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:900;color:#fff}
-    .nav .logo span{font-size:15px;font-weight:600;color:#fff;letter-spacing:-.3px}
-    .nav-center{display:flex;gap:32px}
-    .nav-center a{font-size:13px;color:rgba(255,255,255,.65);text-decoration:none;font-weight:400;transition:color .2s}
-    .nav-center a:hover{color:#fff}
-    .nav .cta{font-size:13px;font-weight:500;color:#fff;text-decoration:none;padding:7px 18px;background:var(--gold-gradient);border-radius:980px;transition:all .2s}
-    .nav .cta:hover{box-shadow:0 4px 16px rgba(212,168,83,.3)}
+    /* Hero - Apple Store style */
+    .hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:100px clamp(20px,5vw,80px);gap:60px;background:linear-gradient(180deg,#f5f5f7 0%,#ececec 100%)}
+    .hero-left h1{font-size:clamp(56px,8vw,96px);font-weight:900;line-height:1;letter-spacing:-3px;color:var(--gray1);margin-bottom:20px}
+    .hero-left h1 em{font-style:normal;background:var(--gold-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-left .desc{font-size:17px;color:var(--gray3);line-height:1.6;max-width:420px;margin-bottom:32px}
+    .hero-left .btns{display:flex;gap:10px;flex-wrap:wrap}
+    .hero-left .btns a{display:inline-flex;align-items:center;gap:5px;padding:12px 24px;border-radius:980px;font-size:14px;font-weight:500;text-decoration:none;transition:all .25s}
+    .hero-left .btns .fill{background:var(--gold-gradient);color:#fff;box-shadow:0 2px 12px rgba(184,145,46,.15)}
+    .hero-left .btns .fill:hover{box-shadow:0 4px 20px rgba(184,145,46,.25);transform:translateY(-1px)}
+    .hero-left .btns .ghost{color:var(--gold);border:1px solid rgba(184,145,46,.3)}
+    .hero-left .btns .ghost:hover{background:rgba(184,145,46,.04)}
+    .hero-right{display:flex;flex-direction:column;gap:20px}
+    .hero-card{background:#fff;border-radius:18px;padding:28px 24px;border:1px solid var(--gray6);transition:transform .3s}
+    .hero-card:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.05)}
+    .hero-card .tag{display:inline-block;font-size:11px;font-weight:600;color:var(--gold);background:rgba(184,145,46,.06);padding:3px 10px;border-radius:980px;margin-bottom:10px}
+    .hero-card h3{font-size:18px;font-weight:700;margin-bottom:6px;color:var(--gray1)}
+    .hero-card p{font-size:13px;color:var(--gray4);line-height:1.55}
+    .hero-card .link{display:inline-flex;align-items:center;gap:3px;font-size:13px;font-weight:500;color:var(--gold);text-decoration:none;margin-top:12px;transition:gap .2s}
+    .hero-card .link:hover{gap:7px}
 
-    /* ═══ HERO ═══ */
-    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 100px;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--gray6) 0%,var(--gray7) 100%)}
-    .hero::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;
-      background-image:repeating-linear-gradient(45deg,transparent,transparent 40px,rgba(212,168,83,.03) 40px,rgba(212,168,83,.03) 41px),
-                        repeating-linear-gradient(-45deg,transparent,transparent 40px,rgba(212,168,83,.03) 40px,rgba(212,168,83,.03) 41px);
-      pointer-events:none}
-    .hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(to top,var(--gray7),transparent);pointer-events:none}
-    .hero .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border:1px solid rgba(212,168,83,.25);border-radius:980px;font-size:12px;color:var(--gold-dark);font-weight:500;margin-bottom:24px;background:rgba(212,168,83,.06)}
-    .hero .badge .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:pulse 2s ease infinite}
-    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
-    .hero h1{font-size:clamp(52px,8vw,96px);font-weight:900;line-height:1;letter-spacing:-3px;margin-bottom:20px;max-width:800px;color:var(--gray1)}
-    .hero h1 .g{background:var(--gold-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    .hero .desc{font-size:clamp(16px,2vw,19px);color:var(--gray2);max-width:520px;margin-bottom:40px;line-height:1.6}
-    .hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
-    .hero-btns a{display:inline-flex;align-items:center;gap:6px;padding:13px 28px;border-radius:980px;font-size:14px;font-weight:500;text-decoration:none;transition:all .25s}
-    .hero-btns .fill{background:var(--gold-gradient);color:#fff;box-shadow:0 2px 12px rgba(212,168,83,.2)}
-    .hero-btns .fill:hover{box-shadow:0 4px 20px rgba(212,168,83,.3);transform:translateY(-2px)}
-    .hero-btns .ghost{border:1.5px solid var(--gray4);color:var(--gray1);background:rgba(255,255,255,.6)}
-    .hero-btns .ghost:hover{border-color:var(--gold);background:rgba(255,255,255,.8)}
+    /* Metrics */
+    .metrics{display:flex;justify-content:center;gap:clamp(36px,7vw,90px);padding:52px 24px;border-top:1px solid var(--gray6);border-bottom:1px solid var(--gray6);background:#fff}
+    .metric{text-align:center}
+    .metric .num{font-size:clamp(36px,5vw,52px);font-weight:800;letter-spacing:-1.5px;color:var(--gray1)}
+    .metric .unit{font-size:clamp(14px,2vw,20px);font-weight:500;color:var(--gray4)}
+    .metric .label{font-size:13px;color:var(--gray4);margin-top:6px}
 
-    /* ═══ METRICS ═══ */
-    .metrics{display:flex;justify-content:center;gap:clamp(40px,8vw,100px);padding:56px 24px;background:var(--gray6);border-top:1px solid var(--gray5);border-bottom:1px solid var(--gray5);position:relative}
-    .metrics::before{content:'';position:absolute;inset:0;
-      background-image:repeating-linear-gradient(90deg,transparent,transparent 80px,rgba(212,168,83,.02) 80px,rgba(212,168,83,.02) 81px);
-      pointer-events:none}
-    .metric .num{font-size:clamp(40px,6vw,56px);font-weight:900;letter-spacing:-2px;line-height:1;color:var(--gray2)}
-    .metric .unit{font-size:clamp(16px,2.5vw,22px);font-weight:500;color:var(--gray3)}
-    .metric .label{font-size:13px;color:var(--gray3);margin-top:8px}
+    /* Sections */
+    .section{padding:clamp(72px,9vw,120px) clamp(20px,5vw,40px)}
+    .section-inner{max-width:980px;margin:0 auto}
+    .sec-head{margin-bottom:clamp(40px,5vw,64px)}
+    .sec-head .eyebrow{font-size:12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+    .sec-head h2{font-size:clamp(32px,4.5vw,48px);font-weight:800;letter-spacing:-1px;color:var(--gray1)}
+    .sec-head .desc{font-size:15px;color:var(--gray4);margin-top:10px;max-width:460px;line-height:1.5}
+    .sec-gray{background:#ececec}
 
-    /* ═══ SECTIONS ═══ */
-    .section{padding:clamp(80px,10vw,140px) clamp(20px,5vw,40px);position:relative}
-    .section-inner{max-width:1120px;margin:0 auto}
-    .sec-head{text-align:center;margin-bottom:clamp(48px,6vw,72px)}
-    .sec-head .tag{font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:2.5px;margin-bottom:12px;display:block}
-    .sec-head h2{font-size:clamp(36px,5vw,52px);font-weight:800;letter-spacing:-1.5px;line-height:1.1;color:var(--gray1)}
-    .sec-head .sub{font-size:16px;color:var(--gray3);margin-top:14px;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.55}
-    .sec-alt{background:var(--gray6)}
-    .sec-alt::before{content:'';position:absolute;inset:0;
-      background-image:repeating-linear-gradient(45deg,transparent,transparent 60px,rgba(212,168,83,.02) 60px,rgba(212,168,83,.02) 61px);
-      pointer-events:none}
+    /* Products - Apple Store grid */
+    .products{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .product{background:#fff;border-radius:18px;padding:32px 24px;border:1px solid var(--gray6);transition:all .3s;position:relative;overflow:hidden}
+    .product:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,.06)}
+    .product::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold-gradient);opacity:0;transition:opacity .3s}
+    .product:hover::after{opacity:1}
+    .product .ico{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;margin-bottom:18px}
+    .product .ico.kb{background:rgba(184,145,46,.06);border:1px solid rgba(184,145,46,.1)}
+    .product .ico.gn{background:rgba(110,110,115,.06);border:1px solid rgba(110,110,115,.1)}
+    .product .ico.rv{background:rgba(90,138,106,.06);border:1px solid rgba(90,138,106,.1)}
+    .product h3{font-size:18px;font-weight:700;margin-bottom:6px;color:var(--gray1)}
+    .product p{font-size:13px;color:var(--gray4);line-height:1.6;margin-bottom:18px}
+    .product .link{font-size:13px;font-weight:500;color:var(--gold);text-decoration:none;display:inline-flex;align-items:center;gap:3px;transition:gap .2s}
+    .product .link:hover{gap:7px}
 
-    /* ═══ CARDS ═══ */
-    .card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .card{background:rgba(255,255,255,.85);border:1px solid var(--gray5);border-radius:16px;padding:36px 28px;transition:all .35s;position:relative;overflow:hidden;backdrop-filter:blur(8px)}
-    .card:hover{border-color:rgba(212,168,83,.3);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.06)}
-    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold-gradient);opacity:0;transition:opacity .35s}
-    .card:hover::before{opacity:1}
-    .card .icon{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;margin-bottom:20px}
-    .card .icon.kb{background:rgba(212,168,83,.08);border:1px solid rgba(212,168,83,.1)}
-    .card .icon.gn{background:rgba(100,100,120,.06);border:1px solid rgba(100,100,120,.08)}
-    .card .icon.rv{background:rgba(100,120,100,.06);border:1px solid rgba(100,120,100,.08)}
-    .card h3{font-size:18px;font-weight:700;margin-bottom:8px;color:var(--gray1)}
-    .card p{font-size:13px;color:var(--gray3);line-height:1.65;margin-bottom:20px}
-    .card .link{font-size:13px;font-weight:500;color:var(--gold-dark);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .2s}
-    .card .link:hover{gap:8px;color:var(--gold)}
-
-    /* ═══ PROCESS ═══ */
+    /* Steps */
     .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;position:relative}
-    .steps::before{content:'';position:absolute;top:36px;left:12.5%;right:12.5%;height:1px;background:linear-gradient(90deg,transparent,rgba(212,168,83,.15),transparent)}
+    .steps::before{content:'';position:absolute;top:32px;left:12.5%;right:12.5%;height:1px;background:linear-gradient(90deg,transparent,var(--gray5),transparent)}
     .step{text-align:center;position:relative}
-    .step .n{width:72px;height:72px;border-radius:50%;margin:0 auto 20px;background:rgba(255,255,255,.8);border:2px solid var(--gray5);display:grid;place-items:center;font-size:24px;font-weight:700;color:var(--gray3);position:relative;z-index:1;transition:all .35s}
-    .step:hover .n{background:var(--gold-gradient);color:#fff;border-color:transparent;transform:scale(1.08);box-shadow:0 4px 20px rgba(212,168,83,.2)}
-    .step h4{font-size:15px;font-weight:600;margin-bottom:6px;color:var(--gray1)}
-    .step p{font-size:12px;color:var(--gray3);line-height:1.5}
+    .step .n{width:64px;height:64px;border-radius:50%;margin:0 auto 16px;background:#fff;border:1.5px solid var(--gray5);display:grid;place-items:center;font-size:22px;font-weight:700;color:var(--gray4);position:relative;z-index:1;transition:all .3s}
+    .step:hover .n{background:var(--gold-gradient);color:#fff;border-color:transparent;transform:scale(1.06);box-shadow:0 4px 16px rgba(184,145,46,.15)}
+    .step h4{font-size:15px;font-weight:600;margin-bottom:5px;color:var(--gray1)}
+    .step p{font-size:12px;color:var(--gray4);line-height:1.5}
 
-    /* ═══ FEATURES ═══ */
-    .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .feat{background:rgba(255,255,255,.85);border:1px solid var(--gray5);border-radius:16px;padding:28px 24px;transition:border-color .3s;backdrop-filter:blur(8px)}
-    .feat:hover{border-color:rgba(212,168,83,.2)}
-    .feat .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-bottom:14px}
-    .feat h3{font-size:16px;font-weight:600;margin-bottom:6px;color:var(--gray1)}
-    .feat p{font-size:13px;color:var(--gray3);line-height:1.6}
+    /* Features */
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .feat{background:#fff;border-radius:16px;padding:28px 22px;border:1px solid var(--gray6);transition:border-color .3s}
+    .feat:hover{border-color:rgba(184,145,46,.2)}
+    .feat .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-bottom:12px}
+    .feat h3{font-size:16px;font-weight:600;margin-bottom:5px;color:var(--gray1)}
+    .feat p{font-size:13px;color:var(--gray4);line-height:1.55}
 
-    /* ═══ CTA ═══ */
-    .cta-section{text-align:center;padding:clamp(80px,12vw,160px) 24px;position:relative;background:var(--gray6)}
-    .cta-section::before{content:'';position:absolute;inset:0;
-      background-image:repeating-linear-gradient(-45deg,transparent,transparent 50px,rgba(212,168,83,.03) 50px,rgba(212,168,83,.03) 51px);
-      pointer-events:none}
-    .cta-section h2{font-size:clamp(36px,5vw,52px);font-weight:800;letter-spacing:-1.5px;margin-bottom:12px;color:var(--gray1)}
-    .cta-section .sub{font-size:16px;color:var(--gray3);margin-bottom:32px}
-    .cta-section a{display:inline-flex;align-items:center;gap:8px;padding:14px 40px;border-radius:980px;background:var(--gold-gradient);color:#fff;font-size:15px;font-weight:600;text-decoration:none;transition:all .3s;box-shadow:0 2px 12px rgba(212,168,83,.15)}
-    .cta-section a:hover{box-shadow:0 4px 24px rgba(212,168,83,.25);transform:translateY(-2px)}
-    .cta-section a svg{width:16px;height:16px;transition:transform .2s}
-    .cta-section a:hover svg{transform:translateX(3px)}
+    /* CTA */
+    .cta-box{text-align:center;padding:clamp(72px,10vw,140px) 24px;position:relative;background:linear-gradient(180deg,#ececec,#f5f5f7)}
+    .cta-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--gray5)}
+    .cta-box h2{font-size:clamp(32px,4.5vw,48px);font-weight:800;letter-spacing:-1px;margin-bottom:10px;color:var(--gray1)}
+    .cta-box .desc{font-size:15px;color:var(--gray4);margin-bottom:28px}
+    .cta-box a{display:inline-flex;align-items:center;gap:6px;padding:13px 36px;border-radius:980px;background:var(--gold-gradient);color:#fff;font-size:14px;font-weight:600;text-decoration:none;transition:all .3s;box-shadow:0 2px 10px rgba(184,145,46,.12)}
+    .cta-box a:hover{box-shadow:0 4px 20px rgba(184,145,46,.2);transform:translateY(-1px)}
 
-    .footer{padding:20px;text-align:center;font-size:11px;color:var(--gray4);border-top:1px solid var(--gray5)}
+    .footer{padding:16px;text-align:center;font-size:11px;color:var(--gray5);border-top:1px solid var(--gray6)}
 
-    @media(max-width:768px){.nav-center{display:none}.card-grid,.feat-grid{grid-template-columns:1fr}.steps{grid-template-columns:repeat(2,1fr);gap:32px}.steps::before{display:none}.hero h1{letter-spacing:-2px}}
+    @media(max-width:768px){
+      .nav-center{display:none}
+      .hero{grid-template-columns:1fr;gap:40px;padding-top:100px}
+      .hero-left h1{font-size:48px}
+      .products,.features{grid-template-columns:1fr}
+      .steps{grid-template-columns:repeat(2,1fr);gap:28px}
+      .steps::before{display:none}
+    }
   </style>
 </head>
 <body>
-<div class="texture-bg"></div>
 
 <nav class="nav">
   <a class="logo" href="home.html"><div class="mark">AI</div><span>ContractAI</span></a>
@@ -134,13 +126,28 @@
 </nav>
 
 <section class="hero">
-  <div class="badge"><span class="dot"></span>AI 驱动的新一代合同管理平台</div>
-  <h1>让 AI 守护<br>每一份<span class="g">重要合同</span></h1>
-  <p class="desc">从智能起草到风险审查，从知识沉淀到规则复用，覆盖合同全生命周期。</p>
-  <div class="hero-btns">
-    <a class="fill" href="smart-draft.html">AI 智能起草</a>
-    <a class="ghost" href="contract-review.html">合同审查</a>
-    <a class="ghost" href="knowledge.html">知识库</a>
+  <div class="hero-left">
+    <h1>智能合同<br><em>管理平台</em></h1>
+    <p class="desc">从智能起草到风险审查，从知识沉淀到规则复用，覆盖合同全生命周期。</p>
+    <div class="btns">
+      <a class="fill" href="smart-draft.html">AI 智能起草</a>
+      <a class="ghost" href="contract-review.html">合同审查</a>
+      <a class="ghost" href="knowledge.html">知识库</a>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="hero-card">
+      <span class="tag">AI 驱动</span>
+      <h3>智能起草</h3>
+      <p>选择模板或描述需求，AI 对话式追问关键信息，实时生成合规合同草稿。</p>
+      <a class="link" href="smart-draft.html">开始起草 &rarr;</a>
+    </div>
+    <div class="hero-card">
+      <span class="tag">多维审查</span>
+      <h3>合同审查</h3>
+      <p>上传合同，AI 逐条标注风险，提供修正建议，一键采纳修改。</p>
+      <a class="link" href="contract-review.html">开始审查 &rarr;</a>
+    </div>
   </div>
 </section>
 
@@ -153,20 +160,24 @@
 
 <section class="section" id="products">
   <div class="section-inner">
-    <div class="sec-head"><span class="tag">核心产品</span><h2>三大模块，一个闭环</h2><p class="sub">知识沉淀驱动智能起草，智能起草产出合规合同，合同审查反馈优化知识库。</p></div>
-    <div class="card-grid">
-      <div class="card">
-        <div class="icon kb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d4a853" stroke-width="1.8" stroke-linecap="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg></div>
+    <div class="sec-head">
+      <div class="eyebrow">核心产品</div>
+      <h2>三大模块，一个闭环</h2>
+      <p class="desc">知识沉淀驱动智能起草，智能起草产出合规合同，合同审查反馈优化知识库。</p>
+    </div>
+    <div class="products">
+      <div class="product">
+        <div class="ico kb"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b8912e" stroke-width="1.8" stroke-linecap="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg></div>
         <h3>知识库</h3><p>上传企业制度、历史合同、法规文件，AI 自动解析文档、提取业务规则，按四大维度分类管理。</p>
         <a class="link" href="knowledge.html">进入知识库 &rarr;</a>
       </div>
-      <div class="card">
-        <div class="icon gn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#676f70" stroke-width="1.8" stroke-linecap="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg></div>
+      <div class="product">
+        <div class="ico gn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6e6e73" stroke-width="1.8" stroke-linecap="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg></div>
         <h3>智能起草</h3><p>选择模板或描述需求，AI 对话式追问关键信息，结合知识库规则实时生成合规合同草稿。</p>
         <a class="link" href="smart-draft.html">开始起草 &rarr;</a>
       </div>
-      <div class="card">
-        <div class="icon rv"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8a8e93" stroke-width="1.8" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+      <div class="product">
+        <div class="ico rv"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a8a6a" stroke-width="1.8" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
         <h3>合同审查</h3><p>上传或粘贴合同，多维度智能审查，逐条标注风险原文，提供修正建议，一键采纳修改。</p>
         <a class="link" href="contract-review.html">开始审查 &rarr;</a>
       </div>
@@ -174,9 +185,13 @@
   </div>
 </section>
 
-<section class="section sec-alt" id="process">
+<section class="section sec-gray" id="process">
   <div class="section-inner">
-    <div class="sec-head"><span class="tag">使用流程</span><h2>四步完成</h2><p class="sub">从上传资料到输出合规合同，全流程 AI 辅助。</p></div>
+    <div class="sec-head">
+      <div class="eyebrow">使用流程</div>
+      <h2>四步完成</h2>
+      <p class="desc">从上传资料到输出合规合同，全流程 AI 辅助。</p>
+    </div>
     <div class="steps">
       <div class="step"><div class="n">1</div><h4>上传资料</h4><p>将企业制度、合同模板、法规文件上传到知识库</p></div>
       <div class="step"><div class="n">2</div><h4>审核规则</h4><p>对 AI 提取的规则进行审核、启用，建立规则体系</p></div>
@@ -188,8 +203,12 @@
 
 <section class="section" id="features">
   <div class="section-inner">
-    <div class="sec-head"><span class="tag">产品特性</span><h2>为什么选择 ContractAI</h2><p class="sub">专注合同管理的核心能力</p></div>
-    <div class="feat-grid">
+    <div class="sec-head">
+      <div class="eyebrow">产品特性</div>
+      <h2>为什么选择 ContractAI</h2>
+      <p class="desc">专注合同管理的核心能力</p>
+    </div>
+    <div class="features">
       <div class="feat"><div class="dot"></div><h3>格式保真</h3><p>合同可导出为 Word 文档，保留字体、表格、缩进等完整格式，所见即所得。</p></div>
       <div class="feat"><div class="dot"></div><h3>知识沉淀</h3><p>知识库持续积累，规则自动复用到起草和审查，越用越智能。</p></div>
       <div class="feat"><div class="dot"></div><h3>多智能体协作</h3><p>意图分析、数据提取、知识检索、草稿生成，多 Agent 协同工作。</p></div>
@@ -197,9 +216,9 @@
   </div>
 </section>
 
-<section class="cta-section">
+<section class="cta-box">
   <h2>开始使用 ContractAI</h2>
-  <p class="sub">让 AI 为你的合同管理赋能</p>
+  <p class="desc">让 AI 为你的合同管理赋能</p>
   <a href="smart-draft.html">立即体验 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
 </section>
 
