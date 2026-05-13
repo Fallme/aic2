@@ -46,9 +46,9 @@ const els = {
 
 const RULE_TYPE_OPTIONS = ["通用规则", "必备条款规则", "禁止条款规则", "审批规则", "风险提示规则", "信息追问规则", "条款推荐规则"];
 const SCENARIO_OPTIONS = ["通用规则", "审批规则", "交付规则", "付款规则", "验收规则", "违约责任规则", "保密规则", "知识产权规则", "期限终止规则"];
-const RULE_BASIS_OPTIONS = ["通用法规", "行业惯例", "企业自定"];
+const RULE_BASIS_OPTIONS = ["企业自定"];
 const INDUSTRY_RULE_DOMAIN_ALIASES = ["软件外包", "系统集成", "制造业", "工业制造业"];
-const MANAGEMENT_CATEGORIES = ["通用规则", "行业预设", "企业自定"];
+const MANAGEMENT_CATEGORIES = ["企业自定"];
 
 async function api(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, options);
@@ -135,8 +135,6 @@ function optionHtml(options, selected = "") {
 function displayRuleBasis(rule) {
   if (rule.ruleBasis) return rule.ruleBasis;
   const text = [rule.sourceDocName, rule.sourceQuote, rule.ruleName, rule.action].join(" ");
-  if (/法律|法规|条例|办法|司法解释|国家标准|监管|规章/.test(text)) return "通用法规";
-  if (/行业|惯例|习惯|标准|协会|实践|做法/.test(text)) return "行业惯例";
   return "企业自定";
 }
 
@@ -297,7 +295,7 @@ function renderRules() {
       </section>`
     : "";
 
-  const categoryOrder = ["通用规则", "行业预设", "企业自定"];
+  const categoryOrder = ["企业自定"];
   const handledByCategory = groupRulesByManagementCategory(handled);
   const handledHtml = categoryOrder
     .filter((category) => handledByCategory[category]?.length)

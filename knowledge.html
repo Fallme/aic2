@@ -7,11 +7,11 @@
   <link rel="stylesheet" href="app.css">
   <style>
     .kb-main{padding:20px 28px;overflow-y:auto;flex:1}
-    .kb-header{margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--line)}
-    .kb-header h1{font-size:22px;font-weight:700;color:var(--ink)}
+    .kb-header{margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-radius:var(--r-sm);background:var(--dark-gray);color:#fff}
+    .kb-header h1{font-size:22px;font-weight:700;color:#fff}
     .kb-header .server-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:var(--r-pill);font-size:12px;font-weight:500}
-    .kb-header .server-pill.ok{background:var(--green-bg);color:#16a34a}
-    .kb-header .server-pill.err{background:var(--red-bg);color:var(--red)}
+    .kb-header .server-pill.ok{background:rgba(52,199,89,.15);color:#34c759}
+    .kb-header .server-pill.err{background:rgba(255,59,48,.15);color:#ff6b6b}
 
     .kb-stats{display:flex;gap:12px;margin-bottom:20px}
     .kb-stat{flex:1;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm)}
@@ -239,14 +239,14 @@
             <textarea name="ruleText" placeholder="输入一句规则，例如：采购合同超过50万元必须提交总经理办公会审批。" required style="width:100%;min-height:60px;border:1px solid #d0d5dd;border-radius:var(--r-sm);padding:10px;font-size:13px;font-family:var(--font);margin-bottom:10px"></textarea>
             <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
               <input name="scope" placeholder="适用范围（可选）" style="width:200px;padding:7px 10px;border:1px solid #d0d5dd;border-radius:var(--r-sm);font-size:12px">
-              <select name="scenario" style="padding:7px 10px;border:1px solid #d0d5dd;border-radius:var(--r-sm);font-size:12px"><option value="">分类</option><option>通用规则</option><option>审批规则</option><option>交付规则</option><option>付款规则</option><option>验收规则</option><option>违约责任规则</option><option>保密规则</option><option>知识产权规则</option><option>期限终止规则</option></select>
+              <select name="scenario" style="padding:7px 10px;border:1px solid #d0d5dd;border-radius:var(--r-sm);font-size:12px"><option value="">分类</option><option>企业自定</option><option>审批规则</option><option>交付规则</option><option>付款规则</option><option>验收规则</option><option>违约责任规则</option><option>保密规则</option><option>知识产权规则</option><option>期限终止规则</option></select>
               <select name="riskLevel" style="padding:7px 10px;border:1px solid #d0d5dd;border-radius:var(--r-sm);font-size:12px"><option>中</option><option>高</option><option>低</option></select>
               <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px"><input name="classifyMode" type="checkbox" value="ai" checked> AI 辅助分类</label>
               <button class="btn btn-primary btn-sm" type="submit">添加并启用</button>
             </div>
           </form>
           <div class="kb-toolbar">
-            <select id="rule-category-filter"><option value="">全部分类</option><option value="通用规则">通用规则</option><option value="行业预设">行业预设</option><option value="企业自定">企业自定</option></select>
+            <select id="rule-category-filter"><option value="企业自定">企业自定</option></select>
             <select id="dimension-filter"><option value="">全部维度</option></select>
             <select id="status-filter"><option value="">全部状态</option><option value="pending_review">待核对</option><option value="active">已启用</option><option value="inactive">已关闭</option><option value="rejected">已驳回</option></select>
           </div>
@@ -283,7 +283,7 @@
         <div class="form-group"><label>风险等级</label><select name="riskLevel"><option>高</option><option>中</option><option>低</option></select></div>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>规则归属</label><select name="ruleBasis"><option>通用法规</option><option>行业惯例</option><option>企业自定</option></select></div>
+        <div class="form-group"><label>规则归属</label><select name="ruleBasis"><option>企业自定</option></select></div>
         <div class="form-group"><label>合同类型</label><input name="contractType"></div>
         <div class="form-group"><label>业务领域</label><input name="businessDomain"></div>
         <div class="form-group"><label>优先级</label><input name="priority" type="number" value="100"></div>
