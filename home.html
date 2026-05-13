@@ -1,278 +1,288 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Contract - 智能合同管理平台</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+SC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./portal.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContractAI - 智能合同管理平台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    .loop-section {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 60px 20px 40px;
+    :root {
+      --bg: #fafafa; --ink: #1d1d1f; --muted: #86868b; --subtle: #aeaeb2;
+      --line: rgba(0,0,0,.06); --white: #fff;
+      --gold: #bf953f; --gold-light: #fcf6ba; --gold-dark: #aa771c;
+      --gold-gradient: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+      --font: 'Inter','Noto Sans SC',-apple-system,BlinkMacSystemFont,sans-serif;
     }
-    .loop-title {
-      text-align: center;
-      font-size: 28px;
-      font-weight: 800;
-      color: var(--ink);
-      margin: 0 0 12px;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body { font-family: var(--font); background: var(--bg); color: var(--ink); overflow-x: hidden; }
+
+    /* ── Nav ── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 52px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px; background: rgba(250,250,250,.82);
+      backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--line);
     }
-    .loop-subtitle {
-      text-align: center;
-      color: var(--muted);
-      font-size: 15px;
-      margin: 0 0 48px;
+    .nav .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+    .nav .logo .mark {
+      width: 32px; height: 32px; background: var(--gold-gradient); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; color: #1d1d1f;
     }
-    .loop-flow {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr auto 1fr;
-      align-items: stretch;
-      gap: 0;
+    .nav .logo strong { font-size: 16px; font-weight: 700; }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a { font-size: 13px; color: var(--muted); text-decoration: none; font-weight: 500; transition: color .15s; }
+    .nav-links a:hover { color: var(--ink); }
+    .nav .cta {
+      padding: 7px 18px; border-radius: 980px; font-size: 13px; font-weight: 600;
+      background: var(--gold-gradient); color: #1d1d1f; text-decoration: none;
     }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center; padding: 120px 24px 80px;
+      background: linear-gradient(180deg, #fafafa 0%, #f5f5f7 100%);
+    }
+    .hero-badge {
+      display: inline-block; padding: 6px 16px; border-radius: 980px;
+      background: rgba(191,149,63,.08); color: var(--gold); font-size: 13px;
+      font-weight: 600; margin-bottom: 20px; letter-spacing: .3px;
+    }
+    .hero h1 {
+      font-size: clamp(40px, 7vw, 72px); font-weight: 800; line-height: 1.08;
+      letter-spacing: -1.5px; margin-bottom: 16px; max-width: 800px;
+    }
+    .hero h1 .gold { background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero .sub {
+      font-size: clamp(17px, 2.2vw, 21px); color: var(--muted); line-height: 1.5;
+      max-width: 580px; margin-bottom: 32px;
+    }
+    .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .hero-btns a {
+      padding: 12px 28px; border-radius: 980px; font-size: 15px; font-weight: 600;
+      text-decoration: none; transition: all .2s;
+    }
+    .hero-btns .primary { background: var(--gold-gradient); color: #1d1d1f; }
+    .hero-btns .primary:hover { opacity: .85; }
+    .hero-btns .secondary { background: var(--white); color: var(--ink); border: 1px solid var(--line); }
+    .hero-btns .secondary:hover { border-color: #ccc; }
+
+    /* ── Metrics ── */
+    .metrics {
+      display: flex; justify-content: center; gap: 48px; padding: 40px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .metrics .item { text-align: center; }
+    .metrics .num { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
+    .metrics .num .unit { font-size: 20px; font-weight: 600; }
+    .metrics .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Sections ── */
+    .section { max-width: 980px; margin: 0 auto; padding: 80px 24px; }
+    .section-head { text-align: center; margin-bottom: 48px; }
+    .section-head h2 { font-size: 36px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 8px; }
+    .section-head p { font-size: 17px; color: var(--muted); }
+
+    /* ── Product Loop (3 cards) ── */
+    .loop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
     .loop-card {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      padding: 28px 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      transition: transform 0.2s, box-shadow 0.2s;
+      background: var(--white); border-radius: 20px; padding: 32px 28px;
+      border: 1px solid var(--line); transition: transform .2s, box-shadow .2s;
     }
-    .loop-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 16px 36px rgba(23, 49, 89, 0.12);
-    }
-    .loop-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      font-size: 24px;
-      margin-bottom: 16px;
-      color: #fff;
-    }
-    .loop-icon.kb { background: linear-gradient(135deg, #6f42c1, #9b6dff); }
-    .loop-icon.gen { background: linear-gradient(135deg, #1f50b8, #2d6ad9); }
-    .loop-icon.rev { background: linear-gradient(135deg, #198754, #2abf77); }
-    .loop-card h3 {
-      margin: 0 0 8px;
-      font-size: 18px;
-      font-weight: 700;
-    }
-    .loop-card p {
-      margin: 0 0 20px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.7;
-      flex: 1;
-    }
-    .loop-card .btn {
-      width: 100%;
-      height: 40px;
-      font-size: 14px;
-    }
-    .loop-arrow {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 12px;
-    }
-    .loop-arrow svg {
-      width: 36px;
-      height: 36px;
-      color: var(--blue-2);
-      opacity: 0.5;
-    }
-    .loop-badge {
-      display: inline-block;
-      background: #f0f5ff;
-      color: var(--blue);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 20px;
-      margin-bottom: 8px;
-    }
-    .how-section {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 20px 20px 60px;
-    }
-    .how-title {
-      text-align: center;
+    .loop-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,.06); }
+    .loop-card .icon {
+      width: 48px; height: 48px; border-radius: 12px; display: flex;
+      align-items: center; justify-content: center; margin-bottom: 16px;
       font-size: 22px;
-      font-weight: 700;
-      color: var(--ink);
-      margin: 0 0 32px;
     }
-    .how-steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
+    .loop-card .icon.kb { background: linear-gradient(135deg, #bf953f22, #fcf6ba44); }
+    .loop-card .icon.gen { background: linear-gradient(135deg, #3478f622, #5ac8fa33); }
+    .loop-card .icon.rev { background: linear-gradient(135deg, #34c75922, #30d15833); }
+    .loop-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .loop-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .loop-card a { display: inline-block; margin-top: 16px; font-size: 14px; font-weight: 600; color: var(--gold); text-decoration: none; }
+    .loop-card a:hover { text-decoration: underline; }
+
+    /* ── Steps ── */
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+    .step { text-align: center; padding: 20px; }
+    .step .num {
+      width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 14px;
+      background: var(--gold-gradient); color: #1d1d1f; font-weight: 800;
+      font-size: 16px; display: flex; align-items: center; justify-content: center;
     }
-    .how-step {
-      text-align: center;
-      padding: 20px 16px;
+    .step h4 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .step p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── Features ── */
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feat-card {
+      background: var(--white); border-radius: 16px; padding: 28px 24px;
+      border: 1px solid var(--line);
     }
-    .how-num {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--blue), var(--blue-2));
-      color: #fff;
-      font-weight: 800;
-      font-size: 16px;
-      display: inline-grid;
-      place-items: center;
-      margin-bottom: 12px;
+    .feat-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feat-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── CTA ── */
+    .cta-section {
+      text-align: center; padding: 80px 24px;
+      background: linear-gradient(180deg, var(--bg) 0%, #f0f0f2 100%);
     }
-    .how-step h4 {
-      margin: 0 0 6px;
-      font-size: 15px;
-      font-weight: 700;
+    .cta-section h2 { font-size: 36px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 12px; }
+    .cta-section p { font-size: 17px; color: var(--muted); margin-bottom: 28px; }
+    .cta-section a {
+      display: inline-block; padding: 14px 36px; border-radius: 980px;
+      background: var(--gold-gradient); color: #1d1d1f; font-size: 16px;
+      font-weight: 700; text-decoration: none;
     }
-    .how-step p {
-      margin: 0;
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.6;
+    .cta-section a:hover { opacity: .85; }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 24px; text-align: center; font-size: 12px; color: var(--subtle);
+      border-top: 1px solid var(--line);
     }
-    .footer-strip {
-      text-align: center;
-      padding: 24px 20px 40px;
-      color: #9aa8be;
-      font-size: 12px;
-    }
-    @media (max-width: 780px) {
-      .loop-flow {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-      .loop-arrow {
-        transform: rotate(90deg);
-        padding: 4px 0;
-      }
-      .how-steps {
-        grid-template-columns: 1fr 1fr;
-      }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .nav { padding: 0 16px; }
+      .nav-links { display: none; }
+      .metrics { flex-wrap: wrap; gap: 24px; }
+      .loop, .steps, .features { grid-template-columns: 1fr; }
+      .hero { min-height: 90vh; padding: 100px 16px 60px; }
     }
   </style>
 </head>
-<body class="landing-body">
-  <header class="landing-header">
-    <div class="landing-logo">
-      <span class="logo-mark">AI</span>
-      <strong>ContractAI</strong>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a class="logo" href="home.html">
+    <div class="mark">AI</div>
+    <strong>ContractAI</strong>
+  </a>
+  <div class="nav-links">
+    <a href="#product">产品</a>
+    <a href="#how">流程</a>
+    <a href="#features">特性</a>
+  </div>
+  <a class="cta" href="smart-draft.html">开始使用</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">AI 驱动的合同管理</div>
+  <h1>让每一份合同<br><span class="gold">智能且合规</span></h1>
+  <p class="sub">知识沉淀、智能起草、风险审查——一站式闭环，让 AI 为企业合同管理保驾护航。</p>
+  <div class="hero-btns">
+    <a class="primary" href="smart-draft.html">AI 智能起草</a>
+    <a class="secondary" href="contract-review.html">合同审查</a>
+    <a class="secondary" href="knowledge.html">知识库</a>
+  </div>
+</section>
+
+<!-- Metrics -->
+<div class="metrics">
+  <div class="item"><div class="num">10<span class="unit">+</span></div><div class="label">预置合同模板</div></div>
+  <div class="item"><div class="num">8<span class="unit">大</span></div><div class="label">审查维度</div></div>
+  <div class="item"><div class="num">4<span class="unit">层</span></div><div class="label">知识分类体系</div></div>
+  <div class="item"><div class="num">0<span class="unit">门槛</span></div><div class="label">即开即用</div></div>
+</div>
+
+<!-- Product Loop -->
+<section class="section" id="product">
+  <div class="section-head">
+    <h2>三大核心模块</h2>
+    <p>相互驱动，形成合同管理的持续优化飞轮</p>
+  </div>
+  <div class="loop">
+    <div class="loop-card">
+      <div class="icon kb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#bf953f" stroke-width="2" stroke-linecap="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></div>
+      <h3>知识库</h3>
+      <p>上传企业制度、历史合同、法规文件，AI 自动提取规则并沉淀，按四大维度分类管理。</p>
+      <a href="knowledge.html">进入知识库 &rarr;</a>
     </div>
-    <nav class="landing-nav">
-      <a href="#loop">产品闭环</a>
-      <a href="#how">使用流程</a>
-    </nav>
-    <a class="btn btn-primary" href="./contract-generate.html">开始使用</a>
-  </header>
+    <div class="loop-card">
+      <div class="icon gen"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3478f6" stroke-width="2" stroke-linecap="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg></div>
+      <h3>智能起草</h3>
+      <p>选择模板或描述需求，AI 对话式追问关键信息，结合知识库实时生成合规合同。</p>
+      <a href="smart-draft.html">开始起草 &rarr;</a>
+    </div>
+    <div class="loop-card">
+      <div class="icon rev"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+      <h3>合同审查</h3>
+      <p>上传合同，多维度智能审查，逐条标注风险原文，提供修正建议，一键采纳修改。</p>
+      <a href="contract-review.html">开始审查 &rarr;</a>
+    </div>
+  </div>
+</section>
 
-  <main class="landing-main">
-    <section class="hero-block">
-      <p class="hero-badge">AI 驱动的合同全流程管理</p>
-      <h1>知识沉淀 → 智能起草 → 风险审查<br /><span>一站式闭环</span></h1>
-      <p class="hero-text">上传企业制度与合同模板，AI 自动提取规则并沉淀到知识库；起草时规则自动匹配；审查时逐条定位风险，一键修正。</p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="./smart-draft.html" style="background:linear-gradient(135deg,#bf953f,#fcf6ba,#b38728,#fbf5b7,#aa771c);color:#1d1d1f">AI 智能起草</a>
-        <a class="btn btn-light" href="./template-fill.html">模板填写</a>
-        <a class="btn btn-light" href="./contract-review.html">AI 合同审查</a>
-        <a class="btn btn-light" href="./knowledge.html">知识库</a>
-      </div>
-    </section>
+<!-- How -->
+<section class="section" id="how" style="background:#f5f5f7">
+  <div class="section-head">
+    <h2>四步完成</h2>
+    <p>从上传资料到输出合规合同，全流程 AI 辅助</p>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <h4>上传资料</h4>
+      <p>将企业制度、合同模板、法规文件上传到知识库</p>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <h4>审核规则</h4>
+      <p>对 AI 提取的规则进行审核、启用，建立规则体系</p>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <h4>智能起草</h4>
+      <p>描述需求或选择模板，AI 对话式生成合规合同</p>
+    </div>
+    <div class="step">
+      <div class="num">4</div>
+      <h4>风险审查</h4>
+      <p>对合同进行 AI 审查，定位风险、修正问题</p>
+    </div>
+  </div>
+</section>
 
-    <section class="hero-metrics">
-      <article><h3>9 种</h3><p>预置合同模板</p></article>
-      <article><h3>8 大</h3><p>审查维度</p></article>
-      <article><h3>4 层</h3><p>知识分类体系</p></article>
-      <article><h3>0 门槛</h3><p>即开即用</p></article>
-    </section>
+<!-- Features -->
+<section class="section" id="features">
+  <div class="section-head">
+    <h2>产品特性</h2>
+    <p>专注合同管理的核心能力</p>
+  </div>
+  <div class="features">
+    <div class="feat-card">
+      <h3>格式保真</h3>
+      <p>合同可导出为 Word 文档，保留字体、表格、缩进等完整格式。</p>
+    </div>
+    <div class="feat-card">
+      <h3>知识沉淀</h3>
+      <p>知识库持续积累，规则自动复用到起草和审查，越用越智能。</p>
+    </div>
+    <div class="feat-card">
+      <h3>多智能体协作</h3>
+      <p>意图分析、数据提取、知识检索、草稿生成，多 Agent 协同工作。</p>
+    </div>
+  </div>
+</section>
 
-    <section class="loop-section" id="loop">
-      <h2 class="loop-title">产品闭环</h2>
-      <p class="loop-subtitle">三个模块相互驱动，形成合同管理的持续优化飞轮</p>
-      <div class="loop-flow">
-        <div class="loop-card">
-          <span class="loop-badge">第 1 步</span>
-          <div class="loop-icon kb">📚</div>
-          <h3>知识库 & 规则库</h3>
-          <p>上传企业制度、历史合同、法规文件，AI 自动解析文档、提取业务规则，按四大维度分类管理。</p>
-          <a class="btn btn-light" href="./knowledge.html">进入知识库</a>
-        </div>
-        <div class="loop-arrow">
-          <svg viewBox="0 0 36 36" fill="none"><path d="M8 18h20M22 12l6 6-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="loop-card">
-          <span class="loop-badge">第 2 步</span>
-          <div class="loop-icon gen">✍️</div>
-          <h3>AI 合同起草</h3>
-          <p>选择模板或描述需求，AI 对话式追问关键信息，结合知识库规则实时生成合规合同草稿。</p>
-          <a class="btn btn-light" href="./contract-generate.html">开始起草</a>
-        </div>
-        <div class="loop-arrow">
-          <svg viewBox="0 0 36 36" fill="none"><path d="M8 18h20M22 12l6 6-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="loop-card">
-          <span class="loop-badge">第 3 步</span>
-          <div class="loop-icon rev">🔍</div>
-          <h3>AI 合同审查</h3>
-          <p>上传或粘贴合同，8 维度智能审查，逐条标注风险原文，提供修正建议，一键采纳修改。</p>
-          <a class="btn btn-light" href="./contract-review.html">开始审查</a>
-        </div>
-      </div>
-    </section>
+<!-- CTA -->
+<section class="cta-section">
+  <h2>开始使用 ContractAI</h2>
+  <p>让 AI 为你的合同管理赋能</p>
+  <a href="smart-draft.html">立即体验</a>
+</section>
 
-    <section class="how-section" id="how">
-      <h2 class="how-title">如何使用</h2>
-      <div class="how-steps">
-        <div class="how-step">
-          <div class="how-num">1</div>
-          <h4>上传资料</h4>
-          <p>将企业制度、合同模板、法规文件上传到知识库，AI 自动解析并提取规则。</p>
-        </div>
-        <div class="how-step">
-          <div class="how-num">2</div>
-          <h4>审核规则</h4>
-          <p>对 AI 提取的规则进行审核、启用，建立企业专属的合同规则体系。</p>
-        </div>
-        <div class="how-step">
-          <div class="how-num">3</div>
-          <h4>智能起草</h4>
-          <p>描述合同需求，AI 自动匹配模板、调用规则，对话式生成完整合同。</p>
-        </div>
-        <div class="how-step">
-          <div class="how-num">4</div>
-          <h4>风险审查</h4>
-          <p>对生成或上传的合同进行 AI 审查，定位风险、修正问题，输出合规版本。</p>
-        </div>
-      </div>
-    </section>
+<!-- Footer -->
+<div class="footer">
+  &copy; 2026 ContractAI. 智能合同管理平台。
+</div>
 
-    <section class="feature-grid" style="max-width:960px;margin:0 auto;padding:0 20px 40px;">
-      <article class="panel">
-        <h3>类 Office 编辑体验</h3>
-        <p>富文本编辑器支持字体、段落、表格、列表、查找替换，合同排版符合正式文档规范。</p>
-      </article>
-      <article class="panel">
-        <h3>格式保真导出</h3>
-        <p>合同可一键导出为 Word 文档，保留字体、字号、缩进、表格等完整格式。</p>
-      </article>
-      <article class="panel">
-        <h3>企业规则沉淀</h3>
-        <p>知识库持续积累，规则自动复用到起草和审查，越用越智能。</p>
-      </article>
-    </section>
-  </main>
-
-  <div class="footer-strip"
+</body>
+</html>
