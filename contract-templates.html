@@ -106,6 +106,8 @@ async function loadTemplates(){
   }catch{renderTemplates();}
 }
 
+const TYPE_CN={goods:"采购合同",service:"服务合同",software:"软件开发",labor:"劳动合同",rental:"租赁合同",sales:"销售合同",consulting:"咨询合同",agency:"代理合同",nda:"保密协议",framework:"框架协议"};
+
 function renderTemplates(){
   const grid=document.getElementById("tplGrid");
   let filtered=templates;
@@ -114,16 +116,20 @@ function renderTemplates(){
   else if(currentTab==="my")filtered=templates.filter(t=>t.source==="my");
   else if(currentTab==="starred")filtered=templates.filter(t=>t.starred);
 
-  grid.innerHTML=filtered.length?filtered.map(t=>`<div class="tpl-card" onclick="useTemplate('${t.id}')">
-    <h3>${esc(t.name)} ${t.starred?"⭐":""}</h3>
-    <div class="meta">${esc(t.description||t.category||"")}</div>
-    <div class="tags"><span class="tag tag-neutral">${esc(t.type||"通用")}</span></div>
-    <div class="actions">
-      <button onclick="event.stopPropagation();useTemplate('${t.id}')">使用</button>
-      <button onclick="event.stopPropagation();starTemplate('${t.id}')">${t.starred?"取消收藏":"收藏"}</button>
-      ${t.source?`<button onclick="event.stopPropagation();moveToCompany('${t.id}')" style="color:var(--gold-dark)">移到公司</button>`:""}
-    </div>
-  </div>`).join(""):`<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">暂无模板</div>`;
+  grid.innerHTML=filtered.length?filtered.map(t=>{
+    const typeName=TYPE_CN[t.type]||t.type||"通用";
+    return `<div class="tpl-card">
+      <h3>${esc(t.name)} ${t.starred?"⭐":""}</h3>
+      <div class="meta">${esc(t.description||"")}</div>
+      <div class="tags"><span class="tag tag-neutral">${esc(typeName)}</span></div>
+      <div class="actions">
+        <button onclick="fillTemplate('${t.id}')">模板填写</button>
+        <button onclick="draftTemplate('${t.id}')">智能起草</button>
+        <button onclick="starTemplate('${t.id}')" style="font-size:14px">${t.starred?"⭐":"☆"}</button>
+        ${t.source?`<button onclick="moveToCompany('${t.id}')" style="color:var(--gold-dark)">移到公司</button>`:""}
+      </div>
+    </div>`;
+  }).join(""):`<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">暂无模板</div>`;
 }
 
 function switchTplTab(tab,btn){
@@ -133,9 +139,14 @@ function switchTplTab(tab,btn){
   renderTemplates();
 }
 
-function useTemplate(id){
+function fillTemplate(id){
+  const t=templates.find(x=>x.id===id);
+  if(t)window.location.href="template-fill.html?tpl="+encodeURIComponent(t.name);
+}
+function draftTemplate(id){
   const t=templates.find(x=>x.id===id);
   if(t)window.location.href="smart-draft.html?tpl="+encodeURIComponent(t.name);
+}
 }
 
 function starTemplate(id){
