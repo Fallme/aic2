@@ -5459,6 +5459,39 @@ async function handleApi(req, res, pathname) {
       return handleSmartDraftTemplates(req, res);
     }
 
+    // Browse uploaded templates
+    if (req.method === "GET" && pathname === "/api/templates/browse") {
+      const templatesDir = path.join(ROOT, "templates");
+      if (!fs.existsSync(templatesDir)) return sendJson(res, 200, []);
+      const categories = [];
+      const catDirs = fs.readdirSync(templatesDir, { withFileTypes: true }).filter(d => d.isDirectory());
+      for (const cat of catDirs) {
+        const catPath = path.join(templatesDir, cat.name);
+        const files = fs.readdirSync(catPath).filter(f => /\.(docx?|txt)$/i.test(f));
+        if (files.length > 0) {
+          categories.push({
+            name: cat.name,
+            count: files.length,
+            files: files.slice(0, 50).map(f => ({ name: f, path: `/api/templates/file/${encodeURIComponent(cat.name)}/${encodeURIComponent(f)}` }))
+          });
+        }
+      }
+      return sendJson(res, 200, categories);
+    }
+
+    // Serve template file
+    if (req.method === "GET" && pathname.startsWith("/api/templates/file/")) {
+      const parts = decodeURIComponent(pathname).split("/").slice(4);
+      if (parts.length < 2) return sendJson(res, 400, { error: "Invalid path" });
+      const filePath = path.join(ROOT, "templates", parts[0], parts[1]);
+      if (!fs.existsSync(filePath)) return sendJson(res, 404, { error: "File not found" });
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeTypes = { ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".doc": "application/msword", ".txt": "text/plain" };
+      res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream", "Content-Disposition": `attachment; filename="${encodeURIComponent(parts[1])}"` });
+      fs.createReadStream(filePath).pipe(res);
+      return;
+    }
+
     sendJson(res, 404, { error: "Not found" });
   } catch (error) {
     sendJson(res, 500, { error: error.message });
