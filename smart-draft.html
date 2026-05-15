@@ -230,25 +230,15 @@
         <div class="r-thread" id="chatThread">
           <div class="chat-msg assistant"><div class="avatar">AI</div><div class="bubble">请描述合同需求，我会引导你完善。可随时上传文件或补充信息。</div></div>
         </div>
-        <div class="draft-kb" id="draftKB">
-          <span class="kbc on" onclick="this.classList.toggle('on')">通用法规</span>
-          <span class="kbc on" onclick="this.classList.toggle('on')">行业惯例</span>
-          <span class="kbc" onclick="this.classList.toggle('on')">企业自定</span>
-        </div>
-        <div class="opt-row" id="optRow" style="display:none">
-          <button onclick="pickOpt('ask')">回答问题</button>
-          <button onclick="pickOpt('kb')">知识库检索</button>
-          <button onclick="pickOpt('ai')">AI 推断</button>
-        </div>
         <div class="r-compose">
           <div class="files" id="draftFiles"></div>
           <div class="row">
-            <button class="clip" onclick="document.getElementById('draftFileInput').click()">
+            <button class="clip" onclick="document.getElementById('draftFileInput').click()" title="上传附件">
               <span class="app-icon" style="width:18px;height:18px" id="icoClip2"></span>
             </button>
             <input type="file" id="draftFileInput" multiple accept=".docx,.doc,.pdf,.xlsx,.txt" style="display:none" onchange="addDraftFiles(this.files)">
-            <input type="text" id="chatInput" placeholder="输入回答..." onkeydown="if(event.key==='Enter')sendAnswer()">
-            <button class="send" onclick="sendAnswer()">
+            <input type="text" id="chatInput" placeholder="输入回答或补充信息..." onkeydown="if(event.key==='Enter')sendAnswer()">
+            <button class="send" onclick="sendAnswer()" title="发送">
               <span class="app-icon" style="width:16px;height:16px" id="icoSend"></span>
             </button>
           </div>
