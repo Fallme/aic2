@@ -5133,6 +5133,47 @@ async function handleWebSearch(req, res) {
   }
 }
 
+/* ── 合同对比 ── */
+async function handleCompareContracts(req, res, body) {
+  let textA = "", textB = "";
+  try {
+    const data = JSON.parse(body);
+    textA = data.textA || "";
+    textB = data.textB || "";
+  } catch { return sendJson(res, 400, { error: "Invalid JSON" }); }
+
+  if (!textA || !textB) return sendJson(res, 400, { error: "请提供两份合同文本" });
+
+  const prompt = `你是一个合同对比分析专家。请对比以下两份合同，找出差异点。
+
+合同A:
+${textA.slice(0, 3000)}
+
+合同B:
+${textB.slice(0, 3000)}
+
+请返回JSON格式，包含差异列表:
+{
+  "diffs": [
+    {"original": "原文内容", "revised": "修改后内容", "type": "modified/added/deleted", "description": "差异说明"}
+  ],
+  "summary": "对比结果总结"
+}
+
+如果没有明显差异，返回空的diffs数组。`;
+
+  try {
+    const result = await callJsonModel(prompt, null, { temperature: 0.1, maxTokens: 2000 });
+    const data = result?.data || result || {};
+    return sendJson(res, 200, {
+      diffs: data.diffs || [],
+      summary: data.summary || "对比完成",
+    });
+  } catch (e) {
+    return sendJson(res, 500, { error: "对比分析失败: " + e.message });
+  }
+}
+
 /* ── 合同对话 ── */
 async function handleContractChat(req, res) {
   const body = JSON.parse((await readBody(req)).toString() || "{}");
@@ -5471,6 +5512,9 @@ async function handleApi(req, res, pathname) {
     if (req.method === "POST" && pathname === "/api/contracts/parse") return handleParseContract(req, res);
     if (req.method === "POST" && pathname === "/api/contracts/export-docx") return handleExportPatchedDocx(req, res);
     if (req.method === "POST" && pathname === "/api/contracts/review") return handleReviewContract(req, res);
+    if (req.method === "POST" && pathname === "/api/contracts/compare") {
+      let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => handleCompareContracts(req, res, b)); return;
+    }
     if (req.method === "POST" && pathname === "/api/documents/parse-formatted") return handleParseFormatted(req, res);
     if (req.method === "POST" && pathname === "/api/contracts/chat") return handleContractChat(req, res);
     if (req.method === "POST" && pathname === "/api/web-search") return handleWebSearch(req, res);
