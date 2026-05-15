@@ -18,6 +18,7 @@ window.addEventListener("DOMContentLoaded", () => {
   for (const [id,n] of Object.entries(icons)) { const el=document.getElementById(id); if(el&&window.AppIcons) el.innerHTML=AppIcons[n]||""; }
   fetchStatus();
   loadQuickTpls();
+  initModelTest();
 });
 
 async function fetchStatus() {

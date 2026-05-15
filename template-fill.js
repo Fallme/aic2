@@ -27,6 +27,7 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("aiDot").style.background = "var(--red)";
   });
   editor = new OfficeEditor(document.getElementById("editorContainer"));
+  initModelTest();
 });
 
 // ── Upload Template ──

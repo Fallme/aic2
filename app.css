@@ -28,7 +28,20 @@ body{font-family:var(--font);background:var(--light-gray);color:var(--ink);line-
 .ai-status-bar .status-left{display:flex;align-items:center;gap:12px}
 .ai-status-bar .status-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.ai-status-bar .model-info{color:var(--gold-light);font-weight:600}
+.ai-status-bar .model-info{color:var(--gold-light);font-weight:600;cursor:pointer;padding:2px 8px;border-radius:4px;transition:background .2s}
+.ai-status-bar .model-info:hover{background:rgba(255,255,255,.08)}
+
+/* Test modal */
+.test-modal{position:fixed;top:48px;left:16px;z-index:300;background:#fff;border:1px solid var(--gray5);border-radius:var(--r-md);box-shadow:0 8px 32px rgba(0,0,0,.12);padding:16px;min-width:280px;display:none}
+.test-modal h4{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--ink)}
+.test-modal .result{padding:10px;border-radius:var(--r-sm);font-size:12px;margin-bottom:8px}
+.test-modal .result.ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(90,138,106,.15)}
+.test-modal .result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(184,84,80,.15)}
+.test-modal .result .latency{font-weight:600}
+.test-modal .close-btn{font-size:11px;color:var(--muted);cursor:pointer;border:none;background:none;padding:4px 8px;border-radius:4px;float:right}
+.test-modal .close-btn:hover{background:rgba(0,0,0,.04)}
+.test-modal .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--gray5);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* Layout */
 .app-layout{display:flex;height:100vh;overflow:hidden}

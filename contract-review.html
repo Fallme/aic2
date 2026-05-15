@@ -90,7 +90,6 @@
     <nav>
       <div class="nav-group">
         <div class="nav-group-label">合同起草</div>
-        <a class="nav-item" href="template-fill.html"><span class="app-icon" id="navTF"></span><span>模板填写</span></a>
         <a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a>
       </div>
       <div class="nav-divider"></div>
@@ -168,6 +167,7 @@
 
 <script src="icons.js"></script>
 <script src="office-editor.js"></script>
+<script src="model-test.js"></script>
 <script>
 let reviewEditor = null;
 let reviewContractText = "";
@@ -185,6 +185,7 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("aiDot").style.background=d.apiKeyConfigured?"var(--green)":"var(--red)";
   }).catch(()=>{document.getElementById("aiModel").textContent="离线";document.getElementById("aiDot").style.background="var(--red)";});
   reviewEditor = new OfficeEditor(document.getElementById("editorContainer"));
+  initModelTest();
 });
 
 // File upload
