@@ -26,6 +26,9 @@ body{font-family:var(--font);background:var(--light-gray);color:var(--ink);line-
 /* Status bar */
 .ai-status-bar{position:fixed;top:0;left:0;right:0;height:32px;background:#2a2a30;color:rgba(255,255,255,.65);display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:11px;z-index:200}
 .ai-status-bar .status-left{display:flex;align-items:center;gap:12px}
+.ai-status-bar .status-right{display:flex;align-items:center;gap:16px}
+.ai-status-bar .status-right a{color:rgba(255,255,255,.65);text-decoration:none;font-size:11px;transition:color .15s}
+.ai-status-bar .status-right a:hover{color:var(--gold-light)}
 .ai-status-bar .status-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .ai-status-bar .model-info{color:var(--gold-light);font-weight:600;cursor:pointer;padding:2px 8px;border-radius:4px;transition:background .2s}
