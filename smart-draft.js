@@ -127,7 +127,7 @@ async function startDraft() {
 
 // ── Word Loading ──
 function showWordLoading(text) {
-  document.getElementById("docxContent").innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:60px">
+  document.getElementById("contractContent").innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:60px">
     <div style="width:48px;height:48px;border:3px solid var(--gray5);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:20px"></div>
     <div style="font-size:16px;color:var(--ink);font-weight:500;margin-bottom:8px">${esc(text)}</div>
     <div style="font-size:13px;color:var(--muted)">AI 正在工作，请稍候...</div>
@@ -221,13 +221,13 @@ async function generateDraft() {
     showStep("done");
     addBubble("assistant", `草稿已生成${data.appliedRules ? `，应用了 ${data.appliedRules.length} 条规则` : ""}`);
     document.getElementById("statusTag").textContent = "已完成";
-  } catch(e) { addBubble("assistant", "生成失败: " + e.message); document.getElementById("docxContent").innerHTML = `<div style="padding:40px;text-align:center;color:var(--red)">${esc(e.message)}</div>`; }
+  } catch(e) { addBubble("assistant", "生成失败: " + e.message); document.getElementById("contractContent").innerHTML = `<div style="padding:40px;text-align:center;color:var(--red)">${esc(e.message)}</div>`; }
   isProcessing = false;
 }
 
 // ── Line by line ──
 async function typeLineByLine(text, speed) {
-  const el = document.getElementById("docxContent"); el.innerHTML = "";
+  const el = document.getElementById("contractContent"); el.innerHTML = "";
   const lines = text.split("\n"); let acc = "";
   for (let i = 0; i < lines.length; i++) {
     acc += (i > 0 ? "\n" : "") + lines[i];
