@@ -81,7 +81,7 @@ async function handleUpload(file) {
         });
         const presData = await pres.json();
         if (presData.html && editor) {
-          editor.setContent(presData.html);
+          editor.setHtml(presData.html);
         }
       } catch {}
     }
