@@ -84,8 +84,8 @@ async function startDraft() {
       catch { fileTexts.push({ name: f.name, text: "" }); }
     }
 
-    // Step 1: Init
-    addBubble("assistant", "正在匹配合同模板...");
+    // Step 1: Init with typing indicator
+    addTypingIndicator();
     const res = await fetch("/api/smart-draft/init", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description: fullDesc, knowledgeMode, fileTexts }),
@@ -104,13 +104,15 @@ async function startDraft() {
 
     // Step 2: Knowledge retrieval
     showStep("kb");
-    addBubble("assistant", "正在检索知识库...");
-    showLoadingAnimation("正在检索适用规则...");
-    await delay(400);
+    removeTypingIndicator();
+    addTypingIndicator();
+    showLoadingAnimation("正在检索知识库...");
+    await delay(500);
 
     // Step 3: Generate draft
     showStep("draft");
-    addBubble("assistant", "正在生成合同草稿...");
+    removeTypingIndicator();
+    addTypingIndicator();
     showLoadingAnimation("正在生成合同草稿...");
 
     const genRes = await fetch("/api/smart-draft/generate", {
@@ -124,8 +126,8 @@ async function startDraft() {
     currentDraft = typeof genData.draft === "string" ? genData.draft : genData.draft?.content || "";
     currentDraft = currentDraft.replace(/^```[\s\S]*?\n/gm, "").replace(/\n```$/gm, "");
 
-    // Display draft line by line at moderate speed
-    await typeLineByLine(currentDraft, 30);
+    // Display draft line by line at slower speed for readability
+    await typeLineByLine(currentDraft, 60);
 
     showStep("done");
     addBubble("assistant", `合同草稿已生成。你可以在右侧对话中补充信息，AI 会帮你完善合同。`);
@@ -146,12 +148,15 @@ async function startDraft() {
 // ── Loading Animation ──
 function showLoadingAnimation(text) {
   const el = document.getElementById("docxContent");
-  el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px">
-    <div style="width:40px;height:40px;border:3px solid #e5e5e5;border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px"></div>
-    <div style="font-size:14px;color:var(--muted)">${esc(text)}</div>
-    <div style="font-size:12px;color:var(--subtle);margin-top:8px">AI 正在工作，请稍候...</div>
-  </div>
-  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+  el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:60px">
+    <div style="width:48px;height:48px;border:3px solid var(--gray5);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:20px"></div>
+    <div style="font-size:16px;color:var(--ink);font-weight:500;margin-bottom:8px">${esc(text)}</div>
+    <div style="font-size:13px;color:var(--muted)">AI 正在工作，请稍候...</div>
+    <div style="margin-top:16px;display:flex;gap:6px;align-items:center">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+      <span style="font-size:12px;color:var(--subtle)">思考中</span>
+    </div>
+  </div>`;
 }
 
 // ── Agent Steps ──
@@ -169,6 +174,20 @@ function showStep(step) {
 
 // ── Chat ──
 function addMsg(role, text) { addBubble(role, text); }
+function addTypingIndicator() {
+  const t = document.getElementById("chatThread");
+  const d = document.createElement("div");
+  d.className = "chat-msg assistant";
+  d.id = "typingIndicator";
+  d.innerHTML = `<div class="avatar">AI</div><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  t.appendChild(d); t.scrollTop = t.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const el = document.getElementById("typingIndicator");
+  if (el) el.remove();
+}
+
 function addBubble(role, text) {
   const t = document.getElementById("chatThread");
   const d = document.createElement("div");
@@ -180,6 +199,10 @@ function addBubble(role, text) {
 function appendMessages(msgs) {
   const t = document.getElementById("chatThread");
   (msgs||[]).forEach(m => {
+    // Skip if this message already exists (prevent duplicates)
+    const existing = t.querySelectorAll(".bubble");
+    const lastBubble = existing.length > 0 ? existing[existing.length-1].textContent : "";
+    if (m.content && m.content === lastBubble) return;
     const d = document.createElement("div");
     d.className = `chat-msg ${m.role}`;
     d.innerHTML = `<div class="avatar">${m.role==="assistant"?"AI":"U"}</div><div class="bubble">${esc(m.content)}</div>`;
@@ -196,7 +219,7 @@ async function pickOpt(mode) {
   document.getElementById("optRow").style.display = "none";
   if (mode === "ask") { document.getElementById("chatInput").focus(); return; }
   addMsg("user", mode === "kb" ? "从知识库检索" : "AI 自动推断");
-  if (mode === "ai") { showLoadingAnimation("正在推断..."); }
+  addTypingIndicator();
 
   try {
     const res = await fetch("/api/smart-draft/guide", {
@@ -205,6 +228,7 @@ async function pickOpt(mode) {
     });
     const txt = await res.text();
     let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
+    removeTypingIndicator();
     if (data.messages) appendMessages(data.messages);
     if (data.dialogue?.missingCount > 0) {
       currentQuestion = data.dialogue.currentQuestion;
@@ -214,7 +238,7 @@ async function pickOpt(mode) {
     } else {
       addBubble("assistant", "信息已齐全，可以生成草稿。");
     }
-  } catch(e) { addBubble("assistant", "错误: " + e.message); }
+  } catch(e) { removeTypingIndicator(); addBubble("assistant", "错误: " + e.message); }
 }
 
 // ── Three Reference Answers ──
@@ -237,7 +261,7 @@ function showRefAnswers(question) {
 
 async function pickRef(field, type) {
   addMsg("user", type==="kb"?"使用知识库推荐":type==="common"?"使用常用答案":"AI 自主生成");
-  addBubble("assistant", "正在获取参考答案...");
+  addTypingIndicator();
   try {
     const res = await fetch("/api/smart-draft/guide", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -245,6 +269,7 @@ async function pickRef(field, type) {
     });
     const txt = await res.text();
     let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
+    removeTypingIndicator();
     if (data.messages) appendMessages(data.messages);
     if (data.inferred) addBubble("assistant", `已填写「${field}」: ${data.inferred}`);
     if (data.dialogue?.missingCount > 0) {
@@ -268,6 +293,7 @@ async function sendAnswer() {
 
   const field = currentQuestion?.hint || "补充信息";
   addMsg("user", val);
+  addTypingIndicator();
 
   try {
     const res = await fetch("/api/smart-draft/answer", {
@@ -276,6 +302,7 @@ async function sendAnswer() {
     });
     const txt = await res.text();
     let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
+    removeTypingIndicator();
     if (data.messages) appendMessages(data.messages);
     if (data.dialogue?.missingCount > 0) {
       currentQuestion = data.dialogue.currentQuestion;
