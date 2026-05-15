@@ -93,11 +93,11 @@ async function startDraft() {
   document.getElementById("agentStrip").style.display = "flex";
 
   showStep("intent");
+  addBubble("assistant", "正在分析你的合同需求...");
 
   // Show user's input and files in chat
   if (desc) addMsg("user", desc);
   if (mainFiles.length > 0) addMsg("user", "已上传 " + mainFiles.map(f => f.name).join("、"));
-  if (selectedTpl) addMsg("user", "选择模板: " + selectedTpl.name);
 
   try {
     // Read file texts for API
@@ -109,6 +109,8 @@ async function startDraft() {
       } catch { fileTexts.push({ name: f.name, text: "" }); }
     }
 
+    // Step 1: Init session
+    addBubble("assistant", "正在匹配合同模板...");
     const res = await fetch("/api/smart-draft/init", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -123,21 +125,44 @@ async function startDraft() {
 
     if (data.intent?.contractTypeCn) {
       document.getElementById("docTitle").textContent = data.intent.contractTypeCn;
+      addBubble("assistant", `已识别为「${data.intent.contractTypeCn}」，匹配到 ${data.rulesCount || 0} 条规则`);
     }
 
-    if (data.messages) appendMessages(data.messages);
+    // Step 2: Immediately generate draft
+    showStep("kb");
+    addBubble("assistant", "正在检索知识库...");
+    await delay(300);
 
-    if (data.dialogue?.missingCount > 0) {
-      showStep("kb");
-      currentQuestion = data.dialogue.currentQuestion;
-      showOptRow();
-      addBubble("assistant", currentQuestion?.question || "请补充信息");
-    } else {
-      showStep("draft");
-      showGenBtn();
-    }
+    showStep("draft");
+    addBubble("assistant", "正在生成合同草稿...");
+
+    const genRes = await fetch("/api/smart-draft/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, guidanceMode: "llm_infer" }),
+    });
+    const genTxt = await genRes.text();
+    let genData; try { genData = JSON.parse(genTxt); } catch { throw new Error("生成失败"); }
+    if (genData.error) throw new Error(genData.error);
+
+    currentDraft = typeof genData.draft === "string" ? genData.draft : genData.draft?.content || "";
+    currentDraft = currentDraft.replace(/^```[\s\S]*?\n/gm, "").replace(/\n```$/gm, "");
+
+    // Display draft line by line
+    await typeLineByLine(currentDraft);
+
+    showStep("done");
+    addBubble("assistant", `合同草稿已生成${genData.appliedRules ? `，应用了 ${genData.appliedRules.length} 条规则` : ""}。你可以在右侧对话中补充信息，AI 会帮你完善合同。`);
+
+    document.getElementById("statusTag").textContent = "已完成";
+    document.getElementById("statusTag").className = "tag tag-green";
+
+    // Show generate button for re-generation
+    showGenBtn();
+
   } catch(e) {
     addBubble("assistant", "错误: " + e.message);
+    showStep("done");
   }
   isProcessing = false;
   document.getElementById("goBtn").disabled = false;
@@ -326,3 +351,4 @@ function copyDraft() {
 }
 
 function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>"); }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
