@@ -61,17 +61,26 @@ async function startDraft() {
   if (mainFiles.length > 0) addMsg("user", "已上传 " + mainFiles.map(f=>f.name).join("、"));
 
   try {
+    // Read file contents for API
     const fileTexts = [];
     for (const f of mainFiles) {
-      try { const text = await f.file.text(); fileTexts.push({ name: f.name, text: text.slice(0, 8000) }); }
-      catch { fileTexts.push({ name: f.name, text: "" }); }
+      try {
+        const text = await f.file.text();
+        fileTexts.push({ name: f.name, text: text.slice(0, 10000) });
+      } catch {
+        // For .docx/.doc files, send filename only (server will parse)
+        fileTexts.push({ name: f.name, text: `[文件: ${f.name}]` });
+      }
     }
+
+    // If no description, generate one from file names
+    const apiDesc = fullDesc || `请根据上传的文件生成合同：${mainFiles.map(f=>f.name).join("、")}`;
 
     // Step 1: Init
     addTyping();
     const res = await fetch("/api/smart-draft/init", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: fullDesc, knowledgeMode, fileTexts }),
+      body: JSON.stringify({ description: apiDesc, knowledgeMode, fileTexts }),
     });
     const txt = await res.text();
     let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器响应异常"); }
