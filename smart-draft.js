@@ -183,6 +183,7 @@ function showStep(step) {
 }
 
 // ── Chat ──
+function addMsg(role, text) { addBubble(role, text); }
 function addBubble(role, text) {
   const t = document.getElementById("chatThread");
   const d = document.createElement("div");
