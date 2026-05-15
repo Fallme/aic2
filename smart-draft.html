@@ -42,9 +42,10 @@
 
     /* KB checkboxes */
     .kb-checks { display:flex; gap:12px; margin-top:16px; justify-content:center; }
-    .kb-check { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); cursor:pointer; user-select:none; }
-    .kb-check input[type="checkbox"] { accent-color:var(--accent); width:14px; height:14px; }
-    .kb-check.forced { color:var(--ink); font-weight:500; }
+    .kb-check { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); cursor:pointer; user-select:none; padding:6px 14px; border-radius:var(--r-pill); border:1.5px solid var(--gray5); background:#fff; transition:all .2s; }
+    .kb-check:hover { border-color:var(--gold); }
+    .kb-check input[type="checkbox"] { accent-color:var(--gold); width:14px; height:14px; }
+    .kb-check.forced { color:var(--gold-dark); font-weight:600; border-color:var(--gold); background:var(--gold-bg); }
 
     /* Quick templates */
     .quick-tpls { display:flex; gap:6px; margin-top:16px; justify-content:center; flex-wrap:wrap; max-width:680px; }
@@ -175,7 +176,7 @@
         <div class="attached-files" id="attachedFiles"></div>
         <!-- KB checkboxes -->
         <div class="kb-checks">
-          <label class="kb-check forced"><input type="checkbox" checked disabled> 通用法规</label>
+          <label class="kb-check forced"><input type="checkbox" checked style="accent-color:var(--gold)"> 通用法规</label>
           <label class="kb-check"><input type="checkbox" id="kbIndustry" checked> 行业惯例</label>
           <label class="kb-check"><input type="checkbox" id="kbEnterprise"> 企业自定</label>
         </div>
