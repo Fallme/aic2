@@ -13,7 +13,7 @@ const STEP_MSG = { intent:"分析意图", match:"匹配模板", kb:"检索知识
 
 // ── Init ──
 window.addEventListener("DOMContentLoaded", () => {
-  const icons = { navSD:"smartDraft", navCR:"contractReview", navCC:"layers", navCT:"templateFill", navKB:"knowledge", icoClip:"paperclip", icoSend:"send" };
+  const icons = { navSD:"smartDraft", navCR:"contractReview", navCC:"layers", navCT:"templateFill", navKB:"knowledge", icoClip:"paperclip", icoClip2:"paperclip", icoSend:"send" };
   for (const [id,n] of Object.entries(icons)) { const el=document.getElementById(id); if(el&&window.AppIcons) el.innerHTML=AppIcons[n]||""; }
   fetchStatus();
   initModelTest();
