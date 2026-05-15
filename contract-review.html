@@ -23,9 +23,6 @@
     .tab-bar button{flex:1;padding:10px;border:none;background:none;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
     .tab-bar button.active{color:var(--gold-dark);border-bottom-color:var(--gold)}
     .tab-content{flex:1;overflow-y:auto;padding:14px}
-
-    /* Workflow steps */
-    .workflow{margin-bottom:16px}
     .wf-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;position:relative}
     .wf-step::before{content:'';position:absolute;left:11px;top:28px;bottom:0;width:1px;background:var(--gray5)}
     .wf-step:last-child::before{display:none}
@@ -35,16 +32,12 @@
     .wf-step .wf-info h5{font-size:13px;font-weight:600;margin-bottom:2px}
     .wf-step .wf-info p{font-size:11px;color:var(--muted)}
     .wf-step.active .wf-info h5{color:var(--gold-dark)}
-
-    /* Summary */
     .summary-card{background:var(--gray7);border-radius:var(--r-sm);padding:14px;margin-bottom:12px}
     .summary-card h4{font-size:13px;font-weight:600;margin-bottom:8px}
     .summary-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
     .summary-stat{padding:8px 6px;background:#fff;border-radius:var(--r-xs);border:1px solid var(--gray5);text-align:center}
     .summary-stat .num{font-size:16px;font-weight:700}
     .summary-stat .lbl{font-size:10px;color:var(--muted)}
-
-    /* Issue cards */
     .issue-card{border:1px solid var(--gray5);border-radius:var(--r-sm);padding:12px;margin-bottom:8px;background:#fff;transition:all .2s}
     .issue-card.high{border-left:3px solid var(--red)}
     .issue-card.mid{border-left:3px solid var(--amber)}
@@ -66,11 +59,19 @@
     .issue-tag.modify{background:rgba(52,120,246,.06);color:#3478f6;border-color:rgba(52,120,246,.12)}
     .issue-tag.add{background:var(--green-bg);color:var(--green);border-color:rgba(90,138,106,.15)}
     .issue-tag.delete{background:var(--red-bg);color:var(--red);border-color:rgba(184,84,80,.15)}
-
     .upload-overlay{position:absolute;inset:0;background:rgba(245,245,247,.95);display:flex;align-items:center;justify-content:center;z-index:10}
     .upload-box{text-align:center;padding:40px}
     .upload-box h3{font-size:16px;font-weight:600;margin-bottom:6px}
     .upload-box p{font-size:13px;color:var(--muted);margin-bottom:16px}
+    /* Pre-review dialog */
+    .pre-dialog{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:500}
+    .pre-dialog .box{background:#fff;border-radius:var(--r-md);box-shadow:0 20px 60px rgba(0,0,0,.15);width:480px;padding:28px}
+    .pre-dialog h3{font-size:18px;font-weight:600;margin-bottom:16px}
+    .pre-dialog .field{margin-bottom:14px}
+    .pre-dialog .field label{display:block;font-size:12px;font-weight:500;margin-bottom:4px;color:var(--muted)}
+    .pre-dialog .field select,.pre-dialog .field input{width:100%;padding:8px 10px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8e93' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
+    .pre-dialog .field select:focus,.pre-dialog .field input:focus{outline:none;border-color:var(--gold)}
+    .pre-dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
   </style>
 </head>
 <body>
@@ -81,14 +82,11 @@
 <div class="app-layout">
   <aside class="app-sidebar">
     <a class="brand" href="home.html"><div class="logo">AI</div><div class="text"><strong>ContractAI</strong><small>智能合同管理平台</small></div></a>
-<nav>
-      <div class="nav-group">
-        <div class="nav-group-label">合同起草</div>
-        <a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a>
-      </div>
+    <nav>
+      <div class="nav-group"><div class="nav-group-label">合同起草</div><a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a></div>
       <div class="nav-divider"></div>
       <div class="nav-group">
-        <a class="nav-item" href="contract-review.html"><span class="app-icon" id="navCR"></span><span>合同审查</span></a>
+        <a class="nav-item active" href="contract-review.html"><span class="app-icon" id="navCR"></span><span>合同审查</span></a>
         <a class="nav-item" href="contract-compare.html"><span class="app-icon" id="navCC"></span><span>合同对比</span></a>
         <a class="nav-item" href="contract-templates.html"><span class="app-icon" id="navCT"></span><span>合同模板</span></a>
         <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKB"></span><span>知识库</span></a>
@@ -97,17 +95,21 @@
   </aside>
   <div class="app-main">
     <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <!-- Toolbar: always visible -->
       <div class="review-toolbar">
         <button onclick="document.getElementById('reviewFile').click()">上传合同</button>
         <input type="file" id="reviewFile" accept=".doc,.docx,.pdf,.txt" style="display:none" onchange="handleReviewFile(this.files[0])">
         <div class="sep"></div>
         <button onclick="downloadOriginal()">下载原文</button>
         <button onclick="downloadCurrent()">下载当前文档</button>
+        <button onclick="downloadCorrected()">下载修正版</button>
+        <button onclick="downloadAnnotated()">下载批注版</button>
         <div class="sep"></div>
-        <button class="gold-btn" onclick="startReview()">开始审查</button>
+        <button class="gold-btn" onclick="showPreDialog()">开始审查</button>
         <div style="flex:1"></div>
         <span id="reviewStatus" style="color:var(--muted);font-size:11px">待上传合同</span>
       </div>
+      <!-- Score strip: hidden until review starts -->
       <div class="score-strip" id="scoreStrip" style="display:none">
         <div class="score-item"><span class="label">合同评分</span><span class="val" id="scoreVal" style="color:var(--gold-dark)">--</span></div>
         <div class="score-item"><span class="label">高风险</span><span class="val" style="color:var(--red)" id="scoreHigh">0</span></div>
@@ -115,6 +117,7 @@
         <div class="score-item"><span class="label">已处理</span><span class="val" style="color:var(--green)" id="scoreDone">0</span></div>
         <div class="score-item"><span class="label">AI 审查</span><span class="val" id="scoreAI" style="color:var(--muted)">待调用</span></div>
       </div>
+      <!-- Editor: always visible -->
       <div class="editor-area" id="editorArea">
         <div class="upload-overlay" id="uploadOverlay">
           <div class="upload-box">
@@ -126,6 +129,7 @@
         <div class="editor-content" id="editorContainer" style="display:none"></div>
       </div>
     </div>
+    <!-- Right panel -->
     <div class="review-right">
       <div class="tab-bar">
         <button class="active" onclick="switchTab('workflow',this)">审查进度</button>
@@ -134,18 +138,19 @@
       </div>
       <!-- Tab: Workflow -->
       <div class="tab-content" id="tabWorkflow">
-        <div class="workflow" id="workflowSteps">
-          <div class="wf-step" id="wf-0"><div class="wf-dot">1</div><div class="wf-info"><h5>文档解析</h5><p>等待上传合同...</p></div></div>
-          <div class="wf-step" id="wf-1"><div class="wf-dot">2</div><div class="wf-info"><h5>意图分析</h5><p>识别合同类型和风险</p></div></div>
-          <div class="wf-step" id="wf-2"><div class="wf-dot">3</div><div class="wf-info"><h5>规则匹配</h5><p>检索适用审查规则</p></div></div>
-          <div class="wf-step" id="wf-3"><div class="wf-dot">4</div><div class="wf-info"><h5>逐条审查</h5><p>AI 检查合同条款</p></div></div>
-          <div class="wf-step" id="wf-4"><div class="wf-dot">5</div><div class="wf-info"><h5>风险评估</h5><p>综合评分与分级</p></div></div>
-          <div class="wf-step" id="wf-5"><div class="wf-dot">6</div><div class="wf-info"><h5>生成报告</h5><p>输出审查结论</p></div></div>
+        <div id="workflowPlaceholder" style="text-align:center;color:var(--muted);font-size:13px;padding:20px">上传合同并点击"开始审查"</div>
+        <div class="workflow" id="workflowSteps" style="display:none">
+          <div class="wf-step" id="wf-0"><div class="wf-dot">1</div><div class="wf-info"><h5>文档解析</h5><p id="wf-desc-0">等待开始...</p></div></div>
+          <div class="wf-step" id="wf-1"><div class="wf-dot">2</div><div class="wf-info"><h5>意图分析</h5><p id="wf-desc-1">识别合同类型和风险</p></div></div>
+          <div class="wf-step" id="wf-2"><div class="wf-dot">3</div><div class="wf-info"><h5>规则匹配</h5><p id="wf-desc-2">检索适用审查规则</p></div></div>
+          <div class="wf-step" id="wf-3"><div class="wf-dot">4</div><div class="wf-info"><h5>逐条审查</h5><p id="wf-desc-3">AI 检查合同条款</p></div></div>
+          <div class="wf-step" id="wf-4"><div class="wf-dot">5</div><div class="wf-info"><h5>风险评估</h5><p id="wf-desc-4">综合评分与分级</p></div></div>
+          <div class="wf-step" id="wf-5"><div class="wf-dot">6</div><div class="wf-info"><h5>生成报告</h5><p id="wf-desc-5">输出审查结论</p></div></div>
         </div>
       </div>
       <!-- Tab: Summary -->
       <div class="tab-content" id="tabSummary" style="display:none">
-        <div class="summary-card"><h4>审查概览</h4><p id="summaryText" style="font-size:12px;color:var(--muted);line-height:1.5">上传合同后点击"开始审查"</p></div>
+        <div class="summary-card"><h4>审查概览</h4><p id="summaryText" style="font-size:12px;color:var(--muted);line-height:1.5">审查完成后显示</p></div>
         <div class="summary-stats" id="summaryStats" style="display:none">
           <div class="summary-stat"><div class="num" id="statTotal">0</div><div class="lbl">问题总数</div></div>
           <div class="summary-stat"><div class="num" style="color:var(--red)" id="statHigh">0</div><div class="lbl">高风险</div></div>
@@ -160,13 +165,29 @@
     </div>
   </div>
 </div>
+<!-- Pre-review dialog -->
+<div class="pre-dialog" id="preDialog" style="display:none">
+  <div class="box">
+    <h3>审查设置</h3>
+    <div class="field"><label>审查主体</label><select id="reviewSubject"><option>合同全文</option><option>关键条款</option><option>付款条款</option><option>违约条款</option><option>保密条款</option></select></div>
+    <div class="field"><label>审查风格</label><select id="reviewStyle"><option value="normal">普通</option><option value="strict">严厉</option></select></div>
+    <div class="field"><label>审查维度</label><select id="reviewDims"><option value="all">全部维度</option><option value="legal">通用法规</option><option value="industry">行业惯例</option><option value="enterprise">企业自定</option></select></div>
+    <div class="field"><label>审批人（可选）</label><input type="text" id="reviewApprover" placeholder="输入审批人姓名"></div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="closePreDialog()">取消</button>
+      <button class="btn btn-primary" onclick="confirmReview()">开始审查</button>
+    </div>
+  </div>
+</div>
 <script src="icons.js"></script>
 <script src="office-editor.js"></script>
 <script src="model-test.js"></script>
 <script>
 let reviewEditor=null,reviewContractText="",reviewOriginalText="",reviewIssues=[],issueStatuses={};
+let reviewConfig={subject:"合同全文",style:"normal",dims:"all",approver:""};
+
 window.addEventListener("DOMContentLoaded",()=>{
-  const icons={navSD:"smartDraft",navCR:"contractReview",navMC:"fileText",navCC:"layers",navCT:"templateFill",navKB:"knowledge"};
+  const icons={navSD:"smartDraft",navCR:"contractReview",navCC:"layers",navCT:"templateFill",navKB:"knowledge"};
   for(const[id,n]of Object.entries(icons)){const el=document.getElementById(id);if(el&&window.AppIcons)el.innerHTML=AppIcons[n]||"";}
   fetch("/api/health").then(r=>r.json()).then(d=>{
     document.getElementById("aiModel").textContent=d.model||"unknown";
@@ -177,17 +198,25 @@ window.addEventListener("DOMContentLoaded",()=>{
   initModelTest();
 });
 
-function setWfStep(idx,status,msg){
-  const el=document.getElementById("wf-"+idx);
-  if(!el)return;
-  el.className="wf-step "+status;
-  if(msg)el.querySelector("p").textContent=msg;
+// Pre-review dialog
+function showPreDialog(){
+  if(!reviewContractText)return alert("请先上传合同");
+  document.getElementById("preDialog").style.display="flex";
+}
+function closePreDialog(){document.getElementById("preDialog").style.display="none";}
+function confirmReview(){
+  reviewConfig.subject=document.getElementById("reviewSubject").value;
+  reviewConfig.style=document.getElementById("reviewStyle").value;
+  reviewConfig.dims=document.getElementById("reviewDims").value;
+  reviewConfig.approver=document.getElementById("reviewApprover").value;
+  closePreDialog();
+  startReview();
 }
 
+// File upload
 async function handleReviewFile(file){
   if(!file)return;
   document.getElementById("reviewStatus").textContent="解析中...";
-  setWfStep(0,"active","正在解析「"+file.name+"」...");
   document.getElementById("editorContainer").style.display="block";
   document.getElementById("uploadOverlay").style.display="none";
   if(file.name.match(/\.docx?$/i)){
@@ -200,50 +229,42 @@ async function handleReviewFile(file){
       reviewOriginalText=reviewContractText;
       if(data.contractHtml&&data.contractHtml.length>50&&reviewEditor)reviewEditor.setHtml(data.contractHtml);
       else if(reviewEditor)reviewEditor.setText(reviewContractText);
-      setWfStep(0,"done","已解析 "+reviewContractText.length+" 字");
       document.getElementById("reviewStatus").textContent="已导入 "+file.name;
     }catch(e){
       document.getElementById("editorContainer").innerHTML="<div style='padding:40px;text-align:center;color:var(--red)'><strong>解析失败</strong><br>"+esc(e.message)+"</div>";
-      setWfStep(0,"active","解析失败: "+e.message);
       document.getElementById("reviewStatus").textContent="解析失败";
     }
   }else{
     reviewContractText=await file.text();reviewOriginalText=reviewContractText;
     if(reviewEditor)reviewEditor.setText(reviewContractText);
-    setWfStep(0,"done","已导入 "+reviewContractText.length+" 字");
     document.getElementById("reviewStatus").textContent="已导入 "+file.name;
   }
 }
 
+// Review workflow
 async function startReview(){
   if(!reviewContractText)return alert("请先上传合同");
   document.getElementById("scoreStrip").style.display="flex";
-  // Reset workflow
+  document.getElementById("workflowPlaceholder").style.display="none";
+  document.getElementById("workflowSteps").style.display="block";
   for(let i=0;i<6;i++)setWfStep(i,"","");
-  setWfStep(0,"done","已解析");
-  // Step 2: Intent
-  setWfStep(1,"active","正在分析合同类型和风险画像...");
+  setWfStep(0,"active","正在解析文档结构...");
   document.getElementById("scoreAI").textContent="审查中...";
-  await delay(800);
-  setWfStep(1,"done","完成");
-  // Step 3: Rules
+  await delay(600);setWfStep(0,"done","完成");
+  setWfStep(1,"active","正在分析合同类型和风险画像...");
+  await delay(500);setWfStep(1,"done","完成");
   setWfStep(2,"active","正在检索适用规则...");
-  await delay(600);
-  setWfStep(2,"done","完成");
-  // Step 4: Review
+  await delay(400);setWfStep(2,"done","完成");
   setWfStep(3,"active","正在逐条审查合同条款...");
   try{
-    const res=await fetch("/api/contracts/review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contractText:reviewContractText,reviewMode:"full"})});
+    const res=await fetch("/api/contracts/review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contractText:reviewContractText,reviewMode:"full",...reviewConfig})});
     const raw=await res.text();let data;try{data=JSON.parse(raw);}catch{throw new Error("服务器异常");}
     if(data.error)throw new Error(data.error);
     reviewIssues=data.issues||[];
     reviewIssues.forEach((_,i)=>{if(!issueStatuses[i])issueStatuses[i]="pending";});
     setWfStep(3,"done","完成 — 发现 "+reviewIssues.length+" 个问题");
-    // Step 5
     setWfStep(4,"active","正在综合评估风险...");
-    await delay(400);
-    setWfStep(4,"done","完成");
-    // Step 6
+    await delay(300);setWfStep(4,"done","完成");
     setWfStep(5,"active","正在生成审查报告...");
     const high=reviewIssues.filter(i=>i.severity==="high").length;
     const mid=reviewIssues.filter(i=>i.severity==="mid"||i.severity==="medium").length;
@@ -260,7 +281,8 @@ async function startReview(){
     document.getElementById("summaryText").textContent=data.summary||"发现 "+reviewIssues.length+" 个问题";
     setWfStep(5,"done","完成");
     document.getElementById("reviewStatus").textContent="审查完成";
-    switchTab("issues",document.querySelectorAll(".tab-bar button")[2]);
+    // Hide workflow after completion, show summary
+    setTimeout(()=>{document.getElementById("workflowSteps").style.display="none";document.getElementById("workflowPlaceholder").style.display="block";document.getElementById("workflowPlaceholder").innerHTML='<div style="text-align:center;color:var(--green);font-size:13px;padding:20px">✓ 审查完成</div>';switchTab("summary",document.querySelectorAll(".tab-bar button")[1]);},2000);
     renderIssues();
   }catch(e){
     setWfStep(3,"active","审查失败: "+e.message);
@@ -268,18 +290,18 @@ async function startReview(){
   }
 }
 
+function setWfStep(idx,status,msg){
+  const el=document.getElementById("wf-"+idx);if(!el)return;
+  el.className="wf-step "+status;
+  if(msg)document.getElementById("wf-desc-"+idx).textContent=msg;
+}
+
 function renderIssues(){
   const pending=reviewIssues.filter((_,i)=>issueStatuses[i]==="pending");
   const processed=reviewIssues.filter((_,i)=>issueStatuses[i]!=="pending");
   const list=document.getElementById("issuesList");list.innerHTML="";
-  if(pending.length>0){
-    list.innerHTML+=`<div style="font-size:12px;font-weight:600;margin-bottom:8px">待处理 (${pending.length})</div>`;
-    pending.forEach(i=>list.innerHTML+=renderIssueCard(i,reviewIssues.indexOf(i)));
-  }
-  if(processed.length>0){
-    list.innerHTML+=`<div style="font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 8px">已处理 (${processed.length})</div>`;
-    processed.forEach(i=>list.innerHTML+=renderIssueCard(i,reviewIssues.indexOf(i)));
-  }
+  if(pending.length>0){list.innerHTML+=`<div style="font-size:12px;font-weight:600;margin-bottom:8px">待处理 (${pending.length})</div>`;pending.forEach(i=>list.innerHTML+=renderIssueCard(i,reviewIssues.indexOf(i)));}
+  if(processed.length>0){list.innerHTML+=`<div style="font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 8px">已处理 (${processed.length})</div>`;processed.forEach(i=>list.innerHTML+=renderIssueCard(i,reviewIssues.indexOf(i)));}
 }
 
 function renderIssueCard(issue,idx){
@@ -288,37 +310,26 @@ function renderIssueCard(issue,idx){
   const cls=status==="accepted"?" accepted":status==="ignored"?" ignored":"";
   return `<div class="issue-card ${sev}${cls}" id="issue-${idx}">
     <h5>${esc(issue.title||issue.category||"问题")}</h5>
-    <div class="meta">
-      <span class="issue-tag ${sev}">${sev==="high"?"高风险":sev==="mid"?"中风险":"低风险"}</span>
-      <span class="issue-tag ${issue.originalText&&issue.suggest?"modify":issue.suggest?"add":"modify"}">${issue.originalText&&issue.suggest?"修改":issue.suggest?"增添":"修改"}</span>
-      ${status==="accepted"?"<span class='issue-tag' style='background:var(--green-bg);color:var(--green);border-color:rgba(90,138,106,.15)'>已接受</span>":""}
-      ${status==="ignored"?"<span class='issue-tag' style='background:var(--gray7);color:var(--muted);border-color:var(--gray5)'>已忽略</span>":""}
-    </div>
+    <div class="meta"><span class="issue-tag ${sev}">${sev==="high"?"高风险":sev==="mid"?"中风险":"低风险"}</span><span class="issue-tag modify">${issue.originalText&&issue.suggest?"修改":issue.suggest?"增添":"修改"}</span>
+    ${status==="accepted"?"<span class='issue-tag' style='background:var(--green-bg);color:var(--green);border-color:rgba(90,138,106,.15)'>已接受</span>":""}
+    ${status==="ignored"?"<span class='issue-tag' style='background:var(--gray7);color:var(--muted);border-color:var(--gray5)'>已忽略</span>":""}</div>
     <div class="desc">${esc(issue.description||issue.suggestion||"")}</div>
     ${issue.originalText?`<div class="source">原文: ${esc(issue.originalText.slice(0,150))}</div>`:""}
     ${issue.suggest?`<div class="source suggest">建议: ${esc(issue.suggest.slice(0,150))}</div>`:""}
-    <div class="actions">
-      ${status==="pending"?`
-        <button onclick="handleIssue(${idx},'accepted')" style="color:var(--green);border-color:var(--green)">接受</button>
-        <button onclick="handleIssue(${idx},'ignored')">忽略</button>
-      `:`<span style="font-size:11px;color:var(--muted)">${status==="accepted"?"已接受":"已忽略"}</span>`}
-    </div>
-  </div>`;
+    <div class="actions">${status==="pending"?`<button onclick="handleIssue(${idx},'accepted')" style="color:var(--green);border-color:var(--green)">接受</button><button onclick="handleIssue(${idx},'ignored')">忽略</button>`:`<span style="font-size:11px;color:var(--muted)">${status==="accepted"?"已接受":"已忽略"}</span>`}</div></div>`;
 }
 
 function handleIssue(idx,status){issueStatuses[idx]=status;renderIssues();updateScoreDone();}
 function updateScoreDone(){const d=Object.values(issueStatuses).filter(s=>s!=="pending").length;document.getElementById("scoreDone").textContent=d;document.getElementById("statDone").textContent=d;}
 
-function switchTab(tab,btn){
-  document.querySelectorAll(".tab-bar button").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById("tabWorkflow").style.display=tab==="workflow"?"block":"none";
-  document.getElementById("tabSummary").style.display=tab==="summary"?"block":"none";
-  document.getElementById("tabIssues").style.display=tab==="issues"?"block":"none";
-}
+function switchTab(tab,btn){document.querySelectorAll(".tab-bar button").forEach(b=>b.classList.remove("active"));btn.classList.add("active");document.getElementById("tabWorkflow").style.display=tab==="workflow"?"block":"none";document.getElementById("tabSummary").style.display=tab==="summary"?"block":"none";document.getElementById("tabIssues").style.display=tab==="issues"?"block":"none";}
 
-function downloadOriginal(){if(!reviewOriginalText)return alert("暂无原文");const b=new Blob([reviewOriginalText],{type:"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="合同原文_"+new Date().toISOString().slice(0,10)+".txt";a.click();}
-function downloadCurrent(){const t=reviewEditor?.getText?reviewEditor.getText():reviewContractText;if(!t)return alert("暂无内容");const b=new Blob([t],{type:"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="合同当前_"+new Date().toISOString().slice(0,10)+".txt";a.click();}
+function downloadOriginal(){if(!reviewOriginalText)return alert("暂无原文");dl(reviewOriginalText,"合同原文");}
+function downloadCurrent(){const t=reviewEditor?.getText?reviewEditor.getText():reviewContractText;if(!t)return alert("暂无内容");dl(t,"合同当前");}
+function downloadCorrected(){const t=reviewEditor?.getText?reviewEditor.getText():reviewContractText;if(!t)return alert("暂无内容");dl(t,"合同修正版");}
+function downloadAnnotated(){if(!reviewIssues.length)return alert("暂无批注");let text=reviewContractText;reviewIssues.forEach((issue,i)=>{const status=issueStatuses[i]||"pending";if(issue.originalText&&status==="accepted"&&issue.suggest){text=text.replace(issue.originalText.slice(0,30),`[已修改:${issue.suggest.slice(0,30)}]`);}});dl(text,"合同批注版");}
+
+function dl(text,name){const b=new Blob([text],{type:"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name+"_"+new Date().toISOString().slice(0,10)+".txt";a.click();}
 function delay(ms){return new Promise(r=>setTimeout(r,ms));}
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 </script>
