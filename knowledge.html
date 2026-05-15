@@ -6,81 +6,62 @@
   <title>知识库 - ContractAI</title>
   <link rel="stylesheet" href="app.css">
   <style>
-    .kb-main{padding:20px 28px;overflow-y:auto;flex:1}
-    .kb-header{margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-radius:var(--r-sm);background:var(--dark-gray);color:#fff}
-    .kb-header h1{font-size:22px;font-weight:700;color:#fff}
-    .kb-header .server-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:var(--r-pill);font-size:12px;font-weight:500}
-    .kb-header .server-pill.ok{background:rgba(52,199,89,.15);color:#34c759}
-    .kb-header .server-pill.err{background:rgba(255,59,48,.15);color:#ff6b6b}
+    .kb-main{padding:24px 32px;overflow-y:auto;flex:1}
+    .kb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+    .kb-header h1{font-size:24px;font-weight:700;display:flex;align-items:center;gap:8px}
+    .kb-header h1::before{content:'';width:4px;height:24px;background:var(--gold-gradient);border-radius:2px}
+    .kb-header .status{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:var(--r-pill);font-size:12px;font-weight:500;background:var(--green-bg);color:var(--green)}
+    .kb-header .status .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
 
-    .kb-stats{display:flex;gap:12px;margin-bottom:20px}
-    .kb-stat{flex:1;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm)}
-    .kb-stat .num{font-size:22px;font-weight:700;color:var(--ink)}
-    .kb-stat .lbl{font-size:11px;color:var(--muted);margin-top:2px}
+    .kb-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+    .kb-stat{background:var(--surface);border:1px solid var(--gray5);border-radius:var(--r-md);padding:20px;display:flex;align-items:center;gap:14px;transition:transform .2s}
+    .kb-stat:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.04)}
+    .kb-stat .icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--gold-bg);border:1px solid var(--gold-border);flex-shrink:0}
+    .kb-stat .icon svg{width:20px;height:20px;color:var(--gold-dark)}
+    .kb-stat .info .num{font-size:24px;font-weight:800;color:var(--ink);line-height:1}
+    .kb-stat .info .lbl{font-size:12px;color:var(--muted);margin-top:4px}
 
-    .kb-section{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:16px;overflow:hidden}
-    .kb-section-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);background:#fafbfc}
-    .kb-section-head h2{font-size:15px;font-weight:600;color:var(--ink)}
-    .kb-section-head .sub{font-size:12px;color:var(--muted)}
+    .kb-section{background:var(--surface);border:1px solid var(--gray5);border-radius:var(--r-md);margin-bottom:18px;overflow:hidden}
+    .kb-section-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--gray5)}
+    .kb-section-head .left{display:flex;align-items:center;gap:10px}
+    .kb-section-head .left .icon{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--gold-bg);border:1px solid var(--gold-border)}
+    .kb-section-head .left h2{font-size:15px;font-weight:600}
+    .kb-section-head .left .sub{font-size:12px;color:var(--muted)}
     .kb-section-head .actions{display:flex;gap:6px}
-    .kb-section-body{padding:16px 18px}
+    .kb-section-body{padding:20px}
 
-    .kb-upload-grid{display:grid;grid-template-columns:260px 1fr;gap:14px}
-    .kb-file-zone{border:2px dashed #d0d5dd;border-radius:var(--r-sm);padding:20px;text-align:center;cursor:pointer;transition:all .2s;background:#fafbfc;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:110px}
+    .kb-upload-grid{display:grid;grid-template-columns:240px 1fr;gap:18px}
+    .kb-file-zone{border:2px dashed var(--gray5);border-radius:var(--r-md);padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--accent-softer);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:140px}
     .kb-file-zone:hover{border-color:var(--gold);background:var(--gold-bg)}
-    .kb-file-zone .icon{width:28px;height:28px;color:var(--muted);margin-bottom:6px}
-    .kb-file-zone strong{font-size:13px;display:block;margin-bottom:4px;color:var(--ink)}
-    .kb-file-zone span{font-size:11px;color:var(--muted)}
+    .kb-file-zone .icon{width:36px;height:36px;color:var(--muted);margin-bottom:8px;opacity:.5}
+    .kb-file-zone strong{font-size:14px;display:block;margin-bottom:4px;color:var(--ink)}
+    .kb-file-zone span{font-size:12px;color:var(--muted)}
+    .kb-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .kb-form-grid label{font-size:13px;color:var(--ink-soft);display:flex;flex-direction:column;gap:5px;font-weight:500}
+    .kb-form-grid input,.kb-form-grid select{padding:9px 12px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);background:#fff;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8e93' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;transition:border-color .15s}
+    .kb-form-grid input:focus,.kb-form-grid select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(160,120,48,.06)}
 
-    .kb-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .kb-form-grid label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
-    .kb-form-grid input,.kb-form-grid select{padding:8px 10px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);background:#fff;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8e93' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
-    .kb-form-grid input:focus,.kb-form-grid select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(160,120,48,.08)}
+    .kb-toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+    .kb-toolbar input[type="search"]{flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);background:#fff}
+    .kb-toolbar input:focus{outline:none;border-color:var(--gold)}
+    .kb-toolbar select{padding:8px 12px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:12px;font-family:var(--font);background:#fff;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8e93' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
 
-    .kb-toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-    .kb-toolbar input,.kb-toolbar select{padding:7px 10px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:12px;font-family:var(--font);background:#fff;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8e93' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
-    .kb-toolbar input:focus,.kb-toolbar select:focus{outline:none;border-color:var(--gold)}
-    .kb-toolbar input[type="search"]{flex:1;min-width:200px}
+    .kb-table-wrap{overflow-x:auto;border:1px solid var(--gray5);border-radius:var(--r-sm)}
+    .kb-table{width:100%;border-collapse:collapse;font-size:13px}
+    .kb-table th{text-align:left;padding:10px 14px;font-size:12px;font-weight:600;color:var(--muted);background:var(--gray7);border-bottom:1px solid var(--gray5)}
+    .kb-table td{padding:10px 14px;border-bottom:1px solid var(--line)}
+    .kb-table tr:last-child td{border-bottom:none}
+    .kb-table tr:hover td{background:rgba(0,0,0,.015)}
 
-    .kb-rule-form{display:flex;gap:8px;align-items:flex-end;margin-bottom:12px}
-    .kb-rule-form textarea{flex:1;min-height:60px;border:1px solid #d0d5dd;border-radius:var(--r-sm);padding:8px 10px;font-size:13px;font-family:var(--font);resize:vertical}
+    .kb-rule-form{background:var(--gray7);border-radius:var(--r-md);padding:20px;margin-bottom:16px}
+    .kb-rule-form h3{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .kb-rule-form h3 .icon{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--gold-bg);border:1px solid var(--gold-border)}
+    .kb-rule-form textarea{width:100%;min-height:70px;border:1px solid var(--gray5);border-radius:var(--r-sm);padding:10px 12px;font-size:13px;font-family:var(--font);resize:vertical;background:#fff;margin-bottom:10px}
     .kb-rule-form textarea:focus{outline:none;border-color:var(--gold)}
-    .kb-rule-form .form-row{display:flex;gap:6px;margin-top:6px}
-    .kb-rule-form select,.kb-rule-form input{padding:7px 10px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:12px;font-family:var(--font);-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8e93' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
+    .kb-rule-form .form-row{display:flex;gap:8px;align-items:flex-end}
+    .kb-rule-form select,.kb-rule-form input{padding:8px 12px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:12px;font-family:var(--font);background:#fff}
 
-    .kb-rule-list{display:flex;flex-direction:column;gap:8px}
-
-    /* Pending cards */
-    .pending-card{background:#fff8f0;border:1px solid rgba(160,120,48,.15);border-left:3px solid var(--gold);margin-bottom:8px}
-    .pending-card h3{color:var(--ink)}
-
-    /* Rule cards */
-    .rule-card{background:#fff;border:1px solid var(--gray5);border-radius:var(--r-sm);padding:16px 18px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-    .rule-card h3{font-size:15px;font-weight:600;margin-bottom:8px;color:var(--ink)}
-    .rule-card .rule-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-    .rule-card dl{display:grid;grid-template-columns:100px 1fr;gap:4px 12px;font-size:13px;margin-bottom:12px}
-    .rule-card dt{color:var(--muted);font-weight:500}
-    .rule-card dd{color:var(--ink)}
-    .rule-card .quote{background:var(--gold-bg);border-left:3px solid var(--gold);padding:8px 12px;border-radius:0 var(--r-xs) var(--r-xs) 0;font-size:12px;color:var(--ink);line-height:1.6;margin-bottom:12px}
-    .rule-card .card-actions{display:flex;gap:6px}
-
-    /* Rule folder */
-    .rule-folder{margin-bottom:4px}
-    .rule-folder summary{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink);list-style:none;background:#fafbfc;border-radius:var(--r-sm);transition:background .15s}
-    .rule-folder summary:hover{background:#f0f1f3}
-    .rule-folder summary::-webkit-details-marker{display:none}
-    .rule-folder .folder-icon{color:var(--muted);font-size:12px}
-    .rule-folder .tag{font-size:11px}
-
-    /* Rule row */
-    .rule-row-list{padding:4px 8px 8px}
-    .rule-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--gray5);border-radius:var(--r-sm);margin-bottom:4px;font-size:13px;background:#fff}
-    .rule-row strong{font-weight:600;color:var(--ink)}
-    .rule-row small{color:var(--muted);font-size:11px}
-    .rule-row .row-source{flex:1;color:var(--muted);font-size:12px;text-align:right}
-    .rule-row .row-actions{display:flex;gap:4px}
-
-    /* Tags with containers */
+    .kb-rule-list{display:flex;flex-direction:column;gap:6px}
     .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-sm);font-size:11px;font-weight:500;border:1px solid transparent;white-space:nowrap}
     .tag.detail{background:rgba(52,120,246,.06);color:#3478f6;border-color:rgba(52,120,246,.12)}
     .tag.ok{background:var(--green-bg);color:var(--green);border-color:rgba(90,138,106,.15)}
@@ -88,53 +69,47 @@
     .tag.mid{background:var(--amber-bg);color:var(--amber);border-color:rgba(196,122,32,.15)}
     .tag.neutral{background:var(--gray7);color:var(--muted);border-color:var(--gray5)}
 
-    /* Buttons */
-    .btn{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:var(--r-sm);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;border:none;font-family:var(--font)}
-    .btn-primary{background:var(--gold-gradient);color:#1d1d1f;font-weight:600;box-shadow:0 2px 6px rgba(191,149,63,.15)}
-    .btn-primary:hover{box-shadow:0 2px 10px rgba(191,149,63,.25)}
-    .btn-outline{background:#fff;border:1px solid #d0d5dd;color:var(--ink)}
+    .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;border-radius:var(--r-sm);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;border:none;font-family:var(--font)}
+    .btn-primary{background:var(--gold-gradient);color:#fff;font-weight:600;box-shadow:0 1px 4px rgba(160,120,48,.12)}
+    .btn-primary:hover{box-shadow:0 2px 8px rgba(160,120,48,.2)}
+    .btn-outline{background:#fff;border:1px solid var(--gray5);color:var(--ink);font-weight:500}
     .btn-outline:hover{border-color:var(--gold)}
-    .btn-ghost{background:transparent;color:var(--muted)}
-    .btn-ghost:hover{background:rgba(0,0,0,.04)}
-    .btn-sm{padding:5px 12px;font-size:11px}
-    .btn.danger{background:var(--red-bg);color:var(--red);border:1px solid transparent}
-    .btn.danger:hover{background:#fee;border-color:var(--red)}
-    .mini{padding:4px 10px;font-size:11px;border-radius:var(--r-xs)}
-    .secondary{background:#fff;border:1px solid #d0d5dd;color:var(--ink);padding:5px 12px;font-size:12px;border-radius:var(--r-sm);cursor:pointer;font-family:var(--font)}
-    .secondary:hover{border-color:var(--gold)}
-    .danger{background:var(--red-bg);color:var(--red);border:1px solid transparent;padding:5px 12px;font-size:12px;border-radius:var(--r-sm);cursor:pointer;font-family:var(--font)}
 
     .kb-extract-status{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:var(--r-sm);margin-top:12px;font-size:13px;color:var(--gold-dark)}
     .kb-extract-status .spinner{width:16px;height:16px;border:2px solid var(--gold);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
-    .kb-extract-status .status-text{font-weight:500}
-    .kb-extract-status .status-step{font-size:11px;color:var(--muted);margin-left:8px}
     @keyframes spin{to{transform:rotate(360deg)}}
+    .kb-notice{padding:10px 14px;background:var(--gray7);border-radius:var(--r-sm);font-size:12px;color:var(--muted);margin-top:10px}
 
-    .kb-notice{padding:8px 12px;background:#f8f9fa;border-radius:var(--r-sm);font-size:12px;color:var(--muted);margin-top:8px}
-
-    .kb-dim-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .rule-folder{margin-bottom:6px}
+    .rule-folder summary{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink);list-style:none;background:var(--gray7);border-radius:var(--r-sm);transition:background .15s}
+    .rule-folder summary:hover{background:var(--gray6)}
+    .rule-folder summary::-webkit-details-marker{display:none}
+    .rule-row-list{padding:4px 8px 8px}
+    .rule-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--gray5);border-radius:var(--r-sm);margin-bottom:4px;font-size:13px;background:#fff}
+    .rule-row strong{font-weight:600;color:var(--ink)}
+    .rule-row small{color:var(--muted);font-size:11px}
+    .rule-row .row-source{flex:1;color:var(--muted);font-size:12px;text-align:right}
+    .rule-row .row-actions{display:flex;gap:4px}
 
     .kb-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:500}
     .kb-modal{background:#fff;border-radius:var(--r-md);box-shadow:0 20px 60px rgba(0,0,0,.15);width:700px;max-height:85vh;overflow-y:auto;padding:28px}
     .kb-modal h3{font-size:18px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
-    .kb-modal h3 .close-btn{font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;padding:4px 10px;border-radius:var(--r-sm)}
-    .kb-modal h3 .close-btn:hover{background:rgba(0,0,0,.04)}
     .kb-modal .form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
     .kb-modal .form-group{display:flex;flex-direction:column;gap:4px}
     .kb-modal .form-group label{font-size:12px;font-weight:500;color:var(--ink)}
-    .kb-modal .form-group input,.kb-modal .form-group select{padding:8px 10px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);background:#fff;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8e93' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
-    .kb-modal .form-group input:focus,.kb-modal .form-group select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(160,120,48,.08)}
-    .kb-modal .form-group textarea{padding:8px 10px;border:1px solid #d0d5dd;border-radius:var(--r-sm);font-size:13px;font-family:var(--font);resize:vertical;min-height:80px}
-    .kb-modal .form-group textarea:focus{outline:none;border-color:var(--gold)}
-    .kb-modal .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:16px;border-top:1px solid var(--gold-border)}
+    .kb-modal .form-group input,.kb-modal .form-group select{padding:8px 10px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);background:#fff}
+    .kb-modal .form-group textarea{padding:8px 10px;border:1px solid var(--gray5);border-radius:var(--r-sm);font-size:13px;font-family:var(--font);resize:vertical;min-height:80px}
+    .kb-modal .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:16px;border-top:1px solid var(--gray5)}
+    .close-btn{font-size:13px;color:var(--muted);cursor:pointer;border:none;background:none;padding:4px 10px;border-radius:var(--r-sm)}
+    .close-btn:hover{background:rgba(0,0,0,.04)}
 
-    .server-state{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--r-pill);font-size:12px;font-weight:500}
-    .server-state::before{content:"";width:6px;height:6px;border-radius:50%}
-    .server-state.ok{background:var(--green-bg);color:#16a34a}
-    .server-state.ok::before{background:var(--green)}
-    .server-state.warn{background:var(--amber-bg);color:#d97706}
-    .server-state.warn::before{background:var(--amber)}
-    .doc-check{accent-color:var(--blue)}
+    .kb-dim-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+    .dim-card{background:var(--gray7);border:1px solid var(--gray5);border-radius:var(--r-sm);padding:18px}
+    .dim-card h4{font-size:14px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+    .dim-card ul{margin:0;padding-left:18px;font-size:13px;color:var(--muted);line-height:1.7}
+    .dim-card h4 .icon{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;background:var(--gold-bg);border:1px solid var(--gold-border)}
+
+    .doc-check{accent-color:var(--gold)}
   </style>
 </head>
 <body>
@@ -142,53 +117,40 @@
   <div class="status-left"><span class="status-dot" id="aiDot"></span><span>AI</span><span class="model-info" id="aiModel">检测中...</span></div>
   <div class="status-right" id="aiProvider"><a href="my-contracts.html">我的合同</a></div>
 </div>
-
 <div class="app-layout">
   <aside class="app-sidebar">
     <a class="brand" href="home.html"><div class="logo">AI</div><div class="text"><strong>ContractAI</strong><small>智能合同管理平台</small></div></a>
-<nav>
-      <div class="nav-group">
-        <div class="nav-group-label">合同起草</div>
-        <a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a>
-      </div>
+    <nav>
+      <div class="nav-group"><div class="nav-group-label">合同起草</div><a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a></div>
       <div class="nav-divider"></div>
       <div class="nav-group">
         <a class="nav-item" href="contract-review.html"><span class="app-icon" id="navCR"></span><span>合同审查</span></a>
         <a class="nav-item" href="contract-compare.html"><span class="app-icon" id="navCC"></span><span>合同对比</span></a>
         <a class="nav-item" href="contract-templates.html"><span class="app-icon" id="navCT"></span><span>合同模板</span></a>
-        <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKB"></span><span>知识库</span></a>
+        <a class="nav-item active" href="knowledge.html"><span class="app-icon" id="navKB"></span><span>知识库</span></a>
       </div>
     </nav>
   </aside>
-
   <div class="app-main">
     <div class="kb-main">
       <div class="kb-header">
         <h1>知识库与规则库</h1>
-        <div class="server-state" id="server-state">检查服务中...</div>
+        <div class="status" id="server-state"><span class="dot"></span>服务正常</div>
       </div>
-
       <div class="kb-stats">
-        <div class="kb-stat"><div class="num" id="doc-count">0</div><div class="lbl">已归档文档</div></div>
-        <div class="kb-stat"><div class="num" id="rule-count">0</div><div class="lbl">规则总数</div></div>
-        <div class="kb-stat"><div class="num" id="pending-count">0</div><div class="lbl">待核对规则</div></div>
-        <div class="kb-stat"><div class="num" id="dimension-count">4</div><div class="lbl">分类维度</div></div>
+        <div class="kb-stat"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div><div class="info"><div class="num" id="doc-count">0</div><div class="lbl">已归档文档</div></div></div>
+        <div class="kb-stat"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="info"><div class="num" id="rule-count">0</div><div class="lbl">规则总数</div></div></div>
+        <div class="kb-stat"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="info"><div class="num" id="pending-count">0</div><div class="lbl">待校对规则</div></div></div>
+        <div class="kb-stat"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div><div class="info"><div class="num" id="dimension-count">4</div><div class="lbl">分类维度</div></div></div>
       </div>
-
-      <!-- Upload -->
       <div class="kb-section" id="upload">
         <div class="kb-section-head">
-          <div><h2>资料上传与归档</h2><div class="sub">支持批量上传。Word 可直接解析，PDF 优先调用 pdftotext，TXT/JSON/CSV/HTML 直接读取。</div></div>
-          <div class="actions"><button class="btn btn-primary btn-sm" id="upload-btn">上传并归档</button></div>
+          <div class="left"><div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div><h2>资料上传与归档</h2><div class="sub">支持批量上传。Word 可直接解析，PDF 优先调用 pdftotext，TXT/JSON/CSV/HTML 直接读取。</div></div></div>
+          <div class="actions"><button class="btn btn-primary" id="upload-btn">上传并归档</button></div>
         </div>
         <div class="kb-section-body">
           <form id="upload-form" class="kb-upload-grid">
-            <div class="kb-file-zone" onclick="document.getElementById('file-input').click()">
-              <div class="icon"><span class="app-icon" style="width:28px;height:28px" id="icoUpload"></span></div>
-              <strong>选择或拖入文档</strong>
-              <span id="file-hint">可一次选择多个文件</span>
-              <div id="file-list" style="margin-top:8px;width:100%;text-align:left"></div>
-            </div>
+            <div class="kb-file-zone" onclick="document.getElementById('file-input').click()"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><strong>选择或拖入文档</strong><span id="file-hint">可一次选择多个文件</span><div id="file-list" style="margin-top:8px;width:100%;text-align:left"></div></div>
             <input type="file" id="file-input" name="files" multiple style="display:none">
             <div class="kb-form-grid">
               <label>资料类型<select name="docType"><option value="">自动识别</option><option>法律法规</option><option>规章制度</option><option>合同模板</option><option>历史合同</option><option>交易习惯</option><option>其他资料</option></select></label>
@@ -200,137 +162,69 @@
           <div class="kb-notice" id="upload-message">上传后会保存原始文件、抽取文本摘要，并进入文档归档列表。</div>
         </div>
       </div>
-
-      <!-- Documents -->
       <div class="kb-section" id="documents">
         <div class="kb-section-head">
-          <div><h2>文档归档</h2><div class="sub">选择已归档文档后，可批量调用 AI 提取规则。</div></div>
-          <div class="actions">
-            <button class="btn btn-outline btn-sm" id="extract-selected-btn">提取选中文档</button>
-            <button class="btn btn-primary btn-sm" id="extract-all-btn">一键提取规则</button>
-          </div>
+          <div class="left"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div><div><h2>文档归档</h2><div class="sub">选择已归档文档后，可批量调用 AI 提取规则。</div></div></div>
+          <div class="actions"><button class="btn btn-outline" id="extract-selected-btn">提取选中文档</button><button class="btn btn-primary" id="extract-all-btn">一键提取规则</button></div>
         </div>
         <div class="kb-section-body">
-          <div class="kb-toolbar">
-            <input id="doc-search" type="search" placeholder="检索文件名、摘要、类型、领域">
-            <select id="doc-parse-filter"><option value="">全部状态</option><option value="unparsed">待解析</option><option value="parsed">已解析</option><option value="partial">部分</option><option value="failed">失败</option></select>
-            <select id="doc-type-filter"><option value="">全部类型</option></select>
-          </div>
-          <div class="kb-table-wrap">
-            <table class="kb-table">
-              <thead><tr><th><input type="checkbox" id="select-all-docs"></th><th>文件名</th><th>类型</th><th>业务领域</th><th>合同类型</th><th>解析状态</th><th>摘要</th></tr></thead>
-              <tbody id="document-body"></tbody>
-            </table>
-          </div>
-          <div class="kb-extract-status" id="extract-status" style="display:none">
-            <div class="spinner"></div>
-            <span class="status-text" id="extract-status-title">AI 提取中</span>
-            <span class="status-step" id="extract-status-text">正在准备文档...</span>
-          </div>
+          <div class="kb-toolbar"><input id="doc-search" type="search" placeholder="检索文件名、摘要、类型、领域"><select id="doc-parse-filter"><option value="">全部状态</option><option value="unparsed">待解析</option><option value="parsed">已解析</option><option value="partial">部分</option><option value="failed">失败</option></select><select id="doc-type-filter"><option value="">全部类型</option></select></div>
+          <div class="kb-table-wrap"><table class="kb-table"><thead><tr><th><input type="checkbox" id="select-all-docs" class="doc-check"></th><th>文件名</th><th>类型</th><th>业务领域</th><th>合同类型</th><th>解析状态</th><th>摘要</th></tr></thead><tbody id="document-body"></tbody></table></div>
+          <div class="kb-extract-status" id="extract-status" style="display:none"><div class="spinner"></div><strong id="extract-status-title">AI 提取中</strong><span id="extract-status-text">正在准备文档...</span></div>
         </div>
       </div>
-
-      <!-- Rules -->
       <div class="kb-section" id="rules">
         <div class="kb-section-head">
-          <div><h2>规则库</h2><div class="sub">待核对的规则以卡片展示；启用或驳回后进入规则列表。可导出 JSON，也可导入规则文件。</div></div>
-          <div class="actions">
-            <button class="btn btn-outline btn-sm" id="import-rules-btn">导入规则</button>
-            <button class="btn btn-outline btn-sm" id="export-rules-btn">导出规则</button>
-            <button class="btn btn-primary btn-sm" id="accept-all-btn">一键接受所有</button>
-            <input id="import-rules-input" type="file" accept=".json,application/json" style="display:none">
-          </div>
+          <div class="left"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div><div><h2>规则库</h2><div class="sub">待校对的规则以卡片展示；启用或驳回后进入规则列表。可导出 JSON，也可导入规则文件。</div></div></div>
+          <div class="actions"><button class="btn btn-outline" id="import-rules-btn">导入规则</button><button class="btn btn-outline" id="export-rules-btn">导出规则</button><button class="btn btn-primary" id="accept-all-btn">一键接受所有</button><input id="import-rules-input" type="file" accept=".json,application/json" style="display:none"></div>
         </div>
         <div class="kb-section-body">
-          <form id="custom-rule-form" style="margin-bottom:16px">
-            <h3 style="font-size:14px;font-weight:600;margin-bottom:10px">添加公司自定义条款</h3>
-            <textarea name="ruleText" placeholder="输入一句规则，例如：采购合同超过50万元必须提交总经理办公会审批。" required style="width:100%;min-height:60px;border:1px solid #d0d5dd;border-radius:var(--r-sm);padding:10px;font-size:13px;font-family:var(--font);margin-bottom:10px"></textarea>
-            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-              <input name="scope" placeholder="适用范围（可选）" style="width:200px;padding:7px 10px;border:1px solid #d0d5dd;border-radius:var(--r-sm);font-size:12px">
-              <select name="scenario" style="padding:7px 10px;border:1px solid #d0d5dd;border-radius:var(--r-sm);font-size:12px"><option value="">分类</option><option>企业自定</option><option>审批规则</option><option>交付规则</option><option>付款规则</option><option>验收规则</option><option>违约责任规则</option><option>保密规则</option><option>知识产权规则</option><option>期限终止规则</option></select>
-              <select name="riskLevel" style="padding:7px 10px;border:1px solid #d0d5dd;border-radius:var(--r-sm);font-size:12px"><option>中</option><option>高</option><option>低</option></select>
-              <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px"><input name="classifyMode" type="checkbox" value="ai" checked> AI 辅助分类</label>
-              <button class="btn btn-primary btn-sm" type="submit">添加并启用</button>
-            </div>
-          </form>
-          <div class="kb-toolbar">
-            <select id="rule-category-filter"><option value="企业自定">企业自定</option></select>
-            <select id="dimension-filter"><option value="">全部维度</option></select>
-            <select id="status-filter"><option value="">全部状态</option><option value="pending_review">待核对</option><option value="active">已启用</option><option value="inactive">已关闭</option><option value="rejected">已驳回</option></select>
+          <div class="kb-rule-form" id="custom-rule-form">
+            <h3><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>添加公司自定义条款</h3>
+            <textarea name="ruleText" placeholder="输入一句规则，例如：采购合同超过50万元必须提交总经理办公会审批。" required></textarea>
+            <div class="form-row"><input name="scope" placeholder="适用范围（可选）" style="width:200px"><select name="scenario"><option value="">分类</option><option>通用规则</option><option>审批规则</option><option>交付规则</option><option>付款规则</option><option>验收规则</option><option>违约责任规则</option><option>保密规则</option><option>知识产权规则</option><option>期限终止规则</option></select><select name="riskLevel" style="width:70px"><option>中</option><option>高</option><option>低</option></select><label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px"><input name="classifyMode" type="checkbox" value="ai" checked class="doc-check"> AI 辅助分类</label><button class="btn btn-primary" type="submit">添加并启用</button></div>
           </div>
+          <div class="kb-toolbar"><select id="rule-category-filter"><option value="">全部分类</option><option value="企业自定">企业自定</option></select><select id="dimension-filter"><option value="">全部维度</option></select><select id="status-filter"><option value="">全部状态</option><option value="pending_review">待核对</option><option value="active">已启用</option><option value="inactive">已关闭</option><option value="rejected">已驳回</option></select></div>
           <div id="rule-list" class="kb-rule-list"></div>
         </div>
       </div>
-
-      <!-- Dimensions -->
       <div class="kb-section" id="dimensions">
-        <div class="kb-section-head">
-          <div><h2>四大维度参考库</h2><div class="sub">规则抽取按这些维度归类。</div></div>
-        </div>
-        <div class="kb-section-body">
-          <div id="dimension-list" class="kb-dim-grid"></div>
-        </div>
+        <div class="kb-section-head"><div class="left"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div><div><h2>四大维度参考库</h2><div class="sub">规则抽取按这些维度归类。</div></div></div></div>
+        <div class="kb-section-body"><div id="dimension-list" class="kb-dim-grid"></div></div>
       </div>
     </div>
   </div>
 </div>
-
-<!-- Rule Detail Modal -->
 <div class="kb-modal-overlay" id="rule-detail-modal" style="display:none">
   <div class="kb-modal">
     <h3>规则详情 <button class="close-btn" id="rule-detail-close">关闭</button></h3>
     <form id="rule-detail-form">
-      <div class="form-group" style="margin-bottom:12px">
-        <label>规则名称</label>
-        <input name="ruleName" style="width:100%">
-      </div>
-      <div class="form-grid">
-        <div class="form-group"><label>分类维度</label><select name="dimension"><option>通用必备条款</option><option>软件外包行业条款</option><option>制造行业条款</option><option>系统集成行业条款</option></select></div>
-        <div class="form-group"><label>规则类型</label><select name="ruleType"><option>必备条款规则</option><option>风险提示规则</option><option>流程规则</option><option>格式规则</option><option>禁止条款规则</option></select></div>
-        <div class="form-group"><label>场景分类</label><select name="scenario"><option>通用规则</option><option>审批规则</option><option>付款规则</option><option>交付规则</option></select></div>
-        <div class="form-group"><label>风险等级</label><select name="riskLevel"><option>高</option><option>中</option><option>低</option></select></div>
-      </div>
-      <div class="form-grid">
-        <div class="form-group"><label>规则归属</label><select name="ruleBasis"><option>企业自定</option></select></div>
-        <div class="form-group"><label>合同类型</label><input name="contractType"></div>
-        <div class="form-group"><label>业务领域</label><input name="businessDomain"></div>
-        <div class="form-group"><label>优先级</label><input name="priority" type="number" value="100"></div>
-      </div>
-      <div class="form-group" style="margin-bottom:12px">
-        <label>状态</label>
-        <select name="reviewStatus" style="width:160px"><option>已启用</option><option>待核对</option><option>已关闭</option><option>已驳回</option></select>
-      </div>
+      <div class="form-group" style="margin-bottom:12px"><label>规则名称</label><input name="ruleName" style="width:100%"></div>
+      <div class="form-grid"><div class="form-group"><label>分类维度</label><select name="dimension"><option>通用必备条款</option><option>软件外包行业条款</option><option>制造行业条款</option><option>系统集成行业条款</option></select></div><div class="form-group"><label>规则类型</label><select name="ruleType"><option>必备条款规则</option><option>风险提示规则</option><option>流程规则</option><option>格式规则</option><option>禁止条款规则</option></select></div><div class="form-group"><label>场景分类</label><select name="scenario"><option>通用规则</option><option>审批规则</option><option>付款规则</option><option>交付规则</option></select></div><div class="form-group"><label>风险等级</label><select name="riskLevel"><option>高</option><option>中</option><option>低</option></select></div></div>
+      <div class="form-grid"><div class="form-group"><label>规则归属</label><select name="ruleBasis"><option>企业自定</option></select></div><div class="form-group"><label>合同类型</label><input name="contractType"></div><div class="form-group"><label>业务领域</label><input name="businessDomain"></div><div class="form-group"><label>优先级</label><input name="priority" type="number" value="100"></div></div>
+      <div class="form-group" style="margin-bottom:12px"><label>状态</label><select name="reviewStatus" style="width:160px"><option>已启用</option><option>待核对</option><option>已关闭</option><option>已驳回</option></select></div>
       <div class="form-group" style="margin-bottom:12px"><label>触发条件</label><textarea name="triggerCondition"></textarea></div>
       <div class="form-group" style="margin-bottom:12px"><label>执行动作</label><textarea name="action"></textarea></div>
       <div class="form-group" style="margin-bottom:12px"><label>来源依据</label><textarea name="sourceQuote"></textarea></div>
-      <div class="modal-actions">
-        <button type="submit" class="btn btn-primary">保存修改</button>
-      </div>
+      <div class="modal-actions"><button type="submit" class="btn btn-primary">保存修改</button></div>
     </form>
   </div>
 </div>
-
 <script src="icons.js"></script>
 <script src="knowledge.js"></script>
 <script src="model-test.js"></script>
 <script>
 window.addEventListener("DOMContentLoaded", () => {
-  const icons = { navSD:"smartDraft", navCR:"contractReview", navMC:"fileText", navCC:"layers", navCT:"templateFill", navKB:"knowledge", icoUpload:"upload" };
-  for (const [id, name] of Object.entries(icons)) {
-    const el = document.getElementById(id);
-    if (el && window.AppIcons) el.innerHTML = AppIcons[name] || "";
-  }
+  const icons = { navSD:"smartDraft", navCR:"contractReview", navCC:"layers", navCT:"templateFill", navKB:"knowledge" };
+  for (const [id, name] of Object.entries(icons)) { const el = document.getElementById(id); if (el && window.AppIcons) el.innerHTML = AppIcons[name] || ""; }
   fetch("/api/health").then(r=>r.json()).then(d=>{
     const s = document.getElementById("server-state");
-    s.className = "server-state " + (d.hasApiKey ? "ok" : "warn");
-    s.textContent = d.hasApiKey ? "服务正常" : "未配置 API Key";
+    if (d.hasApiKey) { s.innerHTML = '<span class="dot"></span>服务正常'; }
+    else { s.innerHTML = '<span class="dot" style="background:var(--amber)"></span>未配置 API Key'; s.style.background = "var(--amber-bg)"; s.style.color = "var(--amber)"; }
     document.getElementById("aiModel").textContent = d.model || "unknown";
     document.getElementById("aiProvider").textContent = d.provider || "";
-    document.getElementById("aiDot").style.background = d.apiKeyConfigured?"var(--green)":"var(--red)";
-  }).catch(()=>{
-    document.getElementById("aiModel").textContent="离线";
-    document.getElementById("aiDot").style.background="var(--red)";
-  });
+    document.getElementById("aiDot").style.background = d.apiKeyConfigured ? "var(--green)" : "var(--red)";
+  }).catch(()=>{ document.getElementById("aiModel").textContent = "离线"; document.getElementById("aiDot").style.background = "var(--red)"; });
   const cb = document.getElementById("rule-detail-close");
   if (cb) cb.addEventListener("click", () => document.getElementById("rule-detail-modal").style.display = "none");
   initModelTest();
