@@ -7,7 +7,7 @@
   --gold:#a07830;--gold-dark:#7a5c20;--gold-light:#c4a050;
   --gold-gradient:linear-gradient(135deg,#a07830,#c4a050,#7a5c20);
   --gold-bg:rgba(160,120,48,.06);--gold-border:rgba(160,120,48,.15);
-  --accent:var(--gold);--accent-soft:var(--gold-bg);
+  --accent:var(--gold);--accent-soft:var(--gold-bg);--accent-gradient:var(--gold-gradient);--accent-hover:var(--gold-dark);
   --green:#5a8a6a;--green-bg:rgba(90,138,106,.08);
   --amber:#c47a20;--amber-bg:rgba(196,122,32,.08);
   --red:#b85450;--red-bg:rgba(184,84,80,.08);
