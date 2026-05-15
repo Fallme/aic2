@@ -3955,11 +3955,28 @@ function createSmartDraftSession() {
 }
 
 // ── Agent 1: Intent Analyzer ──
-async function agentIntentAnalyze(description, fileNames) {
-  const prompt = `你是一个合同意图分析专家。根据用户描述和文件列表，分析合同类型和关键信息。
+async function agentIntentAnalyze(description, fileNames, fileTexts) {
+  // Build file content summary for analysis
+  let fileContentSummary = "";
+  if (fileTexts && fileTexts.length > 0) {
+    const chunks = fileTexts.map((f, i) => {
+      const text = (f.text || "").slice(0, 2000);
+      return `--- 文件${i + 1}: ${f.name} ---\n${text}`;
+    });
+    fileContentSummary = chunks.join("\n\n");
+  }
+
+  const prompt = `你是一个合同意图分析专家。根据用户描述和上传文件内容，分析合同类型和关键信息。
 
 用户描述: ${description || "(未提供)"}
 上传文件: ${fileNames && fileNames.length ? fileNames.join(", ") : "(未上传)"}
+${fileContentSummary ? `\n文件内容摘要:\n${fileContentSummary}` : ""}
+
+根据文件内容判断：
+1. 如果文件包含采购清单（品名、数量、单价等），应识别为采购合同
+2. 如果文件包含服务条款，应识别为服务合同
+3. 如果文件是劳动合同，应识别为劳动合同
+4. 根据文件内容中的关键词和数据自动判断合同类型
 
 可选合同类型: goods(采购), service(服务), software(软件开发), labor(劳动), rental(租赁), sales(销售), consulting(咨询), agency(代理), nda(保密), framework(框架)
 
@@ -4015,11 +4032,28 @@ async function agentIntentAnalyze(description, fileNames) {
 async function agentDataExtract(fileTexts, intent) {
   if (!fileTexts || fileTexts.length === 0) return { items: [], fields: {}, summary: "无参考文件" };
 
-  const combined = fileTexts.map((f, i) => `--- 文件${i + 1}: ${f.name} ---\n${f.text.slice(0, 3000)}`).join("\n\n");
+  // Chunk long files: split into 3000-char chunks
+  const allItems = [];
+  const allFields = {};
+  let summaries = [];
 
-  const prompt = `你是一个合同数据提取专家。从以下上传文件中提取与"${intent.contractTypeCn || '合同'}"相关的结构化数据。
+  for (const f of fileTexts) {
+    const text = f.text || "";
+    if (!text || text.length < 10) continue;
 
-${combined}
+    // Split long files into chunks
+    const chunkSize = 3000;
+    const chunks = [];
+    for (let i = 0; i < text.length; i += chunkSize) {
+      chunks.push(text.slice(i, i + chunkSize));
+    }
+
+    for (let ci = 0; ci < chunks.length; ci++) {
+      const chunk = chunks[ci];
+      const prompt = `你是一个合同数据提取专家。从以下文件内容中提取与"${intent.contractTypeCn || '合同'}"相关的结构化数据。
+
+文件: ${f.name} (第${ci + 1}/${chunks.length}部分)
+${chunk}
 
 请返回JSON格式:
 {
@@ -4030,13 +4064,23 @@ ${combined}
 
 如果没有可提取的数据，items和fields返回空对象。`;
 
-  try {
-    const result = await callJsonModel(prompt, null, { temperature: 0.1, maxTokens: 2000 });
-    if (result) return result.data || result;
-  } catch (e) {
-    console.error("[Agent2] Data extraction failed:", e.message);
+      try {
+        const result = await callJsonModel(prompt, null, { temperature: 0.1, maxTokens: 2000 });
+        const data = result?.data || result || {};
+        if (data.items) allItems.push(...data.items);
+        if (data.fields) Object.assign(allFields, data.fields);
+        if (data.summary) summaries.push(data.summary);
+      } catch (e) {
+        console.error("[Agent2] Chunk extraction failed:", e.message);
+      }
+    }
   }
-  return { items: [], fields: {}, summary: "提取失败" };
+
+  return {
+    items: allItems,
+    fields: allFields,
+    summary: summaries.join("；") || "已提取数据"
+  };
 }
 
 // ── Agent 3: Knowledge Retriever ──
@@ -4256,9 +4300,9 @@ async function handleSmartDraftInit(req, res, body) {
   session.knowledgeMode = knowledgeMode;
   session.step = "intent";
 
-  // Agent 1: Intent analysis
+  // Agent 1: Intent analysis (with file content for better judgment)
   const fileNames = fileTexts.map((f) => f.name);
-  session.intent = await agentIntentAnalyze(description, fileNames);
+  session.intent = await agentIntentAnalyze(description, fileNames, fileTexts);
 
   // Match builtin template
   session.template = builtinTemplates.find((t) => t.type === session.intent.contractType) || builtinTemplates[0];
