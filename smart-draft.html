@@ -15,15 +15,15 @@
     /* Big input box */
     .big-input { width:100%; max-width:680px; position:relative; }
     .big-input textarea {
-      width:100%; min-height:100px; padding:18px 20px; padding-bottom:50px;
+      width:100%; min-height:80px; padding:14px 16px;
       border:1.5px solid var(--line-strong); border-radius:var(--r-lg);
       font-size:15px; font-family:var(--font); line-height:1.7; resize:none;
       background:#fff; box-shadow:0 4px 20px rgba(0,0,0,.04);
     }
     .big-input textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 4px 20px rgba(191,149,63,.1); }
     .big-input .input-footer {
-      position:absolute; bottom:12px; left:16px; right:16px;
       display:flex; align-items:center; justify-content:space-between;
+      margin-top:10px;
     }
     .big-input .input-left { display:flex; gap:6px; align-items:center; }
     .big-input .upload-btn {
@@ -32,12 +32,13 @@
     }
     .big-input .upload-btn:hover { color:var(--accent); background:var(--accent-soft); }
     .big-input .go-btn {
-      padding:8px 24px; border:none; border-radius:var(--r-sm);
-      background:var(--accent-gradient); color:#1d1d1f; font-size:14px; font-weight:600;
-      cursor:pointer; font-family:var(--font); transition:opacity .15s;
+      padding:10px 32px; border:none; border-radius:var(--r-pill);
+      background:var(--gold-gradient); color:#fff; font-size:15px; font-weight:700;
+      cursor:pointer; font-family:var(--font); transition:all .2s;
+      box-shadow:0 2px 12px rgba(191,149,63,.2); letter-spacing:.5px;
     }
-    .big-input .go-btn:hover { opacity:.85; }
-    .big-input .go-btn:disabled { opacity:.4; cursor:not-allowed; }
+    .big-input .go-btn:hover { transform:translateY(-1px); box-shadow:0 4px 20px rgba(191,149,63,.3); }
+    .big-input .go-btn:disabled { opacity:.4; cursor:not-allowed; transform:none; }
 
     /* KB checkboxes */
     .kb-checks { display:flex; gap:12px; margin-top:16px; justify-content:center; }
@@ -178,15 +179,17 @@
           <label class="kb-check"><input type="checkbox" id="kbIndustry" checked> 行业惯例</label>
           <label class="kb-check"><input type="checkbox" id="kbEnterprise"> 企业自定</label>
         </div>
-        <!-- Example prompts -->
+        <!-- Contract type selection -->
         <div class="quick-tpls">
-          <div class="quick-tpl" onclick="fillExample('帮我起草一份采购合同，包含采购标的、价款、交付方式、违约责任等条款')">帮我起草一份采购合同，包含采购标的、价款、...</div>
-          <div class="quick-tpl" onclick="fillExample('根据我上传的采购清单生成采购合同，供应商信息、设备型号、数量和单价都在清单里')">根据我上传的采购清单生成采购合同，供应商信...</div>
-          <div class="quick-tpl" onclick="fillExample('帮我起草一份劳动合同，试用期3个月，月薪8000元')">帮我起草一份劳动合同，试用期3个月，月薪8000元</div>
-          <div class="quick-tpl" onclick="fillExample('起草一份软件开发外包合同，项目周期6个月，总价50万')">起草一份软件开发外包合同，项目周期6个月</div>
+          <div class="quick-tpl" onclick="fillExample('帮我起草一份采购合同')">采购合同</div>
+          <div class="quick-tpl" onclick="fillExample('帮我起草一份服务合同')">服务合同</div>
+          <div class="quick-tpl" onclick="fillExample('帮我起草一份劳动合同')">劳动合同</div>
+          <div class="quick-tpl" onclick="fillExample('帮我起草一份软件开发合同')">软件开发合同</div>
+          <div class="quick-tpl" onclick="fillExample('帮我起草一份租赁合同')">租赁合同</div>
+          <div class="quick-tpl" onclick="fillExample('帮我起草一份销售合同')">销售合同</div>
+          <div class="quick-tpl" onclick="fillExample('帮我起草一份咨询合同')">咨询合同</div>
+          <div class="quick-tpl" onclick="fillExample('帮我起草一份保密协议')">保密协议</div>
         </div>
-        <!-- Quick templates -->
-        <div class="quick-tpls" id="quickTpls" style="margin-top:8px"></div>
       </div>
     </div>
 
