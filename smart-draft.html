@@ -159,7 +159,7 @@
           <p>描述需求或选择模板，AI 帮你起草专业合同</p>
         </div>
         <div class="big-input">
-          <textarea id="mainInput" placeholder="描述你的合同需求，例如：&#10;帮我起草一份设备采购合同，甲方是ABC公司，采购10台服务器..."></textarea>
+          <textarea id="mainInput" placeholder="描述你的合同需求..."></textarea>
           <div class="input-footer">
             <div class="input-left">
               <button class="upload-btn" onclick="document.getElementById('mainFileInput').click()" title="上传参考文件">
@@ -178,8 +178,15 @@
           <label class="kb-check"><input type="checkbox" id="kbIndustry" checked> 行业惯例</label>
           <label class="kb-check"><input type="checkbox" id="kbEnterprise"> 企业自定</label>
         </div>
+        <!-- Example prompts -->
+        <div class="quick-tpls">
+          <div class="quick-tpl" onclick="fillExample('帮我起草一份采购合同，包含采购标的、价款、交付方式、违约责任等条款')">帮我起草一份采购合同，包含采购标的、价款、...</div>
+          <div class="quick-tpl" onclick="fillExample('根据我上传的采购清单生成采购合同，供应商信息、设备型号、数量和单价都在清单里')">根据我上传的采购清单生成采购合同，供应商信...</div>
+          <div class="quick-tpl" onclick="fillExample('帮我起草一份劳动合同，试用期3个月，月薪8000元')">帮我起草一份劳动合同，试用期3个月，月薪8000元</div>
+          <div class="quick-tpl" onclick="fillExample('起草一份软件开发外包合同，项目周期6个月，总价50万')">起草一份软件开发外包合同，项目周期6个月</div>
+        </div>
         <!-- Quick templates -->
-        <div class="quick-tpls" id="quickTpls"></div>
+        <div class="quick-tpls" id="quickTpls" style="margin-top:8px"></div>
       </div>
     </div>
 

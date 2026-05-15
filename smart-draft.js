@@ -30,6 +30,14 @@ async function fetchStatus() {
   } catch { document.getElementById("aiModel").textContent="离线"; document.getElementById("aiDot").style.background="var(--red)"; }
 }
 
+function fillExample(text) {
+  document.getElementById("mainInput").value = text;
+  document.getElementById("mainInput").focus();
+}
+
+function toggleKB(el) { el.classList.toggle("on"); }
+}
+
 // ── Quick Templates ──
 async function loadQuickTpls() {
   try {
@@ -118,7 +126,7 @@ async function startDraft() {
       document.getElementById("docTitle").textContent = data.intent.contractTypeCn;
     }
 
-    if (data.messages) renderMessages(data.messages);
+    if (data.messages) appendMessages(data.messages);
 
     if (data.dialogue?.missingCount > 0) {
       showStep("kb");
@@ -162,6 +170,17 @@ function addBubble(role, text) {
 function renderMessages(msgs) {
   const t = document.getElementById("chatThread");
   t.innerHTML = "";
+  (msgs||[]).forEach(m => {
+    const d = document.createElement("div");
+    d.className = `chat-msg ${m.role}`;
+    d.innerHTML = `<div class="avatar">${m.role==="assistant"?"AI":"U"}</div><div class="bubble">${esc(m.content)}</div>`;
+    t.appendChild(d);
+  });
+  t.scrollTop = t.scrollHeight;
+}
+
+function appendMessages(msgs) {
+  const t = document.getElementById("chatThread");
   (msgs||[]).forEach(m => {
     const d = document.createElement("div");
     d.className = `chat-msg ${m.role}`;
