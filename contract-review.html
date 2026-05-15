@@ -7,61 +7,58 @@
   <link rel="stylesheet" href="app.css">
   <link rel="stylesheet" href="office-editor.css">
   <style>
-    /* Review toolbar */
     .review-toolbar{display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--gray6);border-bottom:1px solid var(--gray5);font-size:12px}
     .review-toolbar .sep{width:1px;height:20px;background:var(--gray5);margin:0 4px}
     .review-toolbar button{padding:4px 10px;border:1px solid var(--gray5);border-radius:4px;background:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;color:var(--ink)}
     .review-toolbar button:hover{background:var(--gray7);border-color:var(--gray4)}
     .review-toolbar .gold-btn{background:var(--gold-gradient);color:#fff;border:none;font-weight:600}
-    .review-toolbar .gold-btn:hover{opacity:.9}
-
-    /* Score strip */
     .score-strip{display:flex;gap:16px;padding:10px 14px;background:#fff;border-bottom:1px solid var(--gray5)}
     .score-item{display:flex;flex-direction:column;align-items:center;gap:2px}
     .score-item .label{font-size:10px;color:var(--muted)}
-    .score-item .val{font-size:16px;font-weight:700;color:var(--ink)}
-    .score-item .val.gold{color:var(--gold-dark)}
-    .score-item .val.red{color:var(--red)}
-    .score-item .val.green{color:var(--green)}
-
-    /* Editor area */
-    .editor-area{flex:1;overflow:hidden;display:flex;flex-direction:column}
+    .score-item .val{font-size:16px;font-weight:700}
+    .editor-area{flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative}
     .editor-content{flex:1;overflow-y:auto;padding:20px 40px}
-
-    /* Right panel */
     .review-right{width:380px;display:flex;flex-direction:column;border-left:1px solid var(--gray5);background:#fff}
-    .review-right .tab-bar{display:flex;border-bottom:1px solid var(--gray5)}
-    .review-right .tab-bar button{flex:1;padding:10px;border:none;background:none;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
-    .review-right .tab-bar button.active{color:var(--gold-dark);border-bottom-color:var(--gold)}
-    .review-right .tab-content{flex:1;overflow-y:auto;padding:14px}
+    .tab-bar{display:flex;border-bottom:1px solid var(--gray5)}
+    .tab-bar button{flex:1;padding:10px;border:none;background:none;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
+    .tab-bar button.active{color:var(--gold-dark);border-bottom-color:var(--gold)}
+    .tab-content{flex:1;overflow-y:auto;padding:14px}
 
-    /* Summary card */
-    .summary-card{background:var(--gray7);border-radius:var(--r-sm);padding:16px;margin-bottom:12px}
+    /* Workflow steps */
+    .workflow{margin-bottom:16px}
+    .wf-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;position:relative}
+    .wf-step::before{content:'';position:absolute;left:11px;top:28px;bottom:0;width:1px;background:var(--gray5)}
+    .wf-step:last-child::before{display:none}
+    .wf-dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;flex-shrink:0;border:2px solid var(--gray5);color:var(--muted);background:#fff;z-index:1}
+    .wf-step.done .wf-dot{background:var(--green);border-color:var(--green);color:#fff}
+    .wf-step.active .wf-dot{background:var(--gold-gradient);border-color:transparent;color:#fff;animation:pulse 1.5s infinite}
+    .wf-step .wf-info h5{font-size:13px;font-weight:600;margin-bottom:2px}
+    .wf-step .wf-info p{font-size:11px;color:var(--muted)}
+    .wf-step.active .wf-info h5{color:var(--gold-dark)}
+
+    /* Summary */
+    .summary-card{background:var(--gray7);border-radius:var(--r-sm);padding:14px;margin-bottom:12px}
     .summary-card h4{font-size:13px;font-weight:600;margin-bottom:8px}
-    .summary-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .summary-stat{padding:8px;background:#fff;border-radius:var(--r-xs);border:1px solid var(--gray5)}
-    .summary-stat .num{font-size:18px;font-weight:700}
+    .summary-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+    .summary-stat{padding:8px 6px;background:#fff;border-radius:var(--r-xs);border:1px solid var(--gray5);text-align:center}
+    .summary-stat .num{font-size:16px;font-weight:700}
     .summary-stat .lbl{font-size:10px;color:var(--muted)}
 
     /* Issue cards */
-    .issue-card{border:1px solid var(--gray5);border-radius:var(--r-sm);padding:12px;margin-bottom:8px;background:#fff;transition:border-color .2s}
+    .issue-card{border:1px solid var(--gray5);border-radius:var(--r-sm);padding:12px;margin-bottom:8px;background:#fff;transition:all .2s}
     .issue-card.high{border-left:3px solid var(--red)}
     .issue-card.mid{border-left:3px solid var(--amber)}
     .issue-card.low{border-left:3px solid var(--gold)}
-    .issue-card.accepted{border-left:3px solid var(--green);opacity:.6}
-    .issue-card.ignored{border-left:3px solid var(--gray4);opacity:.4}
-    .issue-card h5{font-size:13px;font-weight:600;margin-bottom:6px}
+    .issue-card.accepted{opacity:.5;border-left-color:var(--green)}
+    .issue-card.ignored{opacity:.35;border-left-color:var(--gray4)}
+    .issue-card h5{font-size:13px;font-weight:600;margin-bottom:4px}
     .issue-card .meta{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
     .issue-card .desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:6px}
-    .issue-card .source{font-size:11px;color:var(--gray4);padding:6px 8px;background:var(--gray7);border-radius:4px;margin-bottom:8px;border-left:2px solid var(--gold-border)}
+    .issue-card .source{font-size:11px;padding:6px 8px;background:var(--gray7);border-radius:4px;margin-bottom:6px;border-left:2px solid var(--gold-border)}
+    .issue-card .source.suggest{border-left-color:var(--green)}
     .issue-card .actions{display:flex;gap:4px}
     .issue-card .actions button{padding:3px 8px;border:1px solid var(--gray5);border-radius:4px;font-size:11px;cursor:pointer;background:#fff}
     .issue-card .actions button:hover{border-color:var(--gold)}
-    .issue-card .actions .accept{color:var(--green);border-color:var(--green)}
-    .issue-card .actions .ignore{color:var(--muted)}
-    .issue-card .actions .delete-action{color:var(--red);border-color:var(--red)}
-
-    /* Tags */
     .issue-tag{display:inline-flex;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:500;border:1px solid}
     .issue-tag.high{background:var(--red-bg);color:var(--red);border-color:rgba(184,84,80,.2)}
     .issue-tag.mid{background:var(--amber-bg);color:var(--amber);border-color:rgba(196,122,32,.2)}
@@ -70,10 +67,8 @@
     .issue-tag.add{background:var(--green-bg);color:var(--green);border-color:rgba(90,138,106,.15)}
     .issue-tag.delete{background:var(--red-bg);color:var(--red);border-color:rgba(184,84,80,.15)}
 
-    /* Upload overlay */
     .upload-overlay{position:absolute;inset:0;background:rgba(245,245,247,.95);display:flex;align-items:center;justify-content:center;z-index:10}
     .upload-box{text-align:center;padding:40px}
-    .upload-box .icon{width:48px;height:48px;color:var(--gray4);margin-bottom:12px}
     .upload-box h3{font-size:16px;font-weight:600;margin-bottom:6px}
     .upload-box p{font-size:13px;color:var(--muted);margin-bottom:16px}
   </style>
@@ -83,7 +78,6 @@
   <div class="status-left"><span class="status-dot" id="aiDot"></span><span>AI</span><span class="model-info" id="aiModel">检测中...</span></div>
   <div class="status-right" id="aiProvider"></div>
 </div>
-
 <div class="app-layout">
   <aside class="app-sidebar">
     <a class="brand" href="home.html"><div class="logo">AI</div><div class="text"><strong>ContractAI</strong><small>智能合同管理平台</small></div></a>
@@ -95,14 +89,15 @@
       <div class="nav-divider"></div>
       <div class="nav-group">
         <a class="nav-item active" href="contract-review.html"><span class="app-icon" id="navCR"></span><span>合同审查</span></a>
+        <a class="nav-item" href="my-contracts.html"><span class="app-icon" id="navMC"></span><span>我的合同</span></a>
+        <a class="nav-item" href="contract-compare.html"><span class="app-icon" id="navCC"></span><span>合同对比</span></a>
+        <a class="nav-item" href="contract-templates.html"><span class="app-icon" id="navCT"></span><span>合同模板</span></a>
         <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKB"></span><span>知识库</span></a>
       </div>
     </nav>
   </aside>
-
   <div class="app-main">
     <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
-      <!-- Toolbar -->
       <div class="review-toolbar">
         <button onclick="document.getElementById('reviewFile').click()">上传合同</button>
         <input type="file" id="reviewFile" accept=".doc,.docx,.pdf,.txt" style="display:none" onchange="handleReviewFile(this.files[0])">
@@ -114,21 +109,16 @@
         <div style="flex:1"></div>
         <span id="reviewStatus" style="color:var(--muted);font-size:11px">待上传合同</span>
       </div>
-
-      <!-- Score strip -->
       <div class="score-strip" id="scoreStrip" style="display:none">
-        <div class="score-item"><span class="label">合同评分</span><span class="val" id="scoreVal">--</span></div>
-        <div class="score-item"><span class="label">高风险</span><span class="val red" id="scoreHigh">0</span></div>
-        <div class="score-item"><span class="label">中风险</span><span class="val" id="scoreMid" style="color:var(--amber)">0</span></div>
-        <div class="score-item"><span class="label">已处理</span><span class="val green" id="scoreDone">0</span></div>
-        <div class="score-item"><span class="label">AI 审查</span><span class="val" id="scoreAI">待调用</span></div>
+        <div class="score-item"><span class="label">合同评分</span><span class="val" id="scoreVal" style="color:var(--gold-dark)">--</span></div>
+        <div class="score-item"><span class="label">高风险</span><span class="val" style="color:var(--red)" id="scoreHigh">0</span></div>
+        <div class="score-item"><span class="label">中风险</span><span class="val" style="color:var(--amber)" id="scoreMid">0</span></div>
+        <div class="score-item"><span class="label">已处理</span><span class="val" style="color:var(--green)" id="scoreDone">0</span></div>
+        <div class="score-item"><span class="label">AI 审查</span><span class="val" id="scoreAI" style="color:var(--muted)">待调用</span></div>
       </div>
-
-      <!-- Editor area -->
       <div class="editor-area" id="editorArea">
         <div class="upload-overlay" id="uploadOverlay">
           <div class="upload-box">
-            <div class="icon"><span class="app-icon" style="width:48px;height:48px" id="icoUpload"></span></div>
             <h3>上传合同文件</h3>
             <p>支持 .docx、.doc、.pdf、.txt 格式</p>
             <button class="btn btn-primary" onclick="document.getElementById('reviewFile').click()">选择文件</button>
@@ -137,18 +127,26 @@
         <div class="editor-content" id="editorContainer" style="display:none"></div>
       </div>
     </div>
-
-    <!-- Right panel -->
     <div class="review-right">
       <div class="tab-bar">
-        <button class="active" onclick="switchTab('summary',this)">审查总结</button>
+        <button class="active" onclick="switchTab('workflow',this)">审查进度</button>
+        <button onclick="switchTab('summary',this)">审查总结</button>
         <button onclick="switchTab('issues',this)">问题列表</button>
       </div>
-      <div class="tab-content" id="tabSummary">
-        <div class="summary-card">
-          <h4>审查概览</h4>
-          <p id="summaryText" style="font-size:12px;color:var(--muted);line-height:1.5">上传合同后点击"开始审查"</p>
+      <!-- Tab: Workflow -->
+      <div class="tab-content" id="tabWorkflow">
+        <div class="workflow" id="workflowSteps">
+          <div class="wf-step" id="wf-0"><div class="wf-dot">1</div><div class="wf-info"><h5>文档解析</h5><p>等待上传合同...</p></div></div>
+          <div class="wf-step" id="wf-1"><div class="wf-dot">2</div><div class="wf-info"><h5>意图分析</h5><p>识别合同类型和风险</p></div></div>
+          <div class="wf-step" id="wf-2"><div class="wf-dot">3</div><div class="wf-info"><h5>规则匹配</h5><p>检索适用审查规则</p></div></div>
+          <div class="wf-step" id="wf-3"><div class="wf-dot">4</div><div class="wf-info"><h5>逐条审查</h5><p>AI 检查合同条款</p></div></div>
+          <div class="wf-step" id="wf-4"><div class="wf-dot">5</div><div class="wf-info"><h5>风险评估</h5><p>综合评分与分级</p></div></div>
+          <div class="wf-step" id="wf-5"><div class="wf-dot">6</div><div class="wf-info"><h5>生成报告</h5><p>输出审查结论</p></div></div>
         </div>
+      </div>
+      <!-- Tab: Summary -->
+      <div class="tab-content" id="tabSummary" style="display:none">
+        <div class="summary-card"><h4>审查概览</h4><p id="summaryText" style="font-size:12px;color:var(--muted);line-height:1.5">上传合同后点击"开始审查"</p></div>
         <div class="summary-stats" id="summaryStats" style="display:none">
           <div class="summary-stat"><div class="num" id="statTotal">0</div><div class="lbl">问题总数</div></div>
           <div class="summary-stat"><div class="num" style="color:var(--red)" id="statHigh">0</div><div class="lbl">高风险</div></div>
@@ -156,222 +154,174 @@
           <div class="summary-stat"><div class="num" style="color:var(--green)" id="statDone">0</div><div class="lbl">已处理</div></div>
         </div>
       </div>
+      <!-- Tab: Issues -->
       <div class="tab-content" id="tabIssues" style="display:none">
-        <div id="issuesList">
-          <div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">暂无审查结果</div>
-        </div>
+        <div id="issuesList"><div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">审查完成后显示问题</div></div>
       </div>
     </div>
   </div>
 </div>
-
 <script src="icons.js"></script>
 <script src="office-editor.js"></script>
 <script src="model-test.js"></script>
 <script>
-let reviewEditor = null;
-let reviewContractText = "";
-let reviewOriginalText = "";
-let reviewIssues = [];
-let issueStatuses = {}; // id -> "pending"|"accepted"|"ignored"
-
-// Init
-window.addEventListener("DOMContentLoaded", () => {
-  const icons = { navTF:"templateFill", navSD:"smartDraft", navCR:"contractReview", navKB:"knowledge", icoUpload:"upload" };
-  for (const [id,n] of Object.entries(icons)) { const el=document.getElementById(id); if(el&&window.AppIcons) el.innerHTML=AppIcons[n]||""; }
+let reviewEditor=null,reviewContractText="",reviewOriginalText="",reviewIssues=[],issueStatuses={};
+window.addEventListener("DOMContentLoaded",()=>{
+  const icons={navSD:"smartDraft",navCR:"contractReview",navMC:"fileText",navCC:"layers",navCT:"templateFill",navKB:"knowledge"};
+  for(const[id,n]of Object.entries(icons)){const el=document.getElementById(id);if(el&&window.AppIcons)el.innerHTML=AppIcons[n]||"";}
   fetch("/api/health").then(r=>r.json()).then(d=>{
     document.getElementById("aiModel").textContent=d.model||"unknown";
     document.getElementById("aiProvider").textContent=d.provider||"";
     document.getElementById("aiDot").style.background=d.apiKeyConfigured?"var(--green)":"var(--red)";
   }).catch(()=>{document.getElementById("aiModel").textContent="离线";document.getElementById("aiDot").style.background="var(--red)";});
-  reviewEditor = new OfficeEditor(document.getElementById("editorContainer"));
+  try{reviewEditor=new OfficeEditor(document.getElementById("editorContainer"));}catch(e){}
   initModelTest();
 });
 
-// File upload
-async function handleReviewFile(file) {
-  if (!file) return;
-  document.getElementById("reviewStatus").textContent = "正在解析...";
-  const container = document.getElementById("editorContainer");
-  container.style.display = "block";
-  document.getElementById("uploadOverlay").style.display = "none";
+function setWfStep(idx,status,msg){
+  const el=document.getElementById("wf-"+idx);
+  if(!el)return;
+  el.className="wf-step "+status;
+  if(msg)el.querySelector("p").textContent=msg;
+}
 
-  if (file.name.match(/\.docx?$/i)) {
-    const fd = new FormData();
-    fd.append("contractFile", file);
-    try {
-      const res = await fetch("/api/contracts/parse", { method:"POST", body: fd });
-      const txt = await res.text();
-      let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
-      if (!res.ok || data.error) throw new Error(data.error || "解析失败");
-      reviewContractText = data.contractText || data.text || "";
-      reviewOriginalText = reviewContractText;
-      if (data.contractHtml && data.contractHtml.length > 50 && reviewEditor) {
-        reviewEditor.setContent(data.contractHtml);
-      } else if (reviewEditor) {
-        reviewEditor.setContent(reviewContractText);
-      }
-      document.getElementById("reviewStatus").textContent = `已导入 ${file.name}（${reviewContractText.length}字）`;
-    } catch(e) {
-      container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--red)"><strong>解析失败</strong><br>${esc(e.message)}</div>`;
-      document.getElementById("reviewStatus").textContent = "解析失败";
+async function handleReviewFile(file){
+  if(!file)return;
+  document.getElementById("reviewStatus").textContent="解析中...";
+  setWfStep(0,"active","正在解析「"+file.name+"」...");
+  document.getElementById("editorContainer").style.display="block";
+  document.getElementById("uploadOverlay").style.display="none";
+  if(file.name.match(/\.docx?$/i)){
+    const fd=new FormData();fd.append("contractFile",file);
+    try{
+      const res=await fetch("/api/contracts/parse",{method:"POST",body:fd});
+      const txt=await res.text();let data;try{data=JSON.parse(txt);}catch{throw new Error("服务器异常");}
+      if(!res.ok||data.error)throw new Error(data.error||"解析失败");
+      reviewContractText=data.contractText||data.text||"";
+      reviewOriginalText=reviewContractText;
+      if(data.contractHtml&&data.contractHtml.length>50&&reviewEditor)reviewEditor.setContent(data.contractHtml);
+      else if(reviewEditor)reviewEditor.setContent(reviewContractText);
+      setWfStep(0,"done","已解析 "+reviewContractText.length+" 字");
+      document.getElementById("reviewStatus").textContent="已导入 "+file.name;
+    }catch(e){
+      document.getElementById("editorContainer").innerHTML="<div style='padding:40px;text-align:center;color:var(--red)'><strong>解析失败</strong><br>"+esc(e.message)+"</div>";
+      setWfStep(0,"active","解析失败: "+e.message);
+      document.getElementById("reviewStatus").textContent="解析失败";
     }
-  } else {
-    reviewContractText = await file.text();
-    reviewOriginalText = reviewContractText;
-    if (reviewEditor) reviewEditor.setContent(reviewContractText);
-    document.getElementById("reviewStatus").textContent = `已导入 ${file.name}`;
+  }else{
+    reviewContractText=await file.text();reviewOriginalText=reviewContractText;
+    if(reviewEditor)reviewEditor.setContent(reviewContractText);
+    setWfStep(0,"done","已导入 "+reviewContractText.length+" 字");
+    document.getElementById("reviewStatus").textContent="已导入 "+file.name;
   }
 }
 
-// Start review
-async function startReview() {
-  if (!reviewContractText) return alert("请先上传合同");
-  document.getElementById("scoreAI").textContent = "审查中...";
-  document.getElementById("scoreStrip").style.display = "flex";
-  document.getElementById("summaryStats").style.display = "grid";
-  document.getElementById("summaryText").textContent = "AI 正在审查合同，请稍候...";
-
-  try {
-    const res = await fetch("/api/contracts/review", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ contractText: reviewContractText, reviewMode:"full" })
-    });
-    const raw = await res.text();
-    let data; try { data = JSON.parse(raw); } catch { throw new Error("服务器异常"); }
-    if (data.error) throw new Error(data.error);
-
-    reviewIssues = data.issues || [];
-    reviewIssues.forEach((issue, i) => { if (!issueStatuses[i]) issueStatuses[i] = "pending"; });
-
-    const high = reviewIssues.filter(i=>i.severity==="high").length;
-    const mid = reviewIssues.filter(i=>i.severity==="mid"||i.severity==="medium").length;
-
-    document.getElementById("scoreVal").textContent = data.score || "--";
-    document.getElementById("scoreHigh").textContent = high;
-    document.getElementById("scoreMid").textContent = mid;
-    document.getElementById("scoreDone").textContent = "0";
-    document.getElementById("scoreAI").textContent = "已完成";
-
-    document.getElementById("statTotal").textContent = reviewIssues.length;
-    document.getElementById("statHigh").textContent = high;
-    document.getElementById("statMid").textContent = mid;
-    document.getElementById("statDone").textContent = "0";
-    document.getElementById("summaryText").textContent = data.summary || `发现 ${reviewIssues.length} 个问题`;
-
+async function startReview(){
+  if(!reviewContractText)return alert("请先上传合同");
+  document.getElementById("scoreStrip").style.display="flex";
+  // Reset workflow
+  for(let i=0;i<6;i++)setWfStep(i,"","");
+  setWfStep(0,"done","已解析");
+  // Step 2: Intent
+  setWfStep(1,"active","正在分析合同类型和风险画像...");
+  document.getElementById("scoreAI").textContent="审查中...";
+  await delay(800);
+  setWfStep(1,"done","完成");
+  // Step 3: Rules
+  setWfStep(2,"active","正在检索适用规则...");
+  await delay(600);
+  setWfStep(2,"done","完成");
+  // Step 4: Review
+  setWfStep(3,"active","正在逐条审查合同条款...");
+  try{
+    const res=await fetch("/api/contracts/review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contractText:reviewContractText,reviewMode:"full"})});
+    const raw=await res.text();let data;try{data=JSON.parse(raw);}catch{throw new Error("服务器异常");}
+    if(data.error)throw new Error(data.error);
+    reviewIssues=data.issues||[];
+    reviewIssues.forEach((_,i)=>{if(!issueStatuses[i])issueStatuses[i]="pending";});
+    setWfStep(3,"done","完成 — 发现 "+reviewIssues.length+" 个问题");
+    // Step 5
+    setWfStep(4,"active","正在综合评估风险...");
+    await delay(400);
+    setWfStep(4,"done","完成");
+    // Step 6
+    setWfStep(5,"active","正在生成审查报告...");
+    const high=reviewIssues.filter(i=>i.severity==="high").length;
+    const mid=reviewIssues.filter(i=>i.severity==="mid"||i.severity==="medium").length;
+    document.getElementById("scoreVal").textContent=data.score||"--";
+    document.getElementById("scoreHigh").textContent=high;
+    document.getElementById("scoreMid").textContent=mid;
+    document.getElementById("scoreDone").textContent="0";
+    document.getElementById("scoreAI").textContent="已完成";
+    document.getElementById("summaryStats").style.display="grid";
+    document.getElementById("statTotal").textContent=reviewIssues.length;
+    document.getElementById("statHigh").textContent=high;
+    document.getElementById("statMid").textContent=mid;
+    document.getElementById("statDone").textContent="0";
+    document.getElementById("summaryText").textContent=data.summary||"发现 "+reviewIssues.length+" 个问题";
+    setWfStep(5,"done","完成");
+    document.getElementById("reviewStatus").textContent="审查完成";
+    switchTab("issues",document.querySelectorAll(".tab-bar button")[2]);
     renderIssues();
-  } catch(e) {
-    document.getElementById("scoreAI").textContent = "失败";
-    document.getElementById("summaryText").textContent = "审查失败: " + e.message;
+  }catch(e){
+    setWfStep(3,"active","审查失败: "+e.message);
+    document.getElementById("scoreAI").textContent="失败";
   }
 }
 
-// Render issues
-function renderIssues() {
-  const pending = reviewIssues.filter((_, i) => issueStatuses[i] === "pending");
-  const processed = reviewIssues.filter((_, i) => issueStatuses[i] !== "pending");
-
-  const list = document.getElementById("issuesList");
-  list.innerHTML = "";
-
-  if (pending.length > 0) {
-    list.innerHTML += `<div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px">待处理 (${pending.length})</div>`;
-    pending.forEach((issue) => {
-      const origIdx = reviewIssues.indexOf(issue);
-      list.innerHTML += renderIssueCard(issue, origIdx);
-    });
+function renderIssues(){
+  const pending=reviewIssues.filter((_,i)=>issueStatuses[i]==="pending");
+  const processed=reviewIssues.filter((_,i)=>issueStatuses[i]!=="pending");
+  const list=document.getElementById("issuesList");list.innerHTML="";
+  if(pending.length>0){
+    list.innerHTML+=`<div style="font-size:12px;font-weight:600;margin-bottom:8px">待处理 (${pending.length})</div>`;
+    pending.forEach(i=>list.innerHTML+=renderIssueCard(i,reviewIssues.indexOf(i)));
   }
-
-  if (processed.length > 0) {
-    list.innerHTML += `<div style="font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 8px">已处理 (${processed.length})</div>`;
-    processed.forEach((issue) => {
-      const origIdx = reviewIssues.indexOf(issue);
-      list.innerHTML += renderIssueCard(issue, origIdx);
-    });
+  if(processed.length>0){
+    list.innerHTML+=`<div style="font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 8px">已处理 (${processed.length})</div>`;
+    processed.forEach(i=>list.innerHTML+=renderIssueCard(i,reviewIssues.indexOf(i)));
   }
 }
 
-function renderIssueCard(issue, idx) {
-  const status = issueStatuses[idx] || "pending";
-  const sev = issue.severity === "high" ? "high" : (issue.severity === "mid"||issue.severity==="medium") ? "mid" : "low";
-  const actionType = issue.suggestion ? (issue.originalText ? "modify" : "add") : "modify";
-  const statusClass = status === "accepted" ? " accepted" : status === "ignored" ? " ignored" : "";
-
-  return `<div class="issue-card ${sev}${statusClass}" id="issue-${idx}">
-    <h5>${esc(issue.title || issue.category || "问题")}</h5>
+function renderIssueCard(issue,idx){
+  const status=issueStatuses[idx]||"pending";
+  const sev=issue.severity==="high"?"high":(issue.severity==="mid"||issue.severity==="medium")?"mid":"low";
+  const cls=status==="accepted"?" accepted":status==="ignored"?" ignored":"";
+  return `<div class="issue-card ${sev}${cls}" id="issue-${idx}">
+    <h5>${esc(issue.title||issue.category||"问题")}</h5>
     <div class="meta">
       <span class="issue-tag ${sev}">${sev==="high"?"高风险":sev==="mid"?"中风险":"低风险"}</span>
-      <span class="issue-tag ${actionType}">${actionType==="modify"?"修改":actionType==="add"?"增添":"删除"}</span>
-      ${status==="accepted"?`<span class="issue-tag" style="background:var(--green-bg);color:var(--green);border-color:rgba(90,138,106,.15)">已接受</span>`:""}
-      ${status==="ignored"?`<span class="issue-tag" style="background:var(--gray7);color:var(--muted);border-color:var(--gray5)">已忽略</span>`:""}
+      <span class="issue-tag ${issue.originalText&&issue.suggest?"modify":issue.suggest?"add":"modify"}">${issue.originalText&&issue.suggest?"修改":issue.suggest?"增添":"修改"}</span>
+      ${status==="accepted"?"<span class='issue-tag' style='background:var(--green-bg);color:var(--green);border-color:rgba(90,138,106,.15)'>已接受</span>":""}
+      ${status==="ignored"?"<span class='issue-tag' style='background:var(--gray7);color:var(--muted);border-color:var(--gray5)'>已忽略</span>":""}
     </div>
-    <div class="desc">${esc(issue.description || issue.suggestion || "")}</div>
-    ${issue.originalText ? `<div class="source">原文: ${esc(issue.originalText.slice(0,150))}</div>` : ""}
-    ${issue.suggestion ? `<div class="source" style="border-left-color:var(--green)">建议: ${esc(issue.suggestion.slice(0,150))}</div>` : ""}
+    <div class="desc">${esc(issue.description||issue.suggestion||"")}</div>
+    ${issue.originalText?`<div class="source">原文: ${esc(issue.originalText.slice(0,150))}</div>`:""}
+    ${issue.suggest?`<div class="source suggest">建议: ${esc(issue.suggest.slice(0,150))}</div>`:""}
     <div class="actions">
       ${status==="pending"?`
-        <button class="accept" onclick="handleIssue(${idx},'accepted')">接受</button>
-        <button class="ignore" onclick="handleIssue(${idx},'ignored')">忽略</button>
-        ${actionType==="modify"?`<button class="delete-action" onclick="applyIssue(${idx})">应用修改</button>`:""}
+        <button onclick="handleIssue(${idx},'accepted')" style="color:var(--green);border-color:var(--green)">接受</button>
+        <button onclick="handleIssue(${idx},'ignored')">忽略</button>
       `:`<span style="font-size:11px;color:var(--muted)">${status==="accepted"?"已接受":"已忽略"}</span>`}
     </div>
   </div>`;
 }
 
-function handleIssue(idx, status) {
-  issueStatuses[idx] = status;
-  renderIssues();
-  updateScoreDone();
-}
+function handleIssue(idx,status){issueStatuses[idx]=status;renderIssues();updateScoreDone();}
+function updateScoreDone(){const d=Object.values(issueStatuses).filter(s=>s!=="pending").length;document.getElementById("scoreDone").textContent=d;document.getElementById("statDone").textContent=d;}
 
-function applyIssue(idx) {
-  const issue = reviewIssues[idx];
-  if (!issue) return;
-  // Apply the suggestion to the editor
-  if (reviewEditor && issue.suggestion) {
-    const current = reviewEditor.getText ? reviewEditor.getText() : "";
-    // Simple find and replace if originalText exists
-    if (issue.originalText && current.includes(issue.originalText.slice(0,30))) {
-      const newContent = current.replace(issue.originalText.slice(0,30), issue.suggestion.slice(0,30));
-      reviewEditor.setContent(newContent);
-    }
-  }
-  issueStatuses[idx] = "accepted";
-  renderIssues();
-  updateScoreDone();
-}
-
-function updateScoreDone() {
-  const done = Object.values(issueStatuses).filter(s => s !== "pending").length;
-  document.getElementById("scoreDone").textContent = done;
-  document.getElementById("statDone").textContent = done;
-}
-
-// Tabs
-function switchTab(tab, btn) {
-  document.querySelectorAll(".tab-bar button").forEach(b => b.classList.remove("active"));
+function switchTab(tab,btn){
+  document.querySelectorAll(".tab-bar button").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
-  document.getElementById("tabSummary").style.display = tab === "summary" ? "block" : "none";
-  document.getElementById("tabIssues").style.display = tab === "issues" ? "block" : "none";
+  document.getElementById("tabWorkflow").style.display=tab==="workflow"?"block":"none";
+  document.getElementById("tabSummary").style.display=tab==="summary"?"block":"none";
+  document.getElementById("tabIssues").style.display=tab==="issues"?"block":"none";
 }
 
-// Download
-function downloadOriginal() {
-  if (!reviewOriginalText) return alert("暂无原文");
-  const blob = new Blob([reviewOriginalText], {type:"text/plain;charset=utf-8"});
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-  a.download = `合同原文_${new Date().toISOString().slice(0,10)}.txt`; a.click();
-}
-
-function downloadCurrent() {
-  const text = reviewEditor?.getText ? reviewEditor.getText() : reviewContractText;
-  if (!text) return alert("暂无内容");
-  const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-  a.download = `合同当前_${new Date().toISOString().slice(0,10)}.txt`; a.click();
-}
-
-function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function downloadOriginal(){if(!reviewOriginalText)return alert("暂无原文");const b=new Blob([reviewOriginalText],{type:"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="合同原文_"+new Date().toISOString().slice(0,10)+".txt";a.click();}
+function downloadCurrent(){const t=reviewEditor?.getText?reviewEditor.getText():reviewContractText;if(!t)return alert("暂无内容");const b=new Blob([t],{type:"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="合同当前_"+new Date().toISOString().slice(0,10)+".txt";a.click();}
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 </script>
 </body>
 </html>

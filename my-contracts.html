@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的合同 - ContractAI</title>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .mc-main{padding:20px 28px;overflow-y:auto;flex:1}
+    .mc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--gray5)}
+    .mc-header h1{font-size:22px;font-weight:700}
+    .mc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .mc-card{background:#fff;border:1px solid var(--gray5);border-radius:var(--r-sm);padding:18px;transition:all .2s;cursor:pointer}
+    .mc-card:hover{border-color:var(--gold);box-shadow:0 4px 16px rgba(0,0,0,.05)}
+    .mc-card h3{font-size:14px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+    .mc-card .meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+    .mc-card .tags{display:flex;flex-wrap:wrap;gap:4px}
+    .mc-card .tag{display:inline-flex;padding:2px 6px;border-radius:3px;font-size:10px;border:1px solid}
+    .mc-card .actions{display:flex;gap:4px;margin-top:10px}
+    .mc-card .actions button{padding:3px 8px;border:1px solid var(--gray5);border-radius:4px;font-size:11px;cursor:pointer;background:#fff}
+    .mc-card .actions button:hover{border-color:var(--gold)}
+    .mc-upload{border:2px dashed var(--gray5);border-radius:var(--r-sm);padding:40px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gold-bg)}
+    .mc-upload:hover{border-color:var(--gold)}
+  </style>
+</head>
+<body>
+<div class="ai-status-bar">
+  <div class="status-left"><span class="status-dot" id="aiDot"></span><span>AI</span><span class="model-info" id="aiModel">检测中...</span></div>
+  <div class="status-right" id="aiProvider"></div>
+</div>
+<div class="app-layout">
+  <aside class="app-sidebar">
+    <a class="brand" href="home.html"><div class="logo">AI</div><div class="text"><strong>ContractAI</strong><small>智能合同管理平台</small></div></a>
+    <nav>
+      <div class="nav-group"><div class="nav-group-label">合同起草</div>
+        <a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group">
+        <a class="nav-item" href="contract-review.html"><span class="app-icon" id="navCR"></span><span>合同审查</span></a>
+        <a class="nav-item active" href="my-contracts.html"><span class="app-icon" id="navMC"></span><span>我的合同</span></a>
+        <a class="nav-item" href="contract-compare.html"><span class="app-icon" id="navCC"></span><span>合同对比</span></a>
+        <a class="nav-item" href="contract-templates.html"><span class="app-icon" id="navCT"></span><span>合同模板</span></a>
+        <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKB"></span><span>知识库</span></a>
+      </div>
+    </nav>
+  </aside>
+  <div class="app-main">
+    <div class="mc-main">
+      <div class="mc-header">
+        <h1>我的合同</h1>
+        <button class="btn btn-primary" onclick="document.getElementById('mcFileInput').click()">上传合同</button>
+        <input type="file" id="mcFileInput" multiple accept=".doc,.docx,.pdf,.txt" style="display:none" onchange="handleMcUpload(this.files)">
+      </div>
+      <div class="mc-grid" id="mcGrid">
+        <div class="mc-upload" onclick="document.getElementById('mcFileInput').click()">
+          <div style="font-size:28px;margin-bottom:8px;color:var(--muted)">+</div>
+          <div style="font-size:13px;color:var(--muted)">上传新合同</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="icons.js"></script>
+<script src="model-test.js"></script>
+<script>
+let myContracts=[];
+window.addEventListener("DOMContentLoaded",()=>{
+  const icons={navSD:"smartDraft",navCR:"contractReview",navMC:"fileText",navCC:"layers",navCT:"templateFill",navKB:"knowledge"};
+  for(const[id,n]of Object.entries(icons)){const el=document.getElementById(id);if(el&&window.AppIcons)el.innerHTML=AppIcons[n]||"";}
+  fetch("/api/health").then(r=>r.json()).then(d=>{
+    document.getElementById("aiModel").textContent=d.model||"unknown";
+    document.getElementById("aiProvider").textContent=d.provider||"";
+    document.getElementById("aiDot").style.background=d.apiKeyConfigured?"var(--green)":"var(--red)";
+  }).catch(()=>{document.getElementById("aiModel").textContent="离线";});
+  initModelTest();
+  loadMyContracts();
+});
+
+async function loadMyContracts(){
+  try{const res=await fetch("/api/my-contracts");if(res.ok){myContracts=await res.json();renderMyContracts();}}catch{}
+}
+
+function renderMyContracts(){
+  const grid=document.getElementById("mcGrid");
+  grid.innerHTML=`<div class="mc-upload" onclick="document.getElementById('mcFileInput').click()"><div style="font-size:28px;margin-bottom:8px;color:var(--muted)">+</div><div style="font-size:13px;color:var(--muted)">上传新合同</div></div>`;
+  myContracts.forEach((c,i)=>{
+    grid.innerHTML+=`<div class="mc-card">
+      <h3>${esc(c.name)} ${c.starred?"⭐":""}</h3>
+      <div class="meta">${esc(c.date||"")} · ${esc(c.type||"通用合同")}</div>
+      <div class="tags">
+        <span class="tag tag-neutral">${esc(c.status||"未审查")}</span>
+        ${c.riskLevel?`<span class="issue-tag ${c.riskLevel}">${c.riskLevel==="high"?"高风险":c.riskLevel==="mid"?"中风险":"低风险"}</span>`:""}
+      </div>
+      <div class="actions">
+        <button onclick="reviewContract(${i})">审查</button>
+        <button onclick="compareContract(${i})">对比</button>
+        <button onclick="starContract(${i})">${c.starred?"取消收藏":"收藏"}</button>
+        <button onclick="deleteContract(${i})" style="color:var(--red)">删除</button>
+      </div>
+    </div>`;
+  });
+}
+
+async function handleMcUpload(files){
+  for(const file of files){
+    const fd=new FormData();fd.append("contractFile",file);
+    try{
+      const res=await fetch("/api/contracts/parse",{method:"POST",body:fd});
+      const txt=await res.text();let data;try{data=JSON.parse(txt);}catch{data={};}
+      myContracts.push({name:file.name,date:new Date().toLocaleDateString("zh-CN"),type:"通用合同",status:"未审查",text:data.contractText||data.text||"",starred:false,riskLevel:null});
+    }catch{myContracts.push({name:file.name,date:new Date().toLocaleDateString("zh-CN"),type:"通用合同",status:"未审查",text:"",starred:false,riskLevel:null});}
+  }
+  renderMyContracts();
+  saveMyContracts();
+}
+
+function starContract(i){myContracts[i].starred=!myContracts[i].starred;renderMyContracts();saveMyContracts();}
+function deleteContract(i){if(confirm("确定删除？")){myContracts.splice(i,1);renderMyContracts();saveMyContracts();}}
+function reviewContract(i){window.location.href="contract-review.html?from=mc&idx="+i;}
+function compareContract(i){window.location.href="contract-compare.html?from=mc&idx="+i;}
+function saveMyContracts(){try{localStorage.setItem("myContracts",JSON.stringify(myContracts));}catch{}}
+function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+</script>
+</body>
+</html>

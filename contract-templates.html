@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>合同模板 - ContractAI</title>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    .tpl-main{padding:20px 28px;overflow-y:auto;flex:1}
+    .tpl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--gray5)}
+    .tpl-header h1{font-size:22px;font-weight:700}
+    .tpl-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--gray7);border-radius:var(--r-sm);padding:3px;width:fit-content}
+    .tpl-tabs button{padding:7px 16px;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--muted);font-family:var(--font)}
+    .tpl-tabs button.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+    .tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .tpl-card{background:#fff;border:1px solid var(--gray5);border-radius:var(--r-sm);padding:18px;transition:all .2s;cursor:pointer}
+    .tpl-card:hover{border-color:var(--gold);box-shadow:0 4px 16px rgba(0,0,0,.05)}
+    .tpl-card h3{font-size:14px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+    .tpl-card .meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+    .tpl-card .tags{display:flex;flex-wrap:wrap;gap:4px}
+    .tpl-card .actions{display:flex;gap:4px;margin-top:10px}
+    .tpl-card .actions button{padding:3px 8px;border:1px solid var(--gray5);border-radius:4px;font-size:11px;cursor:pointer;background:#fff}
+    .tpl-card .actions button:hover{border-color:var(--gold)}
+    .ai-extract{background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:var(--r-sm);padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+    .ai-extract .icon{width:40px;height:40px;background:var(--gold-gradient);border-radius:10px;display:grid;place-items:center;color:#fff;font-size:18px;flex-shrink:0}
+    .ai-extract .info{flex:1}
+    .ai-extract h3{font-size:14px;font-weight:600;margin-bottom:2px}
+    .ai-extract p{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="ai-status-bar">
+  <div class="status-left"><span class="status-dot" id="aiDot"></span><span>AI</span><span class="model-info" id="aiModel">检测中...</span></div>
+  <div class="status-right" id="aiProvider"></div>
+</div>
+<div class="app-layout">
+  <aside class="app-sidebar">
+    <a class="brand" href="home.html"><div class="logo">AI</div><div class="text"><strong>ContractAI</strong><small>智能合同管理平台</small></div></a>
+    <nav>
+      <div class="nav-group"><div class="nav-group-label">合同起草</div>
+        <a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group">
+        <a class="nav-item" href="contract-review.html"><span class="app-icon" id="navCR"></span><span>合同审查</span></a>
+        <a class="nav-item" href="my-contracts.html"><span class="app-icon" id="navMC"></span><span>我的合同</span></a>
+        <a class="nav-item" href="contract-compare.html"><span class="app-icon" id="navCC"></span><span>合同对比</span></a>
+        <a class="nav-item active" href="contract-templates.html"><span class="app-icon" id="navCT"></span><span>合同模板</span></a>
+        <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKB"></span><span>知识库</span></a>
+      </div>
+    </nav>
+  </aside>
+  <div class="app-main">
+    <div class="tpl-main">
+      <div class="tpl-header">
+        <h1>合同模板</h1>
+        <button class="btn btn-primary" onclick="document.getElementById('tplFileInput').click()">AI 提取模板</button>
+        <input type="file" id="tplFileInput" accept=".doc,.docx" style="display:none" onchange="extractTemplate(this.files[0])">
+      </div>
+
+      <div class="ai-extract">
+        <div class="icon">✨</div>
+        <div class="info">
+          <h3>AI 智能提取模板</h3>
+          <p>上传一份合同文件，AI 自动解析并提取关键字段，形成可复用模板</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('tplFileInput').click()">上传合同提取</button>
+      </div>
+
+      <div class="tpl-tabs">
+        <button class="active" onclick="switchTplTab('common',this)">常用模板</button>
+        <button onclick="switchTplTab('company',this)">公司模板</button>
+        <button onclick="switchTplTab('my',this)">我的模板</button>
+        <button onclick="switchTplTab('starred',this)">收藏</button>
+      </div>
+
+      <div class="tpl-grid" id="tplGrid"></div>
+    </div>
+  </div>
+</div>
+<script src="icons.js"></script>
+<script src="model-test.js"></script>
+<script>
+let templates=[],currentTab="common";
+window.addEventListener("DOMContentLoaded",()=>{
+  const icons={navSD:"smartDraft",navCR:"contractReview",navMC:"fileText",navCC:"layers",navCT:"templateFill",navKB:"knowledge"};
+  for(const[id,n]of Object.entries(icons)){const el=document.getElementById(id);if(el&&window.AppIcons)el.innerHTML=AppIcons[n]||"";}
+  fetch("/api/health").then(r=>r.json()).then(d=>{
+    document.getElementById("aiModel").textContent=d.model||"unknown";
+    document.getElementById("aiProvider").textContent=d.provider||"";
+    document.getElementById("aiDot").style.background=d.apiKeyConfigured?"var(--green)":"var(--red)";
+  }).catch(()=>{document.getElementById("aiModel").textContent="离线";});
+  initModelTest();
+  loadTemplates();
+});
+
+async function loadTemplates(){
+  try{
+    const res=await fetch("/api/smart-draft/templates");
+    templates=await res.json();
+    // Add company and my templates from localStorage
+    const company=JSON.parse(localStorage.getItem("companyTemplates")||"[]");
+    const my=JSON.parse(localStorage.getItem("myTemplates")||"[]");
+    templates=templates.concat(company.map(t=>({...t,source:"company"})),my.map(t=>({...t,source:"my"})));
+    renderTemplates();
+  }catch{renderTemplates();}
+}
+
+function renderTemplates(){
+  const grid=document.getElementById("tplGrid");
+  let filtered=templates;
+  if(currentTab==="common")filtered=templates.filter(t=>!t.source);
+  else if(currentTab==="company")filtered=templates.filter(t=>t.source==="company");
+  else if(currentTab==="my")filtered=templates.filter(t=>t.source==="my");
+  else if(currentTab==="starred")filtered=templates.filter(t=>t.starred);
+
+  grid.innerHTML=filtered.length?filtered.map(t=>`<div class="tpl-card" onclick="useTemplate('${t.id}')">
+    <h3>${esc(t.name)} ${t.starred?"⭐":""}</h3>
+    <div class="meta">${esc(t.description||t.category||"")}</div>
+    <div class="tags"><span class="tag tag-neutral">${esc(t.type||"通用")}</span></div>
+    <div class="actions">
+      <button onclick="event.stopPropagation();useTemplate('${t.id}')">使用</button>
+      <button onclick="event.stopPropagation();starTemplate('${t.id}')">${t.starred?"取消收藏":"收藏"}</button>
+      ${t.source?`<button onclick="event.stopPropagation();moveToCompany('${t.id}')" style="color:var(--gold-dark)">移到公司</button>`:""}
+    </div>
+  </div>`).join(""):`<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">暂无模板</div>`;
+}
+
+function switchTplTab(tab,btn){
+  currentTab=tab;
+  document.querySelectorAll(".tpl-tabs button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  renderTemplates();
+}
+
+function useTemplate(id){
+  const t=templates.find(x=>x.id===id);
+  if(t)window.location.href="smart-draft.html?tpl="+encodeURIComponent(t.name);
+}
+
+function starTemplate(id){
+  const t=templates.find(x=>x.id===id);
+  if(t){t.starred=!t.starred;localStorage.setItem("myTemplates",JSON.stringify(templates.filter(t=>t.source==="my")));renderTemplates();}
+}
+
+function moveToCompany(id){
+  const t=templates.find(x=>x.id===id);
+  if(t){
+    t.source="company";
+    const my=JSON.parse(localStorage.getItem("myTemplates")||"[]").filter(t=>t.id!==id);
+    const company=JSON.parse(localStorage.getItem("companyTemplates")||"[]");
+    company.push(t);
+    localStorage.setItem("myTemplates",JSON.stringify(my));
+    localStorage.setItem("companyTemplates",JSON.stringify(company));
+    renderTemplates();
+  }
+}
+
+async function extractTemplate(file){
+  if(!file)return;
+  const fd=new FormData();fd.append("contractFile",file);
+  try{
+    const res=await fetch("/api/contract-templates/import",{method:"POST",body:fd});
+    const txt=await res.text();let data;try{data=JSON.parse(txt);}catch{throw new Error("解析失败");}
+    if(data.error)throw new Error(data.error);
+    templates.push({...data,source:"my",id:"my_"+Date.now(),name:data.name||file.name.replace(/\.\w+$/,""),starred:false});
+    localStorage.setItem("myTemplates",JSON.stringify(templates.filter(t=>t.source==="my")));
+    renderTemplates();
+    alert("模板已提取到「我的模板」");
+  }catch(e){alert("提取失败: "+e.message);}
+}
+
+function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+</script>
+</body>
+</html>
