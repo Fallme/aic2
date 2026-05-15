@@ -5459,6 +5459,35 @@ async function handleApi(req, res, pathname) {
       return handleSmartDraftTemplates(req, res);
     }
 
+    // RAG template search
+    if (req.method === "POST" && pathname === "/api/templates/search") {
+      let query = "";
+      try { const d = JSON.parse(await readBody(req)); query = d.query || ""; } catch {}
+      if (!query) return sendJson(res, 200, []);
+      const templatesDir = path.join(ROOT, "templates");
+      if (!fs.existsSync(templatesDir)) return sendJson(res, 200, []);
+      const keywords = query.replace(/[，,。、\s]+/g, " ").trim().split(/\s+/).filter(w => w.length >= 2);
+      const results = [];
+      const catDirs = fs.readdirSync(templatesDir, { withFileTypes: true }).filter(d => d.isDirectory());
+      for (const cat of catDirs) {
+        const catPath = path.join(templatesDir, cat.name);
+        const files = fs.readdirSync(catPath).filter(f => /\.(docx?|txt)$/i.test(f));
+        for (const file of files) {
+          const name = file.replace(/\.\w+$/, "");
+          let score = 0;
+          for (const kw of keywords) {
+            if (name.includes(kw) || cat.name.includes(kw)) score += 2;
+            if (name.toLowerCase().includes(kw.toLowerCase())) score += 1;
+          }
+          if (score > 0) {
+            results.push({ name, category: cat.name, score, path: `/api/templates/file/${encodeURIComponent(cat.name)}/${encodeURIComponent(file)}` });
+          }
+        }
+      }
+      results.sort((a, b) => b.score - a.score);
+      return sendJson(res, 200, results.slice(0, 20));
+    }
+
     // Browse uploaded templates
     if (req.method === "GET" && pathname === "/api/templates/browse") {
       const templatesDir = path.join(ROOT, "templates");

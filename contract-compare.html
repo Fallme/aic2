@@ -110,9 +110,18 @@ async function loadCompareFile(side,file){
     try{
       const res=await fetch("/api/contracts/parse",{method:"POST",body:fd});
       const txt=await res.text();let data;try{data=JSON.parse(txt);}catch{throw new Error("解析失败");}
+      if(data.error)throw new Error(data.error);
       if(side==="A"){cmpTextA=data.contractText||data.text||"";cmpHtmlA=data.contractHtml||"";}
       else{cmpTextB=data.contractText||data.text||"";cmpHtmlB=data.contractHtml||"";}
-      content.innerHTML=cmpHtmlA||cmpHtmlB?`<div style="font-family:var(--font-serif);font-size:13px;line-height:1.9">${side==="A"?cmpHtmlA:cmpHtmlB}</div>`:`<pre style="white-space:pre-wrap;font-family:var(--font-serif);font-size:13px;line-height:1.9">${esc(side==="A"?cmpTextA:cmpTextB)}</pre>`;
+      const displayText=side==="A"?cmpTextA:cmpTextB;
+      const displayHtml=side==="A"?cmpHtmlA:cmpHtmlB;
+      if(displayHtml&&displayHtml.length>50){
+        content.innerHTML=`<div style="font-family:var(--font-serif);font-size:13px;line-height:1.9">${displayHtml}</div>`;
+      }else if(displayText){
+        content.innerHTML=`<pre style="white-space:pre-wrap;font-family:var(--font-serif);font-size:13px;line-height:1.9">${esc(displayText)}</pre>`;
+      }else{
+        content.innerHTML="<div style='color:var(--red)'>未能解析文件内容</div>";
+      }
     }catch(e){content.innerHTML="<div style='color:var(--red)'>"+esc(e.message)+"</div>";}
   }else{
     const text=await file.text();

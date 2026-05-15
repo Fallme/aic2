@@ -87,6 +87,11 @@ async function startDraft() {
 
   showStep("intent");
 
+  // Show user's input and files in chat
+  if (desc) addMsg("user", desc);
+  if (mainFiles.length > 0) addMsg("user", "已上传 " + mainFiles.map(f => f.name).join("、"));
+  if (selectedTpl) addMsg("user", "选择模板: " + selectedTpl.name);
+
   try {
     // Read file texts for API
     const fileTexts = [];
