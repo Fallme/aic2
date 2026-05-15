@@ -215,33 +215,7 @@ function appendMessages(msgs) {
 function showOptRow() { document.getElementById("optRow").style.display = "flex"; }
 function hideOptRow() { document.getElementById("optRow").style.display = "none"; }
 
-async function pickOpt(mode) {
-  document.getElementById("optRow").style.display = "none";
-  if (mode === "ask") { document.getElementById("chatInput").focus(); return; }
-  addMsg("user", mode === "kb" ? "从知识库检索" : "AI 自动推断");
-  addTypingIndicator();
-
-  try {
-    const res = await fetch("/api/smart-draft/guide", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, mode: mode === "kb" ? "kb_search" : "llm_infer" }),
-    });
-    const txt = await res.text();
-    let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
-    removeTypingIndicator();
-    if (data.messages) appendMessages(data.messages);
-    if (data.dialogue?.missingCount > 0) {
-      currentQuestion = data.dialogue.currentQuestion;
-      showOptRow();
-      showRefAnswers(currentQuestion);
-      addBubble("assistant", currentQuestion?.question || "请继续补充");
-    } else {
-      addBubble("assistant", "信息已齐全，可以生成草稿。");
-    }
-  } catch(e) { removeTypingIndicator(); addBubble("assistant", "错误: " + e.message); }
-}
-
-// ── Three Reference Answers ──
+// ── Three Reference Answers (shown in chat) ──
 function showRefAnswers(question) {
   if (!question) return;
   const t = document.getElementById("chatThread");
@@ -259,8 +233,33 @@ function showRefAnswers(question) {
   t.appendChild(d); t.scrollTop = t.scrollHeight;
 }
 
+async function pickOpt(mode) {
+  if (mode === "ask") { document.getElementById("chatInput").focus(); return; }
+  addMsg("user", mode === "kb" ? "从知识库检索" : "AI 自动推断");
+  addTypingIndicator();
+
+  try {
+    const res = await fetch("/api/smart-draft/guide", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, mode: mode === "kb" ? "kb_search" : "llm_infer" }),
+    });
+    const txt = await res.text();
+    let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
+    removeTypingIndicator();
+    if (data.messages) appendMessages(data.messages);
+    if (data.dialogue?.missingCount > 0) {
+      currentQuestion = data.dialogue.currentQuestion;
+      showRefAnswers(currentQuestion);
+      addBubble("assistant", currentQuestion?.question || "请继续补充");
+    } else {
+      addBubble("assistant", "信息已齐全，可以生成草稿。");
+    }
+  } catch(e) { removeTypingIndicator(); addBubble("assistant", "错误: " + e.message); }
+}
+
 async function pickRef(field, type) {
-  addMsg("user", type==="kb"?"使用知识库推荐":type==="common"?"使用常用答案":"AI 自主生成");
+  const labels = { kb: "📚 知识库推荐", common: "💡 常用答案", ai: "🤖 AI 生成" };
+  addMsg("user", labels[type] || "选择参考回答");
   addTypingIndicator();
   try {
     const res = await fetch("/api/smart-draft/guide", {
@@ -274,7 +273,6 @@ async function pickRef(field, type) {
     if (data.inferred) addBubble("assistant", `已填写「${field}」: ${data.inferred}`);
     if (data.dialogue?.missingCount > 0) {
       currentQuestion = data.dialogue.currentQuestion;
-      showOptRow();
       showRefAnswers(currentQuestion);
       addBubble("assistant", currentQuestion?.question || "请继续补充");
     } else {
@@ -306,7 +304,6 @@ async function sendAnswer() {
     if (data.messages) appendMessages(data.messages);
     if (data.dialogue?.missingCount > 0) {
       currentQuestion = data.dialogue.currentQuestion;
-      showOptRow();
       showRefAnswers(currentQuestion);
       addBubble("assistant", currentQuestion?.question || "请继续补充");
     } else {
