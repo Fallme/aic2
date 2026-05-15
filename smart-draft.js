@@ -47,19 +47,6 @@ async function startDraft() {
   document.getElementById("goBtn").disabled = true;
   document.getElementById("goBtn").textContent = "分析中...";
 
-  // Switch to draft view
-  document.getElementById("startPage").style.display = "none";
-  document.getElementById("draftPage").style.display = "flex";
-  document.getElementById("statusTag").style.display = "inline-flex";
-  document.getElementById("agentStrip").style.display = "flex";
-
-  showStep("intent");
-  showWordLoading("正在分析合同需求...");
-
-  // Show user input and files in chat
-  if (desc) addMsg("user", desc);
-  if (mainFiles.length > 0) addMsg("user", "已上传 " + mainFiles.map(f=>f.name).join("、"));
-
   try {
     // Read file contents for API
     const fileTexts = [];
@@ -68,15 +55,13 @@ async function startDraft() {
         const text = await f.file.text();
         fileTexts.push({ name: f.name, text: text.slice(0, 10000) });
       } catch {
-        // For .docx/.doc files, send filename only (server will parse)
         fileTexts.push({ name: f.name, text: `[文件: ${f.name}]` });
       }
     }
 
-    // If no description, generate one from file names
     const apiDesc = fullDesc || `请根据上传的文件生成合同：${mainFiles.map(f=>f.name).join("、")}`;
 
-    // Step 1: Init
+    // Step 1: Init session FIRST (before switching page)
     addTyping();
     const res = await fetch("/api/smart-draft/init", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -87,6 +72,17 @@ async function startDraft() {
     if (data.error) throw new Error(data.error);
     sessionId = data.sessionId;
     removeTyping();
+
+    // Step 2: Switch to draft view AFTER session is created
+    document.getElementById("startPage").style.display = "none";
+    document.getElementById("draftPage").style.display = "flex";
+    document.getElementById("statusTag").style.display = "inline-flex";
+    document.getElementById("agentStrip").style.display = "flex";
+
+    // Show user input and files in chat
+    if (desc) addMsg("user", desc);
+    if (mainFiles.length > 0) addMsg("user", "已上传 " + mainFiles.map(f=>f.name).join("、"));
+
     showStep("match");
     if (data.intent?.contractTypeCn) {
       document.getElementById("docTitle").textContent = data.intent.contractTypeCn;
