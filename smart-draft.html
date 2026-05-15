@@ -126,6 +126,17 @@
     .r-compose .row .clip { width:32px; height:32px; border:none; background:none; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     .r-compose .row .clip:hover { color:var(--accent); }
     .r-compose .files { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px; }
+
+    /* Reference answer buttons */
+    .ref-btn {
+      padding: 6px 12px; border: 1px solid var(--gray5); border-radius: var(--r-sm);
+      background: #fff; font-size: 12px; cursor: pointer; transition: all .15s;
+      font-family: var(--font); color: var(--ink);
+    }
+    .ref-btn:hover { border-color: var(--gold); background: var(--gold-bg); }
+
+    /* Loading spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>

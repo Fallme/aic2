@@ -1,4 +1,4 @@
-// smart-draft.js — Doubao-style: Big input → Split view → AI dialogue + Word
+// smart-draft.js — Smart Draft v3: Real-time generation + 3 reference answers
 
 let sessionId = "";
 let knowledgeMode = "industry";
@@ -7,28 +7,20 @@ let selectedTpl = null;
 let currentQuestion = null;
 let isProcessing = false;
 let mainFiles = [];
-let draftFiles = [];
 
 const STEPS = ["intent","match","kb","draft","done"];
 const STEP_MSG = { intent:"分析意图", match:"匹配模板", kb:"检索知识库", draft:"生成草稿", done:"完成" };
 
 // ── Init ──
 window.addEventListener("DOMContentLoaded", () => {
-  const icons = { navSD:"smartDraft", navTF:"templateFill", navCR:"contractReview", navKB:"knowledge", icoClip:"paperclip", icoClip2:"paperclip", icoSend:"send" };
+  const icons = { navSD:"smartDraft", navCR:"contractReview", navCC:"layers", navCT:"templateFill", navKB:"knowledge", icoClip:"paperclip", icoSend:"send" };
   for (const [id,n] of Object.entries(icons)) { const el=document.getElementById(id); if(el&&window.AppIcons) el.innerHTML=AppIcons[n]||""; }
   fetchStatus();
-  loadQuickTpls();
   initModelTest();
+  // File input
+  const fi = document.getElementById("mainFileInput");
+  if (fi) fi.addEventListener("change", () => { if(fi.files[0]) addFiles(fi.files); fi.value=""; });
 });
-
-async function fetchStatus() {
-  try {
-    const d = await (await fetch("/api/health")).json();
-    document.getElementById("aiModel").textContent = d.model || "unknown";
-    document.getElementById("aiProvider").textContent = d.provider || "";
-    document.getElementById("aiDot").style.background = d.apiKeyConfigured ? "var(--green)" : "var(--red)";
-  } catch { document.getElementById("aiModel").textContent="离线"; document.getElementById("aiDot").style.background="var(--red)"; }
-}
 
 function fillExample(text) {
   document.getElementById("mainInput").value = text;
@@ -37,22 +29,13 @@ function fillExample(text) {
 
 function toggleKB(el) { el.classList.toggle("on"); }
 
-// ── Quick Templates ──
-async function loadQuickTpls() {
+async function fetchStatus() {
   try {
-    const tpls = await (await fetch("/api/smart-draft/templates")).json();
-    document.getElementById("quickTpls").innerHTML = tpls.slice(0, 8).map(t =>
-      `<span class="quick-tpl" onclick="toggleTpl(this,'${t.id}')" data-id="${t.id}">${t.name}</span>`
-    ).join("");
-  } catch {}
-}
-
-function toggleTpl(el, id) {
-  document.querySelectorAll(".quick-tpl").forEach(e => e.classList.remove("active"));
-  if (selectedTpl?.id === id) { selectedTpl = null; return; }
-  el.classList.add("active");
-  // Store tpl info (will be used in startDraft)
-  selectedTpl = { id };
+    const d = await (await fetch("/api/health")).json();
+    document.getElementById("aiModel").textContent = d.model || "unknown";
+    document.getElementById("aiProvider").textContent = d.provider || "";
+    document.getElementById("aiDot").style.background = d.apiKeyConfigured ? "var(--green)" : "var(--red)";
+  } catch { document.getElementById("aiModel").textContent="离线"; document.getElementById("aiDot").style.background="var(--red)"; }
 }
 
 // ── Files ──
@@ -66,13 +49,6 @@ function renderAttached() {
   ).join("");
 }
 function removeFile(i) { mainFiles.splice(i,1); renderAttached(); }
-
-function addDraftFiles(files) {
-  for (const f of files) draftFiles.push({ name: f.name, file: f });
-  document.getElementById("draftFiles").innerHTML = draftFiles.map(f =>
-    `<span class="attached-tag">${f.name}</span>`
-  ).join("");
-}
 
 // ── Start Draft ──
 async function startDraft() {
@@ -93,27 +69,25 @@ async function startDraft() {
   document.getElementById("agentStrip").style.display = "flex";
 
   showStep("intent");
-  addBubble("assistant", "正在分析你的合同需求...");
 
-  // Show user's input and files in chat
+  // Show user's input in chat
   if (desc) addMsg("user", desc);
-  if (mainFiles.length > 0) addMsg("user", "已上传 " + mainFiles.map(f => f.name).join("、"));
+  if (mainFiles.length > 0) addMsg("user", "已上传 " + mainFiles.map(f=>f.name).join("、"));
+
+  // Show loading animation in Word area
+  showLoadingAnimation("正在分析合同需求...");
 
   try {
-    // Read file texts for API
     const fileTexts = [];
     for (const f of mainFiles) {
-      try {
-        const text = await f.file.text();
-        fileTexts.push({ name: f.name, text: text.slice(0, 8000) });
-      } catch { fileTexts.push({ name: f.name, text: "" }); }
+      try { const text = await f.file.text(); fileTexts.push({ name: f.name, text: text.slice(0, 8000) }); }
+      catch { fileTexts.push({ name: f.name, text: "" }); }
     }
 
-    // Step 1: Init session
+    // Step 1: Init
     addBubble("assistant", "正在匹配合同模板...");
     const res = await fetch("/api/smart-draft/init", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description: fullDesc, knowledgeMode, fileTexts }),
     });
     const txt = await res.text();
@@ -125,48 +99,59 @@ async function startDraft() {
 
     if (data.intent?.contractTypeCn) {
       document.getElementById("docTitle").textContent = data.intent.contractTypeCn;
-      addBubble("assistant", `已识别为「${data.intent.contractTypeCn}」，匹配到 ${data.rulesCount || 0} 条规则`);
+      addBubble("assistant", `已识别为「${data.intent.contractTypeCn}」，匹配到 ${data.rulesCount||0} 条规则`);
     }
 
-    // Step 2: Immediately generate draft
+    // Step 2: Knowledge retrieval
     showStep("kb");
     addBubble("assistant", "正在检索知识库...");
-    await delay(300);
+    showLoadingAnimation("正在检索适用规则...");
+    await delay(400);
 
+    // Step 3: Generate draft
     showStep("draft");
     addBubble("assistant", "正在生成合同草稿...");
+    showLoadingAnimation("正在生成合同草稿...");
 
     const genRes = await fetch("/api/smart-draft/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, guidanceMode: "llm_infer" }),
     });
     const genTxt = await genRes.text();
-    let genData; try { genData = JSON.parse(genTxt); } catch { throw new Error("生成失败"); }
+    let genData; try { genData = JSON.parse(genTxt); } catch { throw new Error("生成失败，请重试"); }
     if (genData.error) throw new Error(genData.error);
 
     currentDraft = typeof genData.draft === "string" ? genData.draft : genData.draft?.content || "";
     currentDraft = currentDraft.replace(/^```[\s\S]*?\n/gm, "").replace(/\n```$/gm, "");
 
-    // Display draft line by line
-    await typeLineByLine(currentDraft);
+    // Display draft line by line at moderate speed
+    await typeLineByLine(currentDraft, 30);
 
     showStep("done");
-    addBubble("assistant", `合同草稿已生成${genData.appliedRules ? `，应用了 ${genData.appliedRules.length} 条规则` : ""}。你可以在右侧对话中补充信息，AI 会帮你完善合同。`);
+    addBubble("assistant", `合同草稿已生成。你可以在右侧对话中补充信息，AI 会帮你完善合同。`);
 
     document.getElementById("statusTag").textContent = "已完成";
     document.getElementById("statusTag").className = "tag tag-green";
 
-    // Show generate button for re-generation
-    showGenBtn();
-
   } catch(e) {
     addBubble("assistant", "错误: " + e.message);
     showStep("done");
+    document.getElementById("docxContent").innerHTML = `<div style="padding:40px;text-align:center;color:var(--red)">${esc(e.message)}</div>`;
   }
   isProcessing = false;
   document.getElementById("goBtn").disabled = false;
   document.getElementById("goBtn").textContent = "开始起草";
+}
+
+// ── Loading Animation ──
+function showLoadingAnimation(text) {
+  const el = document.getElementById("docxContent");
+  el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px">
+    <div style="width:40px;height:40px;border:3px solid #e5e5e5;border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px"></div>
+    <div style="font-size:14px;color:var(--muted)">${esc(text)}</div>
+    <div style="font-size:12px;color:var(--subtle);margin-top:8px">AI 正在工作，请稍候...</div>
+  </div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
 }
 
 // ── Agent Steps ──
@@ -192,18 +177,6 @@ function addBubble(role, text) {
   t.appendChild(d); t.scrollTop = t.scrollHeight;
 }
 
-function renderMessages(msgs) {
-  const t = document.getElementById("chatThread");
-  t.innerHTML = "";
-  (msgs||[]).forEach(m => {
-    const d = document.createElement("div");
-    d.className = `chat-msg ${m.role}`;
-    d.innerHTML = `<div class="avatar">${m.role==="assistant"?"AI":"U"}</div><div class="bubble">${esc(m.content)}</div>`;
-    t.appendChild(d);
-  });
-  t.scrollTop = t.scrollHeight;
-}
-
 function appendMessages(msgs) {
   const t = document.getElementById("chatThread");
   (msgs||[]).forEach(m => {
@@ -220,13 +193,10 @@ function showOptRow() { document.getElementById("optRow").style.display = "flex"
 function hideOptRow() { document.getElementById("optRow").style.display = "none"; }
 
 async function pickOpt(mode) {
-  hideOptRow();
+  document.getElementById("optRow").style.display = "none";
   if (mode === "ask") { document.getElementById("chatInput").focus(); return; }
-
-  const labels = { kb: "从知识库检索", ai: "AI 自动推断" };
-  addBubble("user", labels[mode]);
-
-  if (mode === "ai") { showStep("draft"); addBubble("assistant", "正在推断..."); }
+  addMsg("user", mode === "kb" ? "从知识库检索" : "AI 自动推断");
+  if (mode === "ai") { showLoadingAnimation("正在推断..."); }
 
   try {
     const res = await fetch("/api/smart-draft/guide", {
@@ -235,27 +205,69 @@ async function pickOpt(mode) {
     });
     const txt = await res.text();
     let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
-    if (data.messages) renderMessages(data.messages);
+    if (data.messages) appendMessages(data.messages);
     if (data.dialogue?.missingCount > 0) {
       currentQuestion = data.dialogue.currentQuestion;
       showOptRow();
+      showRefAnswers(currentQuestion);
       addBubble("assistant", currentQuestion?.question || "请继续补充");
     } else {
-      showStep("draft");
-      showGenBtn();
+      addBubble("assistant", "信息已齐全，可以生成草稿。");
     }
   } catch(e) { addBubble("assistant", "错误: " + e.message); }
 }
 
+// ── Three Reference Answers ──
+function showRefAnswers(question) {
+  if (!question) return;
+  const t = document.getElementById("chatThread");
+  const d = document.createElement("div");
+  d.className = "chat-msg assistant";
+  const hint = question.hint || "信息";
+  d.innerHTML = `<div class="avatar">AI</div><div>
+    <div class="bubble" style="margin-bottom:8px">参考回答：</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="ref-btn" onclick="pickRef('${esc(hint)}','kb')">📚 知识库推荐</button>
+      <button class="ref-btn" onclick="pickRef('${esc(hint)}','common')">💡 常用答案</button>
+      <button class="ref-btn" onclick="pickRef('${esc(hint)}','ai')">🤖 AI 生成</button>
+    </div>
+  </div>`;
+  t.appendChild(d); t.scrollTop = t.scrollHeight;
+}
+
+async function pickRef(field, type) {
+  addMsg("user", type==="kb"?"使用知识库推荐":type==="common"?"使用常用答案":"AI 自主生成");
+  addBubble("assistant", "正在获取参考答案...");
+  try {
+    const res = await fetch("/api/smart-draft/guide", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, mode: type === "kb" ? "kb_search" : "llm_infer" }),
+    });
+    const txt = await res.text();
+    let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
+    if (data.messages) appendMessages(data.messages);
+    if (data.inferred) addBubble("assistant", `已填写「${field}」: ${data.inferred}`);
+    if (data.dialogue?.missingCount > 0) {
+      currentQuestion = data.dialogue.currentQuestion;
+      showOptRow();
+      showRefAnswers(currentQuestion);
+      addBubble("assistant", currentQuestion?.question || "请继续补充");
+    } else {
+      addBubble("assistant", "信息已齐全，可以生成草稿。");
+    }
+  } catch(e) { addBubble("assistant", "错误: " + e.message); }
+}
+
+// ── Send Answer ──
 async function sendAnswer() {
   const input = document.getElementById("chatInput");
   const val = input.value.trim();
   if (!val || !sessionId) return;
   input.value = "";
-  hideOptRow();
+  document.getElementById("optRow").style.display = "none";
 
   const field = currentQuestion?.hint || "补充信息";
-  addBubble("user", val);
+  addMsg("user", val);
 
   try {
     const res = await fetch("/api/smart-draft/answer", {
@@ -264,32 +276,25 @@ async function sendAnswer() {
     });
     const txt = await res.text();
     let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器异常"); }
-    if (data.messages) renderMessages(data.messages);
+    if (data.messages) appendMessages(data.messages);
     if (data.dialogue?.missingCount > 0) {
       currentQuestion = data.dialogue.currentQuestion;
       showOptRow();
+      showRefAnswers(currentQuestion);
       addBubble("assistant", currentQuestion?.question || "请继续补充");
     } else {
-      showStep("draft");
-      showGenBtn();
+      addBubble("assistant", "信息已齐全，可以生成草稿。");
     }
   } catch(e) { addBubble("assistant", "错误: " + e.message); }
 }
 
-function showGenBtn() {
-  const t = document.getElementById("chatThread");
-  const d = document.createElement("div");
-  d.className = "chat-msg assistant";
-  d.innerHTML = `<div class="avatar">AI</div><div><div class="bubble">信息已齐全，可以生成。</div><div style="padding-top:8px"><button class="btn btn-primary btn-sm" onclick="generateDraft()">生成合同草稿</button></div></div>`;
-  t.appendChild(d); t.scrollTop = t.scrollHeight;
-}
-
-// ── Generate: line by line ──
+// ── Generate ──
 async function generateDraft() {
   if (!sessionId || isProcessing) return;
   isProcessing = true;
   showStep("draft");
   addBubble("assistant", "正在生成合同草稿...");
+  showLoadingAnimation("正在生成合同草稿...");
 
   try {
     const res = await fetch("/api/smart-draft/generate", {
@@ -300,24 +305,25 @@ async function generateDraft() {
     let data; try { data = JSON.parse(txt); } catch { throw new Error("服务器返回异常"); }
     if (data.error) throw new Error(data.error);
 
-    currentDraft = typeof data.draft === "string" ? data.draft : data.draft?.content || JSON.stringify(data.draft);
+    currentDraft = typeof data.draft === "string" ? data.draft : data.draft?.content || "";
     currentDraft = currentDraft.replace(/^```[\s\S]*?\n/gm, "").replace(/\n```$/gm, "");
 
-    // Line by line into Word area
-    await typeLineByLine(currentDraft);
+    await typeLineByLine(currentDraft, 30);
 
     showStep("done");
-    if (data.messages) renderMessages(data.messages);
-    addBubble("assistant", `草稿已生成${data.appliedRules?`（${data.appliedRules.length} 条规则）`:""}`);
+    addBubble("assistant", `草稿已生成${data.appliedRules ? `，应用了 ${data.appliedRules.length} 条规则` : ""}`);
     document.getElementById("statusTag").textContent = "已完成";
+    document.getElementById("statusTag").className = "tag tag-green";
   } catch(e) {
     addBubble("assistant", "生成失败: " + e.message);
+    document.getElementById("docxContent").innerHTML = `<div style="padding:40px;text-align:center;color:var(--red)">${esc(e.message)}</div>`;
   }
   isProcessing = false;
 }
 
-async function typeLineByLine(text) {
-  const el = document.getElementById("contractContent");
+// ── Line by line typing ──
+async function typeLineByLine(text, speed) {
+  const el = document.getElementById("docxContent");
   el.innerHTML = "";
   const lines = text.split("\n");
   let acc = "";
@@ -325,31 +331,19 @@ async function typeLineByLine(text) {
     acc += (i > 0 ? "\n" : "") + lines[i];
     el.innerHTML = renderDoc(acc) + '<span class="typing-cursor"></span>';
     document.getElementById("docBody").scrollTop = document.getElementById("docBody").scrollHeight;
-    await new Promise(r => setTimeout(r, 15));
+    await delay(speed || 30);
   }
-  el.innerHTML = renderDoc(text); // final render without cursor
+  el.innerHTML = renderDoc(text);
 }
 
 function renderDoc(text) {
   return text
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^# (.+)$/gm, '<h1 style="text-align:center;font-size:20px;margin:20px 0 12px;font-family:SimHei,sans-serif">$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2 style="font-size:16px;margin:16px 0 8px;border-bottom:1px solid #eee;padding-bottom:4px;font-family:SimHei,sans-serif">$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3 style="font-size:14px;margin:12px 0 6px;font-family:SimHei,sans-serif">$1</h3>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br>');
 }
 
-// ── Download / Copy ──
-function downloadDraft() {
-  if (!currentDraft) return;
-  const b = new Blob([currentDraft], { type: "text/plain;charset=utf-8" });
-  const a = document.createElement("a"); a.href = URL.createObjectURL(b);
-  a.download = `合同草稿_${new Date().toISOString().slice(0,10)}.txt`; a.click();
-}
-function copyDraft() {
-  if (!currentDraft) return;
-  navigator.clipboard.writeText(currentDraft).then(() => alert("已复制"));
-}
-
-function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>"); }
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>"); }
