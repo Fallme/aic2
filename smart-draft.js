@@ -36,7 +36,6 @@ function fillExample(text) {
 }
 
 function toggleKB(el) { el.classList.toggle("on"); }
-}
 
 // ── Quick Templates ──
 async function loadQuickTpls() {
