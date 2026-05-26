@@ -1,40 +1,89 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>合同对比 - ContractAI</title>
   <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="knowledge.css">
   <link rel="stylesheet" href="office-editor.css">
   <style>
-    .compare-toolbar{display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--gray6);border-bottom:1px solid var(--gray5);font-size:12px}
-    .compare-toolbar button{padding:4px 10px;border:1px solid var(--gray5);border-radius:4px;background:#fff;font-size:11px;cursor:pointer;color:var(--ink)}
-    .compare-toolbar button:hover{background:var(--gray7)}
-    .compare-toolbar .gold-btn{background:var(--gold-gradient);color:#fff;border:none;font-weight:600}
-    .compare-split{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden}
-    .compare-pane{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--gray5)}
-    .compare-pane:last-child{border-right:none}
-    .compare-pane .pane-header{padding:8px 14px;background:#fafbfc;border-bottom:1px solid var(--gray5);display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600}
-    .compare-pane .pane-content{flex:1;overflow-y:auto;padding:16px 24px;font-family:var(--font-serif);font-size:13px;line-height:1.9}
-    .upload-zone-half{border:2px dashed var(--gray5);border-radius:var(--r-sm);padding:30px;text-align:center;cursor:pointer;margin:20px;height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-    .upload-zone-half:hover{border-color:var(--gold);background:var(--gold-bg)}
-    /* Diff highlight markers */
-    .diff-del{background:rgba(184,84,80,.12);border-left:3px solid var(--red);padding:2px 8px;border-radius:0 4px 4px 0;display:inline;position:relative;box-shadow:inset 0 0 0 1px rgba(184,84,80,.08)}
-    .diff-add{background:rgba(90,138,106,.12);border-left:3px solid var(--green);padding:2px 8px;border-radius:0 4px 4px 0;display:inline;position:relative;box-shadow:inset 0 0 0 1px rgba(90,138,106,.08)}
-    .diff-mod{background:rgba(196,122,32,.1);border-left:3px solid var(--amber);padding:2px 8px;border-radius:0 4px 4px 0;display:inline;position:relative;box-shadow:inset 0 0 0 1px rgba(196,122,32,.08)}
-    /* Sequence badges */
-    .diff-seq{display:inline-block;font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;margin-right:4px;vertical-align:middle;line-height:14px;color:#fff;pointer-events:none;position:relative;top:-1px}
-    .diff-del .diff-seq{background:var(--red)}
-    .diff-add .diff-seq{background:var(--green)}
-    .diff-mod .diff-seq{background:var(--amber)}
-    .diff-line{display:block;padding:2px 0;min-height:1.9em;position:relative}
-    .diff-line:hover{background:rgba(0,0,0,.02);border-radius:3px}
-    .diff-desc{font-size:11px;color:var(--muted);margin-left:8px;font-style:italic}
-    /* Fallback appended items */
-    .diff-fallback{margin:8px 0;padding:6px 10px;border:1px dashed var(--gray5);border-radius:4px;font-size:12px;color:var(--muted)}
-    /* Diff summary bar */
-    .compare-summary{padding:8px 14px;background:rgba(0,0,0,.03);border-bottom:1px solid var(--gray5);font-size:12px;color:var(--muted);line-height:1.6}
-    .compare-summary strong{color:var(--ink)}
+  /* ===== PATCH v3.2: prominent inline annotations + drawer-block ===== */
+
+  /* -- Grid layout: left + gutter + right -- */
+  .compare-office-grid{display:grid;grid-template-columns:1fr 36px 1fr;gap:8px;min-height:0;flex:1;overflow:hidden}
+
+  /* -- Gutter between panels -- */
+  .compare-gutter{position:relative;background:var(--gray7,#f8f9fa);border-radius:8px;overflow:hidden;border:1px solid var(--gray5,#e5e7eb)}
+  .compare-gutter::before{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:repeating-linear-gradient(to bottom,#d1d5db 0px,#d1d5db 4px,transparent 4px,transparent 8px);pointer-events:none}
+  .compare-gutter-tick{position:absolute;left:50%;transform:translateX(-50%);width:22px;height:8px;border-radius:4px;cursor:pointer;transition:width .15s,opacity .15s;opacity:.85}
+  .compare-gutter-tick:hover{width:30px;opacity:1}
+  .compare-gutter-tick[data-category="party"]{background:#007aff}
+  .compare-gutter-tick[data-category="missing"]{background:#ff3b30}
+  .compare-gutter-tick[data-category="added"]{background:#34c759}
+  .compare-gutter-tick[data-category="inconsistent"]{background:#ff9500}
+
+  /* -- Highlight base: strong L-bracket border + visible bg -- */
+  .diff-highlight{position:relative;display:inline;border-radius:2px;padding:1px 3px;scroll-margin-top:80px;transition:filter .15s,box-shadow .15s;font-weight:500}
+
+  /* -- Type colors: stronger bg + thick L-bracket (left + bottom) -- */
+  .diff-highlight.diff-changed,.diff-highlight.diff-inconsistent{background:rgba(255,149,0,.28);border-left:3px solid #ff9500;border-bottom:3px solid #ff9500}
+  .diff-highlight.diff-missing,.diff-highlight.diff-removed{background:rgba(255,59,48,.25);border-left:3px solid #ff3b30;border-bottom:3px solid #ff3b30}
+  .diff-highlight.diff-added{background:rgba(52,199,89,.25);border-left:3px solid #34c759;border-bottom:3px solid #34c759}
+  .diff-highlight.diff-party{background:rgba(0,122,255,.22);border-left:3px solid #007aff;border-bottom:3px solid #007aff}
+
+  /* -- Flag badge: bigger, bolder, inline pill -- */
+  .diff-flag{display:inline-flex;align-items:center;height:22px;border-radius:5px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;pointer-events:none;z-index:5;box-shadow:0 1px 4px rgba(0,0,0,.18);overflow:hidden;max-width:140px;transition:transform .15s,box-shadow .15s;margin-right:5px;vertical-align:middle}
+  .diff-flag-num{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:100%;padding:0 6px;font-size:12px;font-weight:800;background:rgba(255,255,255,.28);letter-spacing:.3px}
+  .diff-flag-type{display:inline-flex;align-items:center;height:100%;padding:0 8px;font-size:11px;font-weight:600}
+
+  /* -- Hover correspondence: both sides glow -- */
+  .diff-highlight-active{filter:brightness(.9);box-shadow:0 0 0 3px rgba(0,122,255,.3);border-radius:3px;z-index:3;position:relative}
+
+  /* -- Gutter tick hover correspondence -- */
+  .compare-gutter-tick.active{opacity:1;width:30px;filter:brightness(1.1)}
+
+  /* -- Compare page layout -- */
+  .compare-main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);margin-top:32px}
+  .compare-hero{padding:14px 20px;background:#fff;border-bottom:1px solid var(--gray5);display:flex;align-items:center;gap:16px}
+  .compare-hero h1{font-size:18px;font-weight:700;margin:0}
+  .compare-hero .eyebrow{font-size:11px;color:var(--gold);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .compare-hero p{font-size:12px;color:var(--gray3);margin:0}
+  .compare-actions{display:flex;gap:8px;margin-left:auto}
+  .compare-actions button{padding:6px 14px;border-radius:var(--r-sm);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--gray5);background:#fff;color:var(--gray1);transition:all .15s}
+  .compare-actions button:hover{border-color:var(--gold);color:var(--gold-dark)}
+  .compare-actions .primary{background:var(--gold-gradient);color:#fff;border:none;font-weight:600}
+  .compare-doc-card{display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--gray5);border-radius:var(--r-md);background:#fff}
+  .compare-card-head{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#fafbfc;border-bottom:1px solid var(--gray5);font-size:12px}
+  .compare-card-head span{font-weight:600}
+  .compare-card-head strong{color:var(--gray3);font-weight:400;margin-left:8px}
+  .compare-editor-wrapper{flex:1;overflow:hidden;position:relative}
+  .compare-editor{height:100%;overflow-y:auto}
+  .compare-editor .oe-editor{min-height:300px;padding:20px 24px;font-size:13px;line-height:1.9}
+  .compare-hidden-text{display:none}
+  .file-like-btn{padding:4px 10px;border:1px solid var(--gray5);border-radius:4px;font-size:11px;cursor:pointer;background:#fff;color:var(--gray1)}
+  .file-like-btn:hover{border-color:var(--gold)}
+
+  /* -- Drawer overlay + drawer -- */
+  .compare-drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+  .compare-drawer-overlay.visible{opacity:1;pointer-events:auto}
+  .compare-drawer{position:fixed;top:0;right:-420px;width:400px;height:100vh;background:#fff;z-index:210;box-shadow:-4px 0 24px rgba(0,0,0,.12);transition:right .3s ease;display:flex;flex-direction:column}
+  .compare-drawer.open{right:0}
+  .compare-drawer-head{padding:16px;border-bottom:1px solid var(--gray5);display:flex;justify-content:space-between;align-items:flex-start}
+  .compare-drawer-head h2{font-size:16px;font-weight:700;margin:0 0 4px}
+  .compare-drawer-head p{font-size:12px;color:var(--gray3);margin:0}
+  .compare-drawer-close-btn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--gray3);padding:4px}
+  .compare-drawer-close-btn:hover{color:var(--gray1)}
+  .compare-stat-row{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--gray5);font-size:11px}
+  .compare-stat-row span{padding:3px 8px;border-radius:4px;font-weight:500}
+  .stat-party{background:var(--blue-bg);color:#4a6fa5}
+  .stat-missing{background:var(--red-bg);color:var(--red)}
+  .stat-added{background:var(--green-bg);color:var(--green)}
+  .stat-inconsistent{background:var(--amber-bg);color:var(--amber)}
+  .compare-drawer-body{flex:1;overflow-y:auto;padding:16px}
+  .bubble-annotation-list .empty-state{color:var(--gray3);font-size:13px;text-align:center;padding:40px 20px}
+
+  /* ===== END PATCH STYLES ===== */
   </style>
 </head>
 <body>
@@ -45,15 +94,12 @@
 <div class="app-layout">
   <aside class="app-sidebar">
     <a class="brand" href="home.html"><div class="logo">AI</div><div class="text"><strong>ContractAI</strong><small>智能合同管理平台</small></div></a>
-<nav>
-      <div class="nav-group">
-        <div class="nav-group-label">合同起草</div>
-        <a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a>
-      </div>
+    <nav>
+      <div class="nav-group"><div class="nav-group-label">合同起草</div><a class="nav-item" href="smart-draft.html"><span class="app-icon" id="navSD"></span><span>智能起草</span></a></div>
       <div class="nav-divider"></div>
       <div class="nav-group">
         <a class="nav-item" href="contract-review.html"><span class="app-icon" id="navCR"></span><span>合同审查</span></a>
-        <a class="nav-item" href="contract-compare.html"><span class="app-icon" id="navCC"></span><span>合同对比</span></a>
+        <a class="nav-item active" href="contract-compare.html"><span class="app-icon" id="navCC"></span><span>合同对比</span></a>
         <a class="nav-item" href="contract-templates.html"><span class="app-icon" id="navCT"></span><span>合同模板</span></a>
         <a class="nav-item" href="knowledge.html"><span class="app-icon" id="navKB"></span><span>知识库</span></a>
       </div>
@@ -61,223 +107,369 @@
   </aside>
   <div class="app-main">
     <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
-      <div class="compare-toolbar">
-        <button onclick="document.getElementById('cmpFileA').click()">上传左文档</button>
-        <input type="file" id="cmpFileA" accept=".doc,.docx,.txt" style="display:none" onchange="loadCompareFile('A',this.files[0])">
-        <button onclick="document.getElementById('cmpFileB').click()">上传右文档</button>
-        <input type="file" id="cmpFileB" accept=".doc,.docx,.txt" style="display:none" onchange="loadCompareFile('B',this.files[0])">
-        <div style="flex:1"></div>
-        <button class="gold-btn" onclick="runCompare()">AI 对比分析</button>
-      </div>
-      <div class="compare-summary" id="compareSummary" style="display:none"></div>
-      <div class="compare-split" id="compareSplit">
-        <div class="compare-pane" id="paneA">
-          <div class="pane-header"><span id="labelA">文档 A（原始版本）</span><span id="diffCountA" style="color:var(--muted);font-weight:400"></span></div>
-          <div class="pane-content" id="contentA">
-            <div class="upload-zone-half" onclick="document.getElementById('cmpFileA').click()">
-              <div style="font-size:24px;margin-bottom:8px;color:var(--muted)">📄</div>
-              <div style="font-size:13px;color:var(--muted)">点击上传原始合同</div>
-            </div>
-          </div>
+      <div class="compare-hero">
+        <div>
+          <span class="eyebrow">合同对比</span>
+          <h1>合同对比</h1>
+          <p>左右导入两份合同，AI对比后以批注在原文上标出差异。</p>
         </div>
-        <div class="compare-pane" id="paneB">
-          <div class="pane-header"><span id="labelB">文档 B（修改版本）</span><span id="diffCountB" style="color:var(--muted);font-weight:400"></span></div>
-          <div class="pane-content" id="contentB">
-            <div class="upload-zone-half" onclick="document.getElementById('cmpFileB').click()">
-              <div style="font-size:24px;margin-bottom:8px;color:var(--muted)">📄</div>
-              <div style="font-size:13px;color:var(--muted)">点击上传修改后合同</div>
-            </div>
-          </div>
+        <div class="compare-actions">
+          <button type="button" id="reset-compare-btn">清空</button>
+          <button class="primary" type="button" id="compare-btn">开始对比</button>
+          <button type="button" id="compare-drawer-toggle-btn" hidden title="查看批注列表">
+            批注列表 <span id="drawer-count-badge">0</span>
+          </button>
+          <button type="button" id="download-report-btn" disabled title="下载对比报告">下载对比报告</button>
         </div>
       </div>
+
+      <section class="compare-office-grid">
+        <article class="compare-doc-card">
+          <div class="compare-card-head">
+            <div><span>原合同</span><strong id="left-file-name">未导入</strong></div>
+            <label class="file-like-btn">导入文件<input type="file" id="left-file" accept=".doc,.docx,.pdf,.txt,.json,.csv,.xlsx,.xls,.pptx,.ppt" hidden /></label>
+          </div>
+          <div class="compare-editor-wrapper" id="left-editor-wrapper">
+            <div class="compare-editor" id="left-editor"></div>
+            <div class="compare-bubble-layer" id="left-bubble-layer"></div>
+            <div class="compare-popover" id="compare-popover" hidden></div>
+          </div>
+          <textarea class="compare-hidden-text" id="left-text" placeholder="粘贴原合同文本，或上传文件"></textarea>
+        </article>
+
+        <div class="compare-gutter" id="compare-gutter"></div>
+
+        <article class="compare-doc-card">
+          <div class="compare-card-head">
+            <div><span>新合同</span><strong id="right-file-name">未导入</strong></div>
+            <label class="file-like-btn">导入文件<input type="file" id="right-file" accept=".doc,.docx,.pdf,.txt,.json,.csv,.xlsx,.xls,.pptx,.ppt" hidden /></label>
+          </div>
+          <div class="compare-editor-wrapper" id="right-editor-wrapper">
+            <div class="compare-editor" id="right-editor"></div>
+            <div class="compare-bubble-layer" id="right-bubble-layer"></div>
+          </div>
+          <textarea class="compare-hidden-text" id="right-text" placeholder="粘贴修订后合同文本，或上传文件"></textarea>
+        </article>
+      </section>
+
+      <div class="compare-drawer-overlay" id="compare-drawer-overlay"></div>
+      <aside class="compare-drawer" id="compare-drawer">
+        <div class="compare-drawer-head">
+          <div><h2>对比批注</h2><p id="compare-summary">导入两份合同后开始对比。</p></div>
+          <button class="compare-drawer-close-btn" id="compare-drawer-close-btn" aria-label="关闭">✕</button>
+        </div>
+        <div class="compare-stat-row" id="drawer-stat-row">
+          <span class="stat-party">主体不同 <strong id="party-count">0</strong></span>
+          <span class="stat-missing">缺失 <strong id="missing-count">0</strong></span>
+          <span class="stat-added">新增 <strong id="added-count">0</strong></span>
+          <span class="stat-inconsistent">描述不一致 <strong id="inconsistent-count">0</strong></span>
+        </div>
+        <div class="compare-drawer-body" id="compare-drawer-body">
+          <div class="bubble-annotation-list" id="bubble-annotation-list">
+            <div class="empty-state" id="bubble-empty">点击「开始对比」后，差异将显示在原文中。</div>
+          </div>
+        </div>
+      </aside>
     </div>
   </div>
 </div>
+
 <script src="icons.js"></script>
+<script src="office-editor.js"></script>
+<script src="contract-compare.js"></script>
 <script src="model-test.js"></script>
 <script>
-let cmpTextA="",cmpTextB="",cmpHtmlA="",cmpHtmlB="";
-window.addEventListener("DOMContentLoaded",()=>{
-  const icons={navSD:"smartDraft",navCR:"contractReview",navMC:"fileText",navCC:"layers",navCT:"templateFill",navKB:"knowledge"};
-  for(const[id,n]of Object.entries(icons)){const el=document.getElementById(id);if(el&&window.AppIcons)el.innerHTML=AppIcons[n]||"";}
-  fetch("/api/health").then(r=>r.json()).then(d=>{
-    document.getElementById("aiModel").textContent=d.model||"unknown";
-    document.getElementById("aiProvider").textContent=d.provider||"";
-    document.getElementById("aiDot").style.background=d.apiKeyConfigured?"var(--green)":"var(--red)";
-  }).catch(()=>{document.getElementById("aiModel").textContent="离线";});
-  initModelTest();
-  // Sync scroll
-  const paneA=document.getElementById("contentA");
-  const paneB=document.getElementById("contentB");
-  let syncing=false;
-  if(paneA&&paneB){
-    paneA.addEventListener("scroll",()=>{if(!syncing){syncing=true;paneB.scrollTop=paneA.scrollTop;syncing=false;}});
-    paneB.addEventListener("scroll",()=>{if(!syncing){syncing=true;paneA.scrollTop=paneB.scrollTop;syncing=false;}});
-  }
-});
-
-async function loadCompareFile(side,file){
-  if(!file)return;
-  const label=document.getElementById("label"+side);
-  const content=document.getElementById("content"+side);
-  label.textContent=file.name;
-  content.innerHTML="<div style='padding:20px;text-align:center;color:var(--muted)'>解析中...</div>";
-  if(file.name.match(/\.docx?$/i)){
-    const fd=new FormData();fd.append("contractFile",file);
-    try{
-      const res=await fetch("/api/contracts/parse",{method:"POST",body:fd});
-      const txt=await res.text();let data;try{data=JSON.parse(txt);}catch{throw new Error("解析失败");}
-      if(data.error)throw new Error(data.error);
-      if(side==="A"){cmpTextA=data.contractText||data.text||"";cmpHtmlA=data.contractHtml||"";}
-      else{cmpTextB=data.contractText||data.text||"";cmpHtmlB=data.contractHtml||"";}
-      const displayText=side==="A"?cmpTextA:cmpTextB;
-      const displayHtml=side==="A"?cmpHtmlA:cmpHtmlB;
-      if(displayHtml&&displayHtml.length>50){
-        content.innerHTML=`<div style="font-family:var(--font-serif);font-size:13px;line-height:1.9">${displayHtml}</div>`;
-      }else if(displayText){
-        content.innerHTML=`<pre style="white-space:pre-wrap;font-family:var(--font-serif);font-size:13px;line-height:1.9">${esc(displayText)}</pre>`;
-      }else{
-        content.innerHTML="<div style='color:var(--red)'>未能解析文件内容</div>";
-      }
-    }catch(e){content.innerHTML="<div style='color:var(--red)'>"+esc(e.message)+"</div>";}
-  }else{
-    const text=await file.text();
-    if(side==="A")cmpTextA=text;else cmpTextB=text;
-    content.innerHTML=`<pre style="white-space:pre-wrap;font-family:var(--font-serif);font-size:13px;line-height:1.9">${esc(text)}</pre>`;
-  }
-}
-
-async function runCompare(){
-  if(!cmpTextA||!cmpTextB)return alert("请先上传两份合同");
-  const contentA=document.getElementById("contentA");
-  const contentB=document.getElementById("contentB");
-  const summary=document.getElementById("compareSummary");
-  contentA.innerHTML="<div style='padding:20px;text-align:center;color:var(--muted)'>AI 对比分析中...</div>";
-  contentB.innerHTML="<div style='padding:20px;text-align:center;color:var(--muted)'>AI 对比分析中...</div>";
-  summary.style.display="none";
-  try{
-    const res=await fetch("/api/contracts/compare",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({textA:cmpTextA,textB:cmpTextB})});
-    const txt=await res.text();let data;try{data=JSON.parse(txt);}catch{throw new Error("服务器异常");}
-    if(data.error)throw new Error(data.error);
-    const diffs=data.diffs||[];
-    // Show summary
-    if(data.summary||diffs.length){
-      const parts=[];
-      if(diffs.length)parts.push("<strong>"+diffs.length+" 处差异</strong>");
-      // Count by type
-      const counts={modified:0,added:0,deleted:0};
-      diffs.forEach(d=>{const t=d.type||"modified";if(counts[t]!==undefined)counts[t]++;});
-      if(counts.modified)parts.push("修改 "+counts.modified+" 处");
-      if(counts.added)parts.push("新增 "+counts.added+" 处");
-      if(counts.deleted)parts.push("缺失 "+counts.deleted+" 处");
-      if(data.summary)parts.push(data.summary);
-      summary.innerHTML=parts.join(" · ");
-      summary.style.display="";
-    }
-    // Display with inline diff annotations on both sides
-    contentA.innerHTML=highlightDiff(cmpTextA,diffs,"A");
-    contentB.innerHTML=highlightDiff(cmpTextB,diffs,"B");
-    // Re-sync scroll
-    let syncing=false;
-    contentA.onscroll=()=>{if(!syncing){syncing=true;contentB.scrollTop=contentA.scrollTop;syncing=false;}};
-    contentB.onscroll=()=>{if(!syncing){syncing=true;contentA.scrollTop=contentB.scrollTop;syncing=false;}};
-  }catch(e){
-    contentA.innerHTML=`<div style="color:var(--red);padding:20px">${esc(e.message)}</div>`;
-    contentB.innerHTML=`<div style="color:var(--red);padding:20px">${esc(e.message)}</div>`;
-  }
-}
-
-/* Render text with inline diff annotations — line-based approach.
-   Each line wrapped in a block element; matching lines get colored highlights + numbered badges. */
-function highlightDiff(text,diffs,side){
-  if(!diffs||!diffs.length)return `<div style="font-family:var(--font-serif);font-size:13px;line-height:1.9;white-space:pre-wrap">${esc(text)}</div>`;
-  const lines=(text||"").split("\n");
-  const norm=s=>(s||"").replace(/\s+/g,"").toLowerCase();
-  // Pre-build: for each line, which diff indices match it
-  const lineDiffs=lines.map(()=>[]);
-  const appended=[];
-  diffs.forEach((d,di)=>{
-    const orig=d.original||"";
-    if(!orig)return;
-    const type=d.type||"modified";
-    // Filter by side
-    if(side==="A"&&(type==="added"))return;
-    if(side==="B"&&(type==="deleted"))return;
-    const norig=norm(orig);
-    let matched=false;
-    for(let li=0;li<lines.length;li++){
-      if(norm(lines[li]).includes(norig)||norig.includes(norm(lines[li]))){
-        lineDiffs[li].push(di);
-        matched=true;
-        break;
-      }
-    }
-    if(!matched){
-      appended.push(di);
-    }
+  window.addEventListener("DOMContentLoaded",function(){
+    var icons={navSD:"smartDraft",navCR:"contractReview",navCC:"layers",navCT:"templateFill",navKB:"knowledge"};
+    for(var id in icons){var el=document.getElementById(id);if(el&&window.AppIcons)el.innerHTML=AppIcons[icons[id]]||"";}
+    fetch("/api/health").then(function(r){return r.json()}).then(function(d){
+      document.getElementById("aiModel").textContent=d.model||"unknown";
+      document.getElementById("aiProvider").textContent=d.provider||"";
+      document.getElementById("aiDot").style.background=d.apiKeyConfigured?"var(--green)":"var(--red)";
+    }).catch(function(){document.getElementById("aiModel").textContent="离线";});
+    if(typeof initModelTest==="function")initModelTest();
   });
-  // Build output — each line is a <span class="diff-line"> for proper block display
-  const out=[];
-  lines.forEach((line,li)=>{
-    const ds=lineDiffs[li];
-    if(!ds.length){
-      out.push(`<span class="diff-line">${esc(line)||"&nbsp;"}</span>`);
-      return;
-    }
-    // Use first matching diff for styling
-    const d0=diffs[ds[0]];
-    const type=d0.type||"modified";
-    let cls;
-    if(side==="A")cls=type==="deleted"?"diff-del":"diff-mod";
-    else cls=type==="added"?"diff-add":"diff-mod";
-    const seq=ds[0]+1;
-    let labelText=type==="deleted"?seq+" 缺失":type==="added"?seq+" 新增":seq+" 修改";
-    const desc=d0.description||"";
-    const descHtml=desc?`<span class="diff-desc">— ${esc(desc)}</span>`:"";
-    // For right side modified: try to show revised text inline
-    if(side==="B"&&type==="modified"&&d0.revised){
-      // Find which part of the line matches the original, replace with revised
-      const nline=norm(line);
-      const norig=norm(d0.original);
-      const pos=nline.indexOf(norig);
-      if(pos>=0){
-        // Map normalized position back to raw position
-        let ri=0,ni=0;
-        while(ri<line.length&&ni<pos){if(/\s/.test(line[ri]))ri++;else{ri++;ni++;}}
-        const startRi=ri;
-        ni=0;
-        while(ri<line.length&&ni<norig.length){if(/\s/.test(line[ri]))ri++;else{ri++;ni++;}}
-        const before=esc(line.slice(0,startRi));
-        const after=esc(line.slice(ri));
-        out.push(`<span class="diff-line ${cls}"><span class="diff-seq">${esc(labelText)}</span>${before}<span style="text-decoration:underline dotted var(--amber)">${esc(d0.revised)}</span>${after}${descHtml}</span>`);
-        return;
-      }
-    }
-    // For right side added: show the added text highlighted
-    if(side==="B"&&type==="added"&&d0.revised){
-      out.push(`<span class="diff-line ${cls}"><span class="diff-seq">${esc(labelText)}</span>${esc(d0.revised)}${descHtml}</span>`);
-      return;
-    }
-    out.push(`<span class="diff-line ${cls}"><span class="diff-seq">${esc(labelText)}</span>${esc(line)}${descHtml}</span>`);
-  });
-  // Append unmatched items at bottom
-  if(appended.length){
-    const items=appended.map(di=>{
-      const d=diffs[di];
-      const type=d.type||"modified";
-      const seq=di+1;
-      let labelText=type==="deleted"?seq+" 缺失":type==="added"?seq+" 新增":seq+" 修改";
-      const cls=type==="deleted"?"diff-del":type==="added"?"diff-add":"diff-mod";
-      const tip=d.description?`<span class="diff-desc">— ${esc(d.description)}</span>`:"";
-      const content=side==="B"&&d.revised?d.revised:d.original;
-      return `<span class="diff-line"><span class="${cls}"><span class="diff-seq">${esc(labelText)}</span>${esc(content)}${tip}</span></span>`;
+</script>
+<script>
+/* ===== PATCH v3.2: inline annotations + drawer-block ===== */
+(function(){
+
+  /* ---- clearAnnotations ---- */
+  function clearAnnotations(){
+    [els.leftEditor, els.rightEditor].forEach(function(editor){
+      if(!editor) return;
+      var oe = editor.querySelector ? editor.querySelector('.oe-editor') : editor;
+      if(!oe) return;
+      oe.querySelectorAll('.diff-flag').forEach(function(f){ f.remove(); });
+      oe.querySelectorAll('.diff-highlight').forEach(function(s){
+        var p = s.parentNode; if(!p) return;
+        while(s.firstChild) p.insertBefore(s.firstChild, s);
+        p.removeChild(s);
+      });
     });
-    out.push(`<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--gray5)"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">${side==="B"?"⬆ 新增内容：":"⬇ 缺失内容："}</div>${items.join("")}</div>`);
+    var gutter = document.getElementById('compare-gutter');
+    if(gutter) gutter.querySelectorAll('.compare-gutter-tick').forEach(function(t){ t.remove(); });
   }
-  return `<div style="font-family:var(--font-serif);font-size:13px;line-height:1.9">${out.join("")}</div>`;
-}
+  window.clearAnnotations = clearAnnotations;
 
-function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  /* ---- _highlightInEditor: chunk-based search → flag badge ---- */
+  window._highlightInEditor = function(editor, raw, seq, label, addBadge, category){
+    if(!editor) return;
+    var rawTrimmed = String(raw||"").trim();
+    if(!rawTrimmed || rawTrimmed.length < 4) return;
+    var oe = editor.querySelector ? editor.querySelector('.oe-editor') : editor;
+    if(!oe) return;
+    var searchStr = rawTrimmed.replace(/\s+/g,'');
+    var chunkSizes = [18, 10];
+    for(var si = 0; si < chunkSizes.length; si++){
+      var chunkLen = chunkSizes[si];
+      var stride = Math.max(chunkLen - 2, 4);
+      for(var ci = 0; ci < searchStr.length; ci += stride){
+        var chunk = searchStr.slice(ci, ci + chunkLen);
+        if(chunk.length < 4) continue;
+        var walker = document.createTreeWalker(oe, NodeFilter.SHOW_TEXT, {
+          acceptNode: function(node){
+            if(!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+            if(node.parentElement && node.parentElement.closest(".diff-flag,.oe-toolbar,.oe-statusbar"))
+              return NodeFilter.FILTER_REJECT;
+            if(node.parentElement && node.parentElement.closest(".diff-highlight"))
+              return NodeFilter.FILTER_REJECT;
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        });
+        var nodes = [];
+        while(walker.nextNode()) nodes.push(walker.currentNode);
+        for(var ni = 0; ni < nodes.length; ni++){
+          var node = nodes[ni];
+          var nodeText = node.nodeValue || "";
+          var nodeNorm = nodeText.replace(/\s+/g,'');
+          var idx = nodeNorm.indexOf(chunk);
+          if(idx < 0) continue;
+          var ri = 0, pi = 0;
+          while(ri < nodeText.length && pi < idx){ if(/\s/.test(nodeText[ri])) ri++; else { ri++; pi++; } }
+          var startRi = ri; pi = 0;
+          while(ri < nodeText.length && pi < chunk.length){ if(/\s/.test(nodeText[ri])) ri++; else { ri++; pi++; } }
+          try {
+            var range = document.createRange();
+            range.setStart(node, startRi);
+            range.setEnd(node, Math.min(ri, nodeText.length));
+            if(range.collapsed) continue;
+            var matchedText = range.toString();
+            if(!matchedText || matchedText.trim().length < 4) continue;
+
+            var span = document.createElement("span");
+            span.className = "diff-highlight" + (category ? " diff-" + category : "");
+            span.setAttribute("data-diff-id", seq);
+            span.textContent = matchedText;
+            range.deleteContents();
+            range.insertNode(span);
+
+            if(addBadge){
+              var flag = document.createElement("span");
+              flag.className = "diff-flag";
+              flag.setAttribute("data-diff-id", seq);
+              flag.innerHTML = '<span class="diff-flag-num">'+seq+'</span><span class="diff-flag-type">'+label+'</span>';
+              var flagColors = {party:"#007aff",missing:"#ff3b30",added:"#34c759",inconsistent:"#ff9500",changed:"#ff9500",removed:"#ff3b30"};
+              flag.style.background = flagColors[category] || "#ff9500";
+              if(span.parentNode) span.parentNode.insertBefore(flag, span);
+            }
+            return;
+          } catch(e){ continue; }
+        }
+      }
+    }
+  };
+
+  /* ---- annotateEditors: iterate diff items → highlight both sides ---- */
+  window.annotateEditors = function(){
+    clearAnnotations();
+    if(!state || !state.diff || !state.diff.length) return;
+    var visible = state.diff.filter(function(d){ return d.type !== "equal"; });
+    if(!visible.length) return;
+    var seq = 0;
+    visible.forEach(function(item){
+      seq++;
+      var category = classifyDiff(item);
+      var map = { party:"主体", missing:"缺失", added:"新增", inconsistent:"修改" };
+      var catLabel = map[category] || "修改";
+      if(item.type === "removed" || item.type === "changed" || category === "party"){
+        var st = item.type === "changed" ? item.before : item.text;
+        _highlightInEditor(els.leftEditor, st, seq, catLabel, true, category);
+      }
+      if(item.type === "added" || item.type === "changed" || category === "party"){
+        var st2 = item.type === "changed" ? item.after : item.text;
+        _highlightInEditor(els.rightEditor, st2, seq, catLabel, true, category);
+      }
+    });
+    renderGutter();
+  };
+
+  /* ---- hover correspondence ---- */
+  function highlightCorrespondence(id){
+    document.querySelectorAll('.diff-highlight[data-diff-id="'+id+'"]').forEach(function(el){
+      el.classList.add('diff-highlight-active');
+      var flag = el.nextElementSibling;
+      if(flag && flag.classList.contains('diff-flag')){
+        flag.style.transform = 'translateY(-2px)';
+        flag.style.boxShadow = '0 2px 8px rgba(0,0,0,.25)';
+      }
+    });
+    document.querySelectorAll('.compare-gutter-tick[data-diff-id="'+id+'"]').forEach(function(el){
+      el.classList.add('active');
+    });
+  }
+  function clearCorrespondence(){
+    document.querySelectorAll('.diff-highlight-active').forEach(function(el){
+      el.classList.remove('diff-highlight-active');
+      var flag = el.nextElementSibling;
+      if(flag && flag.classList.contains('diff-flag')){
+        flag.style.transform = '';
+        flag.style.boxShadow = '';
+      }
+    });
+    document.querySelectorAll('.compare-gutter-tick.active').forEach(function(el){
+      el.classList.remove('active');
+    });
+  }
+  window.highlightCorrespondence = highlightCorrespondence;
+  window.clearCorrespondence = clearCorrespondence;
+
+  /* ---- event delegation on editor wrappers ---- */
+  function setupHoverListeners(){
+    var wrappers = document.querySelectorAll('.compare-editor-wrapper');
+    wrappers.forEach(function(wrapper){
+      wrapper.addEventListener('mouseover', function(e){
+        var target = e.target.closest('[data-diff-id]');
+        if(!target) return;
+        highlightCorrespondence(target.getAttribute('data-diff-id'));
+      });
+      wrapper.addEventListener('mouseout', function(e){
+        var target = e.target.closest('[data-diff-id]');
+        if(!target) return;
+        clearCorrespondence();
+      });
+    });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', setupHoverListeners);
+  } else {
+    setupHoverListeners();
+  }
+
+  /* ---- left-right scroll sync ---- */
+  var scrollSyncing = false;
+  function syncScroll(source){
+    if(scrollSyncing) return;
+    scrollSyncing = true;
+    var target = (source === els.leftEditor) ? els.rightEditor : els.leftEditor;
+    if(target) target.scrollTop = source.scrollTop;
+    renderGutter();
+    scrollSyncing = false;
+  }
+  function setupScrollSync(){
+    if(els.leftEditor) els.leftEditor.addEventListener('scroll', function(){ syncScroll(els.leftEditor); });
+    if(els.rightEditor) els.rightEditor.addEventListener('scroll', function(){ syncScroll(els.rightEditor); });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', setupScrollSync);
+  } else {
+    setupScrollSync();
+  }
+
+  /* ---- renderGutter ---- */
+  function renderGutter(){
+    var gutter = document.getElementById('compare-gutter');
+    if(!gutter) return;
+    gutter.querySelectorAll('.compare-gutter-tick').forEach(function(t){ t.remove(); });
+    if(!state || !state.diff || !state.diff.length) return;
+    var visible = state.diff.filter(function(d){ return d.type !== "equal"; });
+    if(!visible.length) return;
+    var leftWrapper = els.leftEditor;
+    var oeLeft = leftWrapper && leftWrapper.querySelector ? leftWrapper.querySelector('.oe-editor') : leftWrapper;
+    if(!oeLeft) return;
+    var gutterEl = gutter;
+    var gutterRect = gutterEl.getBoundingClientRect();
+
+    visible.forEach(function(item, idx){
+      var seq = idx + 1;
+      var category = classifyDiff(item);
+      var highlight = oeLeft.querySelector('.diff-highlight[data-diff-id="'+seq+'"]');
+      if(!highlight) return;
+      var hRect = highlight.getBoundingClientRect();
+      var scrollTop = leftWrapper.scrollTop || 0;
+      var relativeTop = hRect.top - gutterRect.top + scrollTop;
+      var tick = document.createElement('div');
+      tick.className = 'compare-gutter-tick';
+      tick.setAttribute('data-diff-id', seq);
+      tick.setAttribute('data-category', category);
+      tick.style.top = relativeTop + 'px';
+      tick.addEventListener('mouseenter', function(){ highlightCorrespondence(seq.toString()); });
+      tick.addEventListener('mouseleave', function(){ clearCorrespondence(); });
+      gutterEl.appendChild(tick);
+    });
+  }
+  window.renderGutter = renderGutter;
+
+  /* ---- patch compareContracts: block drawer + retry annotations ---- */
+  var origCompare = window.compareContracts;
+  var origOpenDrawer = window.openDrawer;
+  window.compareContracts = function(){
+    /* ====== STEP 1: Neutralize openDrawer globally before calling orig ====== */
+    window.openDrawer = function(){};
+    /* MutationObserver backup */
+    var _drawerObserver = null;
+    function _startDrawerGuard(){
+      var drawer = document.getElementById('compare-drawer');
+      if(!drawer || _drawerObserver) return;
+      _drawerObserver = new MutationObserver(function(){
+        if(drawer.classList.contains('open')){
+          drawer.classList.remove('open');
+        }
+      });
+      _drawerObserver.observe(drawer, {attributes:true, attributeFilter:['class']});
+    }
+    _startDrawerGuard();
+    function forceCloseDrawer(){
+      var d = document.getElementById('compare-drawer');
+      if(d) d.classList.remove('open');
+      var o = document.getElementById('compare-drawer-overlay');
+      if(o) o.classList.remove('visible');
+      var p = document.getElementById('compare-popover');
+      if(p) p.hidden = true;
+    }
+    /* ====== STEP 2: Run original comparison ====== */
+    try { origCompare.call(this); } catch(e){ console.warn("[PATCH] origCompare error:", e); }
+    /* ====== STEP 3: Close drawer + cleanup ====== */
+    forceCloseDrawer();
+    var toggleBtn = document.getElementById('compare-drawer-toggle-btn');
+    if(toggleBtn) toggleBtn.hidden = true;
+    setTimeout(forceCloseDrawer, 100);
+    setTimeout(forceCloseDrawer, 300);
+    setTimeout(forceCloseDrawer, 600);
+    setTimeout(forceCloseDrawer, 1200);
+    setTimeout(function(){
+      if(origOpenDrawer) window.openDrawer = origOpenDrawer;
+      if(_drawerObserver){ _drawerObserver.disconnect(); _drawerObserver = null; }
+    }, 2000);
+    /* ====== STEP 4: Retry annotations until both sides have highlights ====== */
+    function retry(attempt){
+      if(attempt > 8) return;
+      setTimeout(function(){
+        forceCloseDrawer();
+        try { window.annotateEditors(); } catch(e){}
+        var lH = els.leftEditor ? els.leftEditor.querySelectorAll(".diff-highlight").length : 0;
+        var rH = els.rightEditor ? els.rightEditor.querySelectorAll(".diff-highlight").length : 0;
+        if((lH === 0 || rH === 0) && attempt < 8) retry(attempt + 1);
+        else {
+          forceCloseDrawer();
+          renderGutter();
+        }
+      }, 300 + attempt * 400);
+    }
+    retry(0);
+  };
+  console.log("[PATCH v3.2] inline annotations + drawer-block loaded");
+})();
 </script>
 </body>
 </html>
