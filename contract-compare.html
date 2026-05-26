@@ -19,14 +19,17 @@
     .upload-zone-half{border:2px dashed var(--gray5);border-radius:var(--r-sm);padding:30px;text-align:center;cursor:pointer;margin:20px;height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center}
     .upload-zone-half:hover{border-color:var(--gold);background:var(--gold-bg)}
     /* Diff highlight markers */
-    .diff-del{background:rgba(184,84,80,.12);border-left:3px solid var(--red);padding:1px 6px;border-radius:0 3px 3px 0;display:inline;position:relative}
-    .diff-add{background:rgba(90,138,106,.12);border-left:3px solid var(--green);padding:1px 6px;border-radius:0 3px 3px 0;display:inline;position:relative}
-    .diff-mod{background:rgba(196,122,32,.1);border-left:3px solid var(--amber);padding:1px 6px;border-radius:0 3px 3px 0;display:inline;position:relative}
+    .diff-del{background:rgba(184,84,80,.12);border-left:3px solid var(--red);padding:2px 8px;border-radius:0 4px 4px 0;display:inline;position:relative;box-shadow:inset 0 0 0 1px rgba(184,84,80,.08)}
+    .diff-add{background:rgba(90,138,106,.12);border-left:3px solid var(--green);padding:2px 8px;border-radius:0 4px 4px 0;display:inline;position:relative;box-shadow:inset 0 0 0 1px rgba(90,138,106,.08)}
+    .diff-mod{background:rgba(196,122,32,.1);border-left:3px solid var(--amber);padding:2px 8px;border-radius:0 4px 4px 0;display:inline;position:relative;box-shadow:inset 0 0 0 1px rgba(196,122,32,.08)}
     /* Sequence badges */
-    .diff-seq{display:inline-block;font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;margin-right:3px;vertical-align:top;line-height:14px;color:#fff;pointer-events:none}
+    .diff-seq{display:inline-block;font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;margin-right:4px;vertical-align:middle;line-height:14px;color:#fff;pointer-events:none;position:relative;top:-1px}
     .diff-del .diff-seq{background:var(--red)}
     .diff-add .diff-seq{background:var(--green)}
     .diff-mod .diff-seq{background:var(--amber)}
+    .diff-line{display:block;padding:2px 0;min-height:1.9em;position:relative}
+    .diff-line:hover{background:rgba(0,0,0,.02);border-radius:3px}
+    .diff-desc{font-size:11px;color:var(--muted);margin-left:8px;font-style:italic}
     /* Fallback appended items */
     .diff-fallback{margin:8px 0;padding:6px 10px;border:1px dashed var(--gray5);border-radius:4px;font-size:12px;color:var(--muted)}
     /* Diff summary bar */
@@ -185,7 +188,7 @@ async function runCompare(){
 }
 
 /* Render text with inline diff annotations — line-based approach.
-   Splits text into lines, matches each line against diffs, wraps matching lines. */
+   Each line wrapped in a block element; matching lines get colored highlights + numbered badges. */
 function highlightDiff(text,diffs,side){
   if(!diffs||!diffs.length)return `<div style="font-family:var(--font-serif);font-size:13px;line-height:1.9;white-space:pre-wrap">${esc(text)}</div>`;
   const lines=(text||"").split("\n");
@@ -213,12 +216,12 @@ function highlightDiff(text,diffs,side){
       appended.push(di);
     }
   });
-  // Build output
+  // Build output — each line is a <span class="diff-line"> for proper block display
   const out=[];
   lines.forEach((line,li)=>{
     const ds=lineDiffs[li];
     if(!ds.length){
-      out.push(esc(line));
+      out.push(`<span class="diff-line">${esc(line)||"&nbsp;"}</span>`);
       return;
     }
     // Use first matching diff for styling
@@ -230,9 +233,9 @@ function highlightDiff(text,diffs,side){
     const seq=ds[0]+1;
     let labelText=type==="deleted"?seq+" 缺失":type==="added"?seq+" 新增":seq+" 修改";
     const desc=d0.description||"";
-    const tip=desc?' title="'+esc(desc)+'"':"";
+    const descHtml=desc?`<span class="diff-desc">— ${esc(desc)}</span>`:"";
     // For right side modified: try to show revised text inline
-    if(side==="B"&&type==="modified"&&d.revised){
+    if(side==="B"&&type==="modified"&&d0.revised){
       // Find which part of the line matches the original, replace with revised
       const nline=norm(line);
       const norig=norm(d0.original);
@@ -246,13 +249,18 @@ function highlightDiff(text,diffs,side){
         while(ri<line.length&&ni<norig.length){if(/\s/.test(line[ri]))ri++;else{ri++;ni++;}}
         const before=esc(line.slice(0,startRi));
         const after=esc(line.slice(ri));
-        out.push(`<span class="${cls}"${tip}><span class="diff-seq">${esc(labelText)}</span>${before}${esc(d0.revised)}${after}</span>`);
+        out.push(`<span class="diff-line ${cls}"><span class="diff-seq">${esc(labelText)}</span>${before}<span style="text-decoration:underline dotted var(--amber)">${esc(d0.revised)}</span>${after}${descHtml}</span>`);
         return;
       }
     }
-    out.push(`<span class="${cls}"${tip}><span class="diff-seq">${esc(labelText)}</span>${esc(line)}</span>`);
+    // For right side added: show the added text highlighted
+    if(side==="B"&&type==="added"&&d0.revised){
+      out.push(`<span class="diff-line ${cls}"><span class="diff-seq">${esc(labelText)}</span>${esc(d0.revised)}${descHtml}</span>`);
+      return;
+    }
+    out.push(`<span class="diff-line ${cls}"><span class="diff-seq">${esc(labelText)}</span>${esc(line)}${descHtml}</span>`);
   });
-  // Append unmatched items
+  // Append unmatched items at bottom
   if(appended.length){
     const items=appended.map(di=>{
       const d=diffs[di];
@@ -260,13 +268,13 @@ function highlightDiff(text,diffs,side){
       const seq=di+1;
       let labelText=type==="deleted"?seq+" 缺失":type==="added"?seq+" 新增":seq+" 修改";
       const cls=type==="deleted"?"diff-del":type==="added"?"diff-add":"diff-mod";
-      const tip=d.description?' title="'+esc(d.description)+'"':"";
+      const tip=d.description?`<span class="diff-desc">— ${esc(d.description)}</span>`:"";
       const content=side==="B"&&d.revised?d.revised:d.original;
-      return `<div class="diff-fallback"><span class="${cls}"${tip}><span class="diff-seq">${esc(labelText)}</span>${esc(content)}</span></div>`;
+      return `<span class="diff-line"><span class="${cls}"><span class="diff-seq">${esc(labelText)}</span>${esc(content)}${tip}</span></span>`;
     });
-    out.push(`<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--gray5)"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">${side==="B"?"新增内容：":"缺失内容："}</div>${items.join("")}</div>`);
+    out.push(`<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--gray5)"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">${side==="B"?"⬆ 新增内容：":"⬇ 缺失内容："}</div>${items.join("")}</div>`);
   }
-  return `<div style="font-family:var(--font-serif);font-size:13px;line-height:1.9">${out.join("\n")}</div>`;
+  return `<div style="font-family:var(--font-serif);font-size:13px;line-height:1.9">${out.join("")}</div>`;
 }
 
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
