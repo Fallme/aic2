@@ -27,6 +27,8 @@
     .diff-del .diff-seq{background:var(--red)}
     .diff-add .diff-seq{background:var(--green)}
     .diff-mod .diff-seq{background:var(--amber)}
+    /* Fallback appended items */
+    .diff-fallback{margin:8px 0;padding:6px 10px;border:1px dashed var(--gray5);border-radius:4px;font-size:12px;color:var(--muted)}
     /* Diff summary bar */
     .compare-summary{padding:8px 14px;background:rgba(0,0,0,.03);border-bottom:1px solid var(--gray5);font-size:12px;color:var(--muted);line-height:1.6}
     .compare-summary strong{color:var(--ink)}
@@ -182,38 +184,63 @@ async function runCompare(){
   }
 }
 
-/* Render text with inline diff annotations. Processes from end to start to preserve offsets. */
+/* Render text with inline diff annotations.
+   side="A" (left/original): highlight deleted + modified text in red/amber
+   side="B" (right/revised): highlight added + modified text in green/amber, hide deleted */
 function highlightDiff(text,diffs,side){
   if(!diffs||!diffs.length)return `<div style="font-family:var(--font-serif);font-size:13px;line-height:1.9;white-space:pre-wrap">${esc(text)}</div>`;
 
   let html=text;
-  // Process from end to start so earlier offsets aren't invalidated
-  const sorted=diffs.map((d,i)=>({...d,_idx:i})).sort((a,b)=>{
-    const posA=html.indexOf((a.original||"").slice(0,30));
-    const posB=html.indexOf((b.original||"").slice(0,30));
-    return(posB===-1?999999:posB)-(posA===-1?999999:posA);
+  // Filter: left side shows modified+deleted, right side shows modified+added
+  const relevant=diffs.filter(d=>{
+    const t=d.type||"modified";
+    if(side==="A")return t==="modified"||t==="deleted";
+    return t==="modified"||t==="added";
   });
+  // Sort by position (end-to-start) to preserve offsets
+  const sorted=relevant.map((d,i)=>({...d,_origIdx:diffs.indexOf(d)}))
+    .sort((a,b)=>{
+      const posA=html.indexOf((a.original||"").slice(0,30));
+      const posB=html.indexOf((b.original||"").slice(0,30));
+      return(posB===-1?999999:posB)-(posA===-1?999999:posA);
+    });
 
+  const appended=[];
   sorted.forEach(d=>{
     const orig=d.original||"";
     if(!orig)return;
     const type=d.type||"modified";
-    const seq=d._idx+1;
+    const seq=d._origIdx+1;
     const desc=d.description||"";
 
-    // Pick CSS class based on side and type
+    // CSS class: left=red for deleted, green for added, amber for modified; right=green for added, amber for modified
     let cls;
-    if(type==="deleted")cls="diff-del";
-    else if(type==="added")cls="diff-add";
-    else cls=side==="A"?"diff-mod":"diff-mod";
+    if(side==="A"){
+      cls=type==="deleted"?"diff-del":"diff-mod";
+    }else{
+      cls=type==="added"?"diff-add":"diff-mod";
+    }
 
-    // Label text
+    // Label
     let labelText;
     if(type==="deleted")labelText=seq+" 缺失";
     else if(type==="added")labelText=seq+" 新增";
     else labelText=seq+" 修改";
 
-    // Try matching progressively shorter slices
+    // For right side with deleted type: hide the original text (it doesn't exist in new version)
+    if(side==="B"&&type==="deleted"){
+      const slices=[orig,orig.slice(0,40),orig.slice(0,30),orig.slice(0,20)];
+      for(const slice of slices){
+        if(!slice||slice.length<4)continue;
+        const idx=html.indexOf(slice);
+        if(idx<0)continue;
+        html=html.slice(0,idx)+html.slice(idx+slice.length);
+        break;
+      }
+      return;
+    }
+
+    // Try matching in text (progressive slice lengths)
     const slices=[orig,orig.slice(0,40),orig.slice(0,30),orig.slice(0,20)];
     let replaced=false;
     for(const slice of slices){
@@ -224,17 +251,30 @@ function highlightDiff(text,diffs,side){
       const after=html.slice(idx+slice.length);
       const label=esc(labelText);
       const tip=desc?' title="'+esc(desc)+'"':"";
-      html=before+`<span class="${cls}"${tip}><span class="diff-seq">${label}</span>${esc(slice)}</span>`+after;
+      // For right side modified: show the revised text with highlight
+      if(side==="B"&&type==="modified"&&d.revised){
+        html=before+`<span class="${cls}"${tip}><span class="diff-seq">${label}</span>${esc(d.revised)}</span>`+after;
+      }else{
+        html=before+`<span class="${cls}"${tip}><span class="diff-seq">${label}</span>${esc(slice)}</span>`+after;
+      }
       replaced=true;
       break;
     }
-    if(!replaced){
-      // Fallback: mark full original even if not found in text
+    // For right side added: can't find in original text, append at end
+    if(!replaced&&side==="B"&&type==="added"&&d.revised){
       const label=esc(labelText);
       const tip=desc?' title="'+esc(desc)+'"':"";
-      html+=`<p style="margin:8px 0;padding:6px 10px;border:1px dashed var(--gray5);border-radius:4px;font-size:12px;color:var(--muted)"><span class="${cls}"${tip}><span class="diff-seq">${label}</span>${esc(orig)}</span></p>`;
+      appended.push(`<span class="diff-add"${tip}><span class="diff-seq">${label}</span>${esc(d.revised)}</span>`);
+    }else if(!replaced){
+      const label=esc(labelText);
+      const tip=desc?' title="'+esc(desc)+'"':"";
+      appended.push(`<span class="${cls}"${tip}><span class="diff-seq">${label}</span>${esc(orig)}</span>`);
     }
   });
+  // Append added items at the bottom (right side)
+  if(appended.length){
+    html+=`\n\n<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--gray5)"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">${side==="B"?"新增内容：":"未匹配项："}</div>${appended.map(t=>`<div class="diff-fallback">${t}</div>`).join("")}</div>`;
+  }
   return `<div style="font-family:var(--font-serif);font-size:13px;line-height:1.9;white-space:pre-wrap">${html}</div>`;
 }
 
