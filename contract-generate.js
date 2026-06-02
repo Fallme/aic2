@@ -35,8 +35,8 @@ const els = {
   completionDetail: document.getElementById("completion-detail"),
   completionBar: document.getElementById("completion-bar"),
   contractEditorContainer: document.getElementById("contract-editor-container"),
-  contractEditorTitle: document.getElementById("contract-editor-title"),
-  contractEditorMeta: document.getElementById("contract-editor-meta"),
+  contractEditorTitle: document.getElementById("completion-title"),
+  contractEditorMeta: document.getElementById("completion-detail"),
   copyContractBtn: document.getElementById("copy-contract-btn"),
   downloadContractBtn: document.getElementById("download-contract-btn"),
   regenerateContractBtn: document.getElementById("regenerate-contract-btn"),
@@ -492,8 +492,8 @@ function updateLivePreview(force = false) {
   const template = selectedTemplate();
   if (!template) return;
   if ((state.draftReady || state.editorDirty) && !force) return;
-  els.contractEditorTitle.textContent = `${template.name}（实时预览）`;
-  els.contractEditorMeta.textContent = "根据当前对话和已补充信息实时填充，空缺处已挖空。";
+  els.contractEditorTitle.textContent = template.name;
+  els.contractEditorMeta.textContent = "实时预览 · 空缺处已挖空";
   setEditorHtml(officeEditor ? officeEditor.textToContractHtml(buildLiveDraft(template)) : textToHtml(buildLiveDraft(template)));
   renderDraftInsights({ template, missingWarnings: (template.requiredFields || []).filter((field) => !state.answers[field.key]).map((field) => field.label) });
   renderCompletionProgress({ template, missingFields: (template.requiredFields || []).filter((field) => !state.answers[field.key]) });
@@ -551,8 +551,8 @@ function startNewContract() {
   state.messages = [{ role: "assistant", html: initialGenerateMessage }];
   state.pendingQuestion = null;
   els.intent.value = "";
-  els.contractEditorTitle.textContent = "合同内容";
-  els.contractEditorMeta.textContent = "输入业务意图后实时预览，可在此处直接编辑。";
+  els.contractEditorTitle.textContent = "";
+  els.contractEditorMeta.textContent = "输入业务意图后实时预览";
   setEditorHtml("");
   renderMessages();
   renderTemplates();
@@ -609,10 +609,10 @@ function updateContractEditor(data = {}, options = {}) {
   const title = data.title || data.template?.name || "合同草稿";
   const templateName = data.template?.name || "";
   els.contractEditorTitle.textContent = title;
-  const doneMeta = `${templateName || "已生成草稿"}${data.usedFallback ? "｜本地兜底生成" : ""}｜已按规则库预检`;
+  const doneMeta = `${templateName || "已生成草稿"}${data.usedFallback ? " · 本地兜底" : ""} · 已预检`;
   const draft = stripGenerationProcess(data.draft || "");
   if (options.animate) {
-    els.contractEditorMeta.textContent = "正在逐字生成合同正文，规则库约束已纳入条款。";
+    els.contractEditorMeta.textContent = "逐字生成中...";
     typeDraftIntoEditor(draft, () => {
       els.contractEditorMeta.textContent = doneMeta;
       setGenerationBusy(false);
