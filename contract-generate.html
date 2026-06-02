@@ -20,6 +20,7 @@
       <a href="./contract-generate.html" class="active">✍️ 合同起草</a>
       <a href="./contract-review.html">🔍 合同审查</a>
       <a href="./contract-chat.html">💬 合同对话</a>
+      <a href="./my-contracts.html">📁 我的合同</a>
       <a href="./knowledge.html">📚 知识库</a>
     </nav>
   </aside>
@@ -97,6 +98,24 @@
             </div>
           </div>
           <div class="composer-suggestions" id="composer-suggestions" hidden></div>
+          <div class="answer-panel" id="answer-panel" hidden>
+            <div class="answer-tabs" id="answer-tabs">
+              <button class="answer-tab" type="button" data-source="knowledge">知识库</button>
+              <button class="answer-tab active" type="button" data-source="history">历史</button>
+              <button class="answer-tab" type="button" data-source="model">AI推荐</button>
+            </div>
+            <div class="answer-list" id="answer-list"></div>
+            <div class="answer-submit-row">
+              <input id="answer-input" type="text" placeholder="输入自定义答案，或点击上方选项..." />
+              <button class="primary" id="answer-submit-btn">确认</button>
+            </div>
+          </div>
+          <div class="answer-source-tabs" id="answer-source-tabs">
+            <button class="answer-source-tab active" type="button" data-source="all">全部</button>
+            <button class="answer-source-tab" type="button" data-source="knowledge">知识库</button>
+            <button class="answer-source-tab" type="button" data-source="history">历史</button>
+            <button class="answer-source-tab" type="button" data-source="model">AI推荐</button>
+          </div>
           <div class="chat-composer">
             <textarea id="generate-intent" placeholder="继续输入合同信息或回答追问，例如：采购方是A公司，供应商是B公司，合同总价20万元。"></textarea>
             <div class="actions">
@@ -138,4 +157,6 @@
   </main>
 
   <script src="./office-editor.js"></script>
-  <scr
+  <script src="./contract-generate.js"></script>
+</body>
+</html>

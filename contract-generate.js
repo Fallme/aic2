@@ -12,6 +12,9 @@ const state = {
   editorDirty: false,
   messages: [],
   pendingQuestion: null,
+  activeSourceTab: "all",
+  allSuggestions: [],
+  activeAnswerTab: "history",
 };
 
 const els = {
@@ -48,6 +51,12 @@ const els = {
   templateImportText: document.getElementById("template-import-text"),
   importTemplateBtn: document.getElementById("import-template-btn"),
   templateImportStatus: document.getElementById("template-import-status"),
+  answerSourceTabs: document.getElementById("answer-source-tabs"),
+  answerPanel: document.getElementById("answer-panel"),
+  answerTabs: document.getElementById("answer-tabs"),
+  answerList: document.getElementById("answer-list"),
+  answerInput: document.getElementById("answer-input"),
+  answerSubmitBtn: document.getElementById("answer-submit-btn"),
 };
 
 const STORAGE_KEY = "contract-generation-workbench-v1";
@@ -325,9 +334,18 @@ function renderMessages() {
   els.chat.scrollTop = els.chat.scrollHeight;
 }
 
-function renderComposerSuggestions(suggestions = []) {
+function renderComposerSuggestions(suggestions = [], sourceFilter) {
   if (!els.composerSuggestions) return;
-  const list = (suggestions || []).slice(0, 3).filter((item) => item?.text);
+  const filter = sourceFilter !== undefined ? sourceFilter : state.activeSourceTab;
+  state.allSuggestions = suggestions || [];
+  let filtered = state.allSuggestions;
+  if (filter !== "all") {
+    const sourceMap = { knowledge: "知识库推荐", history: "历史常用", model: "上下文/规则补全" };
+    const targetSource = sourceMap[filter] || filter;
+    filtered = state.allSuggestions.filter((item) => item.source === targetSource);
+  }
+  const list = filtered.slice(0, 5).filter((item) => item?.text);
+  updateTabCounts(state.allSuggestions);
   if (!list.length) {
     els.composerSuggestions.hidden = true;
     els.composerSuggestions.innerHTML = "";
@@ -344,6 +362,40 @@ function renderComposerSuggestions(suggestions = []) {
       `
     )
     .join("");
+}
+
+function updateTabCounts(suggestions = []) {
+  if (!els.answerSourceTabs) return;
+  const counts = { all: suggestions.length, knowledge: 0, history: 0, model: 0 };
+  const sourceMap = { "知识库推荐": "knowledge", "历史常用": "history", "上下文/规则补全": "model" };
+  for (const s of suggestions) {
+    const key = sourceMap[s.source] || "model";
+    counts[key]++;
+  }
+  els.answerSourceTabs.querySelectorAll(".answer-source-tab").forEach((tab) => {
+    const source = tab.dataset.source;
+    const count = counts[source] || 0;
+    let countEl = tab.querySelector(".tab-count");
+    if (count > 0) {
+      if (!countEl) {
+        countEl = document.createElement("span");
+        countEl.className = "tab-count";
+        tab.appendChild(countEl);
+      }
+      countEl.textContent = count;
+    } else if (countEl) {
+      countEl.remove();
+    }
+  });
+}
+
+function resetSourceTabs() {
+  state.activeSourceTab = "all";
+  if (els.answerSourceTabs) {
+    els.answerSourceTabs.querySelectorAll(".answer-source-tab").forEach((t) => {
+      t.classList.toggle("active", t.dataset.source === "all");
+    });
+  }
 }
 
 function clearComposerSuggestions() {
@@ -488,6 +540,8 @@ function startNewContract() {
   stopTypingDraft();
   setGenerationBusy(false);
   clearComposerSuggestions();
+  resetSourceTabs();
+  hideAnswerPanel();
   state.selectedTemplateId = state.templates[0]?.id || "";
   state.answers = {};
   state.intentSent = false;
@@ -600,12 +654,12 @@ function renderQuestionDialog(data) {
   const item = data.question || data.questions?.[0];
   if (!item) return;
   state.pendingQuestion = item;
+  state.allSuggestions = item.suggestions || [];
   renderCompletionProgress(data);
   const switchText =
     data.templateSwitched && data.requestedTemplate
-      ? `<div class="notice">已按你的描述从“${escapeHtml(data.requestedTemplate.name)}”自动切换为“${escapeHtml(data.template.name)}”。</div>`
+      ? `<div class="notice">已按你的描述从"${escapeHtml(data.requestedTemplate.name)}"自动切换为"${escapeHtml(data.template.name)}"。</div>`
       : "";
-  renderComposerSuggestions(item.suggestions || []);
   addMessage(
     "assistant",
     `
@@ -616,11 +670,71 @@ function renderQuestionDialog(data) {
       ${switchText}
       <div class="field-question">
         <strong>${escapeHtml(item.question)}</strong>
-        <p>请直接在下方对话框回复。系统会把回答写入合同正文，并继续追问下一个缺失信息。</p>
+        <p>从下方选择一个答案，或直接输入自定义内容后点击确认。</p>
       </div>
     `
   );
+  showAnswerPanel(item.suggestions || []);
   saveState();
+}
+
+function showAnswerPanel(suggestions) {
+  if (!els.answerPanel) return;
+  els.answerPanel.hidden = false;
+  state.activeAnswerTab = "history";
+  renderAnswerTabContent(suggestions);
+  updateAnswerTabBadges(suggestions);
+  if (els.answerInput) {
+    els.answerInput.value = "";
+    els.answerInput.placeholder = "输入自定义答案，或点击上方选项...";
+  }
+}
+
+function hideAnswerPanel() {
+  if (els.answerPanel) els.answerPanel.hidden = true;
+  state.activeAnswerTab = "history";
+}
+
+function renderAnswerTabContent(suggestions) {
+  if (!els.answerList) return;
+  const sourceMap = { knowledge: "知识库推荐", history: "历史常用", model: "上下文/规则补全" };
+  const targetSource = sourceMap[state.activeAnswerTab] || state.activeAnswerTab;
+  const items = suggestions.filter((s) => s.source === targetSource);
+  if (!items.length) {
+    els.answerList.innerHTML = `<div class="answer-empty">暂无${state.activeAnswerTab === "knowledge" ? "知识库" : state.activeAnswerTab === "history" ? "历史" : "AI"}相关答案</div>`;
+    return;
+  }
+  els.answerList.innerHTML = items
+    .map(
+      (item, i) =>
+        `<button class="answer-item" type="button" data-answer-index="${i}" data-answer-text="${escapeHtml(item.text)}">${escapeHtml(item.text)}</button>`
+    )
+    .join("");
+}
+
+function updateAnswerTabBadges(suggestions) {
+  if (!els.answerTabs) return;
+  const counts = { knowledge: 0, history: 0, model: 0 };
+  const sourceMap = { "知识库推荐": "knowledge", "历史常用": "history", "上下文/规则补全": "model" };
+  for (const s of suggestions) {
+    const key = sourceMap[s.source] || "model";
+    counts[key]++;
+  }
+  els.answerTabs.querySelectorAll(".answer-tab").forEach((tab) => {
+    const source = tab.dataset.source;
+    const count = counts[source] || 0;
+    let badge = tab.querySelector(".tab-badge");
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "tab-badge";
+        tab.appendChild(badge);
+      }
+      badge.textContent = count;
+    } else if (badge) {
+      badge.remove();
+    }
+  });
 }
 
 async function validatePendingAnswer(item, answer) {
@@ -661,7 +775,7 @@ function renderValidationFeedback(validation, item, originalAnswer) {
         : "";
       addMessage(
         "assistant",
-        `<div class="notice">已校验并填入“${escapeHtml(item.label || item.key)}”：${escapeHtml(normalized)}</div>${warningText}`
+        `<div class="notice">已校验并填入"${escapeHtml(item.label || item.key)}"：${escapeHtml(normalized)}</div>${warningText}`
       );
     }
     return;
@@ -683,13 +797,14 @@ function renderDraft(data) {
   state.answers = { ...state.answers, ...(data.answers || {}) };
   state.pendingQuestion = null;
   clearComposerSuggestions();
+  hideAnswerPanel();
   renderTemplates();
   renderCompletionProgress({ ...data, missingFields: [] });
   updateContractEditor(data, { animate: true });
   renderGenerationProgress("draft", ["intent", "template", "knowledge", "fields", "draft"]);
   const switchText =
     data.templateSwitched && data.requestedTemplate
-      ? `<div class="notice">已按你的描述从“${escapeHtml(data.requestedTemplate.name)}”自动切换为“${escapeHtml(data.template.name)}”。</div>`
+      ? `<div class="notice">已按你的描述从"${escapeHtml(data.requestedTemplate.name)}"自动切换为"${escapeHtml(data.template.name)}"。</div>`
       : "";
   addMessage(
     "assistant",
@@ -745,7 +860,7 @@ async function requestGeneration(options = {}) {
     }
     if (!validation.accepted) {
       renderValidationFeedback(validation, pending, message);
-      renderComposerSuggestions(validation.suggestions?.length ? validation.suggestions : pending.suggestions || []);
+      renderComposerSuggestions(validation.suggestions?.length ? validation.suggestions : pending.suggestions || [], state.activeSourceTab);
       saveState();
       return;
     }
@@ -881,10 +996,10 @@ async function importTemplateFromContract() {
     updateCommandStrip({ template, missingFields: template.requiredFields || [] });
     if (els.templateImportStatus) {
       els.templateImportStatus.textContent = data.usedAI
-        ? `已通过 AI 生成模板“${template.name}”，字段 ${template.requiredFields?.length || 0} 项。`
-        : `已用本地算法生成模板“${template.name}”，字段 ${template.requiredFields?.length || 0} 项。`;
+        ? `已通过 AI 生成模板"${template.name}"，字段 ${template.requiredFields?.length || 0} 项。`
+        : `已用本地算法生成模板"${template.name}"，字段 ${template.requiredFields?.length || 0} 项。`;
     }
-    addMessage("assistant", `已导入并保存模板“${escapeHtml(template.name)}”，可以直接开始按对话补全信息。`);
+    addMessage("assistant", `已导入并保存模板"${escapeHtml(template.name)}"，可以直接开始按对话补全信息。`);
     saveState();
   } catch (error) {
     if (els.templateImportStatus) els.templateImportStatus.textContent = error.message;
@@ -924,7 +1039,7 @@ function saveCustomTemplateLegacy() {
   renderTemplates();
   updateLivePreview(true);
   updateCommandStrip({ template, missingFields: requiredFields.filter((field) => !state.answers[field.key]) });
-  addMessage("assistant", `已保存自定义模板“${escapeHtml(name)}”，左侧字段可填写，右侧会实时预览。`);
+  addMessage("assistant", `已保存自定义模板"${escapeHtml(name)}"，左侧字段可填写，右侧会实时预览。`);
   saveState();
 }
 
@@ -1013,6 +1128,37 @@ els.composerSuggestions?.addEventListener("click", (event) => {
   saveState();
 });
 
+els.answerTabs?.addEventListener("click", (event) => {
+  const tab = event.target.closest(".answer-tab");
+  if (!tab) return;
+  state.activeAnswerTab = tab.dataset.source;
+  els.answerTabs.querySelectorAll(".answer-tab").forEach((t) => t.classList.remove("active"));
+  tab.classList.add("active");
+  renderAnswerTabContent(state.allSuggestions);
+});
+
+els.answerList?.addEventListener("click", (event) => {
+  const item = event.target.closest(".answer-item");
+  if (!item) return;
+  if (els.answerInput) els.answerInput.value = item.dataset.answerText || "";
+  els.answerList.querySelectorAll(".answer-item").forEach((btn) => btn.classList.remove("selected"));
+  item.classList.add("selected");
+});
+
+els.answerSubmitBtn?.addEventListener("click", () => {
+  const value = els.answerInput?.value.trim() || "";
+  if (!value) return;
+  if (els.intent) els.intent.value = value;
+  hideAnswerPanel();
+  requestGeneration();
+});
+
+els.answerInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.isComposing) return;
+  event.preventDefault();
+  els.answerSubmitBtn?.click();
+});
+
 els.templateFieldPanel.addEventListener("input", (event) => {
   const input = event.target.closest("[data-generation-field]");
   if (!input) return;
@@ -1064,6 +1210,16 @@ els.chat.addEventListener("input", (event) => {
 
 els.copyContractBtn.addEventListener("click", copyContractContent);
 els.downloadContractBtn.addEventListener("click", downloadContractContent);
+
+els.answerSourceTabs?.addEventListener("click", (event) => {
+  const tab = event.target.closest(".answer-source-tab");
+  if (!tab) return;
+  const source = tab.dataset.source;
+  state.activeSourceTab = source;
+  els.answerSourceTabs.querySelectorAll(".answer-source-tab").forEach((t) => t.classList.remove("active"));
+  tab.classList.add("active");
+  renderComposerSuggestions(state.allSuggestions, source);
+});
 
 loadInitial().catch((error) => {
   els.serverState.textContent = error.message;

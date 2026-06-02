@@ -98,7 +98,7 @@ main {
   flex-direction: column;
   gap: 8px;
   overflow: hidden;
-  padding: 14px 18px;
+  padding: 12px 14px;
 }
 
 .workbench-page .topbar,
@@ -542,8 +542,8 @@ textarea {
 .office-workbench {
   flex: 1 1 80vh;
   min-height: 0;
-  grid-template-columns: minmax(0, 4.2fr) minmax(280px, 1fr);
-  gap: 10px;
+  grid-template-columns: minmax(360px, 1fr) minmax(420px, 1.2fr);
+  gap: 12px;
   overflow: hidden;
 }
 
@@ -780,6 +780,7 @@ textarea {
   margin-bottom: 0;
   min-height: 0;
   overflow: hidden;
+  background: #f7f9fc;
 }
 
 .contract-editor-panel .panel-head {
@@ -967,8 +968,9 @@ textarea {
 .chat-panel {
   min-height: 0;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto auto auto auto;
   border: 1px solid var(--line);
+  border-left: 3px solid var(--blue);
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 8px 20px rgba(25, 35, 52, 0.05);
@@ -1158,6 +1160,187 @@ textarea {
   white-space: nowrap;
   font-size: 10px;
   line-height: 1.2;
+}
+
+/* ── Answer Source Tabs ── */
+.answer-source-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--line);
+  background: #fafbfe;
+}
+
+.answer-source-tab {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.answer-source-tab:hover {
+  background: #f0f4ff;
+  border-color: #c5d3eb;
+  color: #22304a;
+}
+
+.answer-source-tab.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  font-weight: 600;
+}
+
+.answer-source-tab .tab-count {
+  display: inline-block;
+  min-width: 16px;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.25);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.answer-source-tab:not(.active) .tab-count {
+  background: #eef2f8;
+  color: var(--muted);
+}
+
+/* ── Answer Panel (follow-up question form) ── */
+.answer-panel {
+  border-top: 1px solid var(--line);
+  background: #fafbfe;
+}
+
+.answer-panel .answer-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.answer-panel .answer-tab {
+  flex: 1;
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.answer-panel .answer-tab:hover {
+  color: #22304a;
+  background: #f4f8ff;
+}
+
+.answer-panel .answer-tab.active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+  font-weight: 600;
+}
+
+.answer-panel .answer-tab .tab-badge {
+  display: inline-block;
+  min-width: 16px;
+  margin-left: 3px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #eef2f8;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.answer-panel .answer-tab.active .tab-badge {
+  background: #e9f1ff;
+  color: var(--blue);
+}
+
+.answer-panel .answer-list {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 6px;
+  scrollbar-width: thin;
+}
+
+.answer-panel .answer-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s;
+  line-height: 1.4;
+}
+
+.answer-panel .answer-item:hover {
+  background: #fff;
+  border-color: var(--line);
+  box-shadow: 0 2px 6px rgba(0,0,0,.04);
+}
+
+.answer-panel .answer-item.selected {
+  background: #e9f1ff;
+  border-color: var(--blue);
+  color: var(--blue);
+  font-weight: 500;
+}
+
+.answer-panel .answer-empty {
+  padding: 12px 10px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.answer-panel .answer-submit-row {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+}
+
+.answer-panel .answer-submit-row input {
+  flex: 1;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+}
+
+.answer-panel .answer-submit-row input:focus {
+  border-color: var(--blue);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(24,90,188,.12);
+}
+
+.answer-panel .answer-submit-row button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 6px 16px;
+  font-size: 13px;
 }
 
 .contract-input,
